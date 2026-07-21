@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- SeqEdge — Supabase Database Schema
 -- ============================================================
 -- Run this SQL in your Supabase SQL Editor to create all
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS predicted_promoters (
   sample_id TEXT REFERENCES genome_samples(sample_id),
   chrom TEXT NOT NULL,
   start INTEGER NOT NULL,
-  end INTEGER NOT NULL,
+  end_pos INTEGER NOT NULL,
   score NUMERIC NOT NULL CHECK (score >= 0 AND score <= 1),
   strand TEXT NOT NULL CHECK (strand IN ('+', '-')),
   gene_symbol TEXT,
@@ -55,7 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_promoters_chrom ON predicted_promoters (chrom);
 CREATE INDEX IF NOT EXISTS idx_promoters_gene ON predicted_promoters (gene_symbol);
 CREATE INDEX IF NOT EXISTS idx_promoters_score ON predicted_promoters (score);
 CREATE INDEX IF NOT EXISTS idx_promoters_sample ON predicted_promoters (sample_id);
-CREATE INDEX IF NOT EXISTS idx_promoters_range ON predicted_promoters (chrom, start, end);
+CREATE INDEX IF NOT EXISTS idx_promoters_range ON predicted_promoters (chrom, start, end_pos);
 CREATE INDEX IF NOT EXISTS idx_promoters_strand ON predicted_promoters (strand);
 CREATE INDEX IF NOT EXISTS idx_variants_chrom_pos ON variant_index (chrom, pos);
 CREATE INDEX IF NOT EXISTS idx_variants_gene ON variant_index (gene_symbol);
@@ -81,7 +81,7 @@ INSERT INTO genome_samples (sample_id, species, tissue, sequencing_platform, ass
   ('SAMPLE-005', 'Oryza sativa', 'root', 'Nanopore', 'IRGSP-1.0', 1780000, 28.3),
   ('SAMPLE-006', 'Escherichia coli', 'whole_cell', 'Illumina MiSeq', 'ASM584v2', 892000, 100.0);
 
-INSERT INTO predicted_promoters (sample_id, chrom, start, end, score, strand, gene_symbol, sequence) VALUES
+INSERT INTO predicted_promoters (sample_id, chrom, start, end_pos, score, strand, gene_symbol, sequence) VALUES
   ('SAMPLE-001', 'chr17', 43044295, 43045800, 0.95, '+', 'BRCA1', 'ATGCGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCATCGATCG'),
   ('SAMPLE-001', 'chr17', 43050000, 43051500, 0.88, '-', 'BRCA1', 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG'),
   ('SAMPLE-002', 'chr7', 55000000, 55002000, 0.91, '+', 'EGFR', 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC'),

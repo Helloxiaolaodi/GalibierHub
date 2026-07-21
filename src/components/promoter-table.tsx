@@ -36,8 +36,8 @@ export default function PromoterTable({ data, onRowClick }: PromoterTableProps) 
         cell: ({ getValue }) => (getValue() as number).toLocaleString(),
       },
       {
-        accessorKey: 'end',
-        header: 'End',
+        accessorKey: 'end_pos',
+        header: 'End Pos',
         size: 100,
         cell: ({ getValue }) => (getValue() as number).toLocaleString(),
       },

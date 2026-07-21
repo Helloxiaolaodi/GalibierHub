@@ -6,13 +6,13 @@ import type { Promoter } from '@/types/genome';
 
 const DEMO_PROMOTERS: Record<string, Promoter> = {
   'chr17_43044295_43045800': {
-    id: '1', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43044295, end: 43045800,
+    id: '1', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43044295, end_pos: 43045800,
     score: 0.95, strand: '+', gene_symbol: 'BRCA1',
     sequence: 'ATGCGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCATCGATCG',
     created_at: '2025-01-15',
   },
   'chr7_55000000_55002000': {
-    id: '3', sample_id: 'SAMPLE-002', chrom: 'chr7', start: 55000000, end: 55002000,
+    id: '3', sample_id: 'SAMPLE-002', chrom: 'chr7', start: 55000000, end_pos: 55002000,
     score: 0.91, strand: '+', gene_symbol: 'EGFR',
     sequence: 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC',
     created_at: '2025-01-16',
@@ -55,7 +55,7 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
       </header>
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div className="bg-blue-50 rounded-lg px-4 py-2 text-sm text-blue-700 flex items-center gap-2">
-          <span className="font-mono">{promoter.chrom}:{promoter.start.toLocaleString()}-{promoter.end.toLocaleString()}</span>
+          <span className="font-mono">{promoter.chrom}:{promoter.start.toLocaleString()}-{promoter.end_pos.toLocaleString()}</span>
           <span>|</span>
           <span>{promoter.gene_symbol}</span>
           <span>|</span>
@@ -64,7 +64,7 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white border rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Gene</div><div className="text-xl font-bold">{promoter.gene_symbol || 'N/A'}</div></div>
           <div className="bg-white border rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Score</div><div className="text-xl font-bold" style={{ color: promoter.score > 0.85 ? '#22c55e' : promoter.score > 0.7 ? '#eab308' : '#ef4444' }}>{promoter.score.toFixed(4)}</div></div>
-          <div className="bg-white border rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Length</div><div className="text-xl font-bold">{(promoter.end - promoter.start).toLocaleString()} bp</div></div>
+          <div className="bg-white border rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Length</div><div className="text-xl font-bold">{(promoter.end_pos - promoter.start).toLocaleString()} bp</div></div>
           <div className="bg-white border rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Sample</div><div className="text-sm font-bold">{promoter.sample_id}</div></div>
         </div>
         <div className="bg-white border rounded-lg p-4">
@@ -75,7 +75,7 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
         </div>
         <div className="flex gap-3">
           <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">View in Genome Browser</Link>
-          <button onClick={() => navigator.clipboard.writeText([promoter.chrom, promoter.start, promoter.end, promoter.gene_symbol || 'NA', promoter.score, promoter.strand].join('\t'))} className="px-4 py-2 border rounded-lg text-sm">Copy as BED</button>
+          <button onClick={() => navigator.clipboard.writeText([promoter.chrom, promoter.start, promoter.end_pos, promoter.gene_symbol || 'NA', promoter.score, promoter.strand].join('\t'))} className="px-4 py-2 border rounded-lg text-sm">Copy as BED</button>
         </div>
       </main>
     </div>

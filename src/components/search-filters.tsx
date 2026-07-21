@@ -5,7 +5,7 @@ import { useState } from 'react';
 export interface SearchFilters {
   chrom: string;
   start: string;
-  end: string;
+  end_pos: string;
   geneSymbol: string;
   minScore: string;
   species: string;
@@ -27,7 +27,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
   const [filters, setFilters] = useState<SearchFilters>({
     chrom: '',
     start: '',
-    end: '',
+    end_pos: '',
     geneSymbol: '',
     minScore: '',
     species: '',
@@ -40,7 +40,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
 
   const handleReset = () => {
     const empty: SearchFilters = {
-      chrom: '', start: '', end: '', geneSymbol: '',
+      chrom: '', start: '', end_pos: '', geneSymbol: '',
       minScore: '', species: '', sampleId: '',
     };
     setFilters(empty);
@@ -83,8 +83,8 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           <input
             type="number"
             placeholder="e.g. 2000000"
-            value={filters.end}
-            onChange={(e) => handleChange('end', e.target.value)}
+            value={filters.end_pos}
+            onChange={(e) => handleChange('end_pos', e.target.value)}
             className="w-full px-3 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>

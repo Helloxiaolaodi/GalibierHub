@@ -19,7 +19,7 @@ export interface Promoter {
   sample_id: string;
   chrom: string;
   start: number;
-  end: number;
+  end_pos: number;
   score: number;
   strand: "+" | "-";
   gene_symbol: string | null;

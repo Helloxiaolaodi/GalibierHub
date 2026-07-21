@@ -1,4 +1,4 @@
-# SeqEdge
+﻿# SeqEdge
 
 > **A modern, open-source template for building genomic databases**  
 > Stack: Next.js + Supabase + Cloudflare R2 + JBrowse 2 + TanStack Table + ECharts  
@@ -133,7 +133,7 @@ export const SiteConfig = {
 | sample_id | text | yes | SAMPLE-001 |
 | chrom | text | yes | chr17 |
 | start | integer | yes | 43044295 |
-| end | integer | yes | 43045800 |
+| end_pos | integer | yes | 43045800 |
 | score | numeric(0-1) | yes | 0.95 |
 | strand | text (+/-) | yes | + |
 | gene_symbol | text | no | BRCA1 |

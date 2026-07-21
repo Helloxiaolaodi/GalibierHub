@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Promoter, DashboardStats } from '@/types/genome';
@@ -10,18 +10,18 @@ import GenomeBrowser from '@/components/genome-browser';
 
 // Fallback demo data — used only when Supabase is not yet connected
 const DEMO_PROMOTERS: Promoter[] = [
-  { id: '1', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43044295, end: 43045800, score: 0.95, strand: '+', gene_symbol: 'BRCA1', sequence: 'ATGCGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCATCGATCG', created_at: '2025-01-15' },
-  { id: '2', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43050000, end: 43051500, score: 0.88, strand: '-', gene_symbol: 'BRCA1', sequence: 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-15' },
-  { id: '3', sample_id: 'SAMPLE-002', chrom: 'chr7', start: 55000000, end: 55002000, score: 0.91, strand: '+', gene_symbol: 'EGFR', sequence: 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC', created_at: '2025-01-16' },
-  { id: '4', sample_id: 'SAMPLE-002', chrom: 'chr7', start: 55010000, end: 55011500, score: 0.73, strand: '-', gene_symbol: 'EGFR', sequence: 'TTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC', created_at: '2025-01-16' },
-  { id: '5', sample_id: 'SAMPLE-003', chrom: 'chr12', start: 25000000, end: 25001800, score: 0.82, strand: '+', gene_symbol: 'KRAS', sequence: 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-17' },
-  { id: '6', sample_id: 'SAMPLE-003', chrom: 'chr12', start: 25005000, end: 25006000, score: 0.67, strand: '+', gene_symbol: 'KRAS', sequence: 'AACGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-17' },
-  { id: '7', sample_id: 'SAMPLE-004', chrom: 'chr1', start: 150000000, end: 150002000, score: 0.89, strand: '-', gene_symbol: 'TP53', sequence: 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-18' },
-  { id: '8', sample_id: 'SAMPLE-004', chrom: 'chr1', start: 150010000, end: 150011500, score: 0.94, strand: '+', gene_symbol: 'TP53', sequence: 'GCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-18' },
-  { id: '9', sample_id: 'SAMPLE-005', chrom: 'chr2', start: 47000000, end: 47002500, score: 0.78, strand: '+', gene_symbol: 'MYCN', sequence: 'TTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-19' },
-  { id: '10', sample_id: 'SAMPLE-005', chrom: 'chr2', start: 47008000, end: 47009500, score: 0.86, strand: '-', gene_symbol: 'ALK', sequence: 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-19' },
-  { id: '11', sample_id: 'SAMPLE-006', chrom: 'chr3', start: 178000000, end: 178002000, score: 0.71, strand: '+', gene_symbol: 'PIK3CA', sequence: null, created_at: '2025-01-20' },
-  { id: '12', sample_id: 'SAMPLE-006', chrom: 'chr3', start: 178010000, end: 178012000, score: 0.83, strand: '-', gene_symbol: 'PIK3CA', sequence: null, created_at: '2025-01-20' },
+  { id: '1', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43044295, end_pos: 43045800, score: 0.95, strand: '+', gene_symbol: 'BRCA1', sequence: 'ATGCGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCATCGATCG', created_at: '2025-01-15' },
+  { id: '2', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43050000, end_pos: 43051500, score: 0.88, strand: '-', gene_symbol: 'BRCA1', sequence: 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-15' },
+  { id: '3', sample_id: 'SAMPLE-002', chrom: 'chr7', start: 55000000, end_pos: 55002000, score: 0.91, strand: '+', gene_symbol: 'EGFR', sequence: 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC', created_at: '2025-01-16' },
+  { id: '4', sample_id: 'SAMPLE-002', chrom: 'chr7', start: 55010000, end_pos: 55011500, score: 0.73, strand: '-', gene_symbol: 'EGFR', sequence: 'TTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC', created_at: '2025-01-16' },
+  { id: '5', sample_id: 'SAMPLE-003', chrom: 'chr12', start: 25000000, end_pos: 25001800, score: 0.82, strand: '+', gene_symbol: 'KRAS', sequence: 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-17' },
+  { id: '6', sample_id: 'SAMPLE-003', chrom: 'chr12', start: 25005000, end_pos: 25006000, score: 0.67, strand: '+', gene_symbol: 'KRAS', sequence: 'AACGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-17' },
+  { id: '7', sample_id: 'SAMPLE-004', chrom: 'chr1', start: 150000000, end_pos: 150002000, score: 0.89, strand: '-', gene_symbol: 'TP53', sequence: 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-18' },
+  { id: '8', sample_id: 'SAMPLE-004', chrom: 'chr1', start: 150010000, end_pos: 150011500, score: 0.94, strand: '+', gene_symbol: 'TP53', sequence: 'GCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-18' },
+  { id: '9', sample_id: 'SAMPLE-005', chrom: 'chr2', start: 47000000, end_pos: 47002500, score: 0.78, strand: '+', gene_symbol: 'MYCN', sequence: 'TTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-19' },
+  { id: '10', sample_id: 'SAMPLE-005', chrom: 'chr2', start: 47008000, end_pos: 47009500, score: 0.86, strand: '-', gene_symbol: 'ALK', sequence: 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-19' },
+  { id: '11', sample_id: 'SAMPLE-006', chrom: 'chr3', start: 178000000, end_pos: 178002000, score: 0.71, strand: '+', gene_symbol: 'PIK3CA', sequence: null, created_at: '2025-01-20' },
+  { id: '12', sample_id: 'SAMPLE-006', chrom: 'chr3', start: 178010000, end_pos: 178012000, score: 0.83, strand: '-', gene_symbol: 'PIK3CA', sequence: null, created_at: '2025-01-20' },
 ];
 
 const DEMO_STATS: DashboardStats = {
@@ -72,7 +72,7 @@ export default function HomePage() {
     if (filters.geneSymbol) params.set('gene_symbol', filters.geneSymbol);
     if (filters.minScore) params.set('min_score', filters.minScore);
     if (filters.start) params.set('start', filters.start);
-    if (filters.end) params.set('end', filters.end);
+    if (filters.end_pos) params.set('end_pos', filters.end_pos);
     if (filters.sampleId) params.set('sample_id', filters.sampleId);
 
     fetch(`/api/promoters?${params.toString()}`)
@@ -87,7 +87,7 @@ export default function HomePage() {
         if (filters.geneSymbol) filtered = filtered.filter((p) => p.gene_symbol?.toLowerCase().includes(filters.geneSymbol.toLowerCase()));
         if (filters.minScore) filtered = filtered.filter((p) => p.score >= parseFloat(filters.minScore));
         if (filters.start) filtered = filtered.filter((p) => p.start >= parseInt(filters.start));
-        if (filters.end) filtered = filtered.filter((p) => p.end <= parseInt(filters.end));
+        if (filters.end_pos) filtered = filtered.filter((p) => p.end_pos <= parseInt(filters.end_pos));
         if (filters.sampleId) filtered = filtered.filter((p) => p.sample_id.toLowerCase().includes(filters.sampleId.toLowerCase()));
         setPromoters(filtered);
       })
@@ -96,7 +96,7 @@ export default function HomePage() {
 
   const handleRowClick = useCallback((promoter: Promoter) => {
     setSelectedPromoter(promoter);
-    const locus = `${promoter.chrom}:${Math.max(0, promoter.start - 2000).toLocaleString()}-${(promoter.end + 2000).toLocaleString()}`;
+    const locus = `${promoter.chrom}:${Math.max(0, promoter.start - 2000).toLocaleString()}-${(promoter.end_pos + 2000).toLocaleString()}`;
     setBrowserLocus(locus);
     setActiveTab('genome');
   }, []);
@@ -147,7 +147,7 @@ export default function HomePage() {
               data={promoters}
               onRowClick={(p) => {
                 setSelectedPromoter(p);
-                const locus = `${p.chrom}:${Math.max(0, p.start - 2000).toLocaleString()}-${(p.end + 2000).toLocaleString()}`;
+                const locus = `${p.chrom}:${Math.max(0, p.start - 2000).toLocaleString()}-${(p.end_pos + 2000).toLocaleString()}`;
                 setBrowserLocus(locus);
               }}
             />

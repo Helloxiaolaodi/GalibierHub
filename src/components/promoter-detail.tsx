@@ -13,19 +13,19 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
   const strandColor = promoter.strand === '+' ? 'text-blue-600' : 'text-red-600';
 
   const handleCopyBed = () => {
-    const bed = `${promoter.chrom}\t${promoter.start}\t${promoter.end}\t${promoter.gene_symbol || 'NA'}\t${promoter.score}\t${promoter.strand}`;
+    const bed = `${promoter.chrom}\t${promoter.start}\t${promoter.end_pos}\t${promoter.gene_symbol || 'NA'}\t${promoter.score}\t${promoter.strand}`;
     navigator.clipboard.writeText(bed);
   };
 
   const handleCopyFasta = () => {
     if (promoter.sequence) {
-      const header = `>${promoter.gene_symbol || 'promoter'}_${promoter.chrom}:${promoter.start}-${promoter.end}:${promoter.strand}`;
+      const header = `>${promoter.gene_symbol || 'promoter'}_${promoter.chrom}:${promoter.start}-${promoter.end_pos}:${promoter.strand}`;
       navigator.clipboard.writeText(`${header}\n${promoter.sequence}`);
     }
   };
 
   const handleViewInBrowser = () => {
-    const locus = `${promoter.chrom}:${Math.max(0, promoter.start - 2000).toLocaleString()}-${(promoter.end + 2000).toLocaleString()}`;
+    const locus = `${promoter.chrom}:${Math.max(0, promoter.start - 2000).toLocaleString()}-${(promoter.end_pos + 2000).toLocaleString()}`;
     window.location.hash = `locus=${encodeURIComponent(locus)}`;
   };
 
@@ -69,13 +69,13 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
               <div>
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Position</div>
                 <div className="font-mono text-gray-900">
-                  {promoter.start.toLocaleString()} \u2014 {promoter.end.toLocaleString()}
+                  {promoter.start.toLocaleString()} \u2014 {promoter.end_pos.toLocaleString()}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Length</div>
                 <div className="font-mono text-gray-900">
-                  {(promoter.end - promoter.start).toLocaleString()} bp
+                  {(promoter.end_pos - promoter.start).toLocaleString()} bp
                 </div>
               </div>
               <div>
@@ -172,7 +172,7 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
             <span className="truncate">
-              /promoter/{promoter.chrom}_{promoter.start}_{promoter.end}
+              /promoter/{promoter.chrom}_{promoter.start}_{promoter.end_pos}
             </span>
           </div>
         </div>
