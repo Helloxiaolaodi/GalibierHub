@@ -9,6 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@jbrowse/react-linear-genome-view": "^3.1.0",
+    "@supabase/supabase-js": "^2.110.7",
+    "@tanstack/react-table": "^8.21.3",
+    "@types/echarts": "^4.9.22",
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4"
