@@ -1,5 +1,5 @@
-﻿-- ============================================================
--- Genomes & Promoters — Supabase Database Schema
+-- ============================================================
+-- SeqEdge — Supabase Database Schema
 -- ============================================================
 -- Run this SQL in your Supabase SQL Editor to create all
 -- required tables, indexes, and sample data.

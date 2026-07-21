@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // Site Configuration — Edit this file to customize your database
 // ============================================================
 // This is the SINGLE source of truth for all site-wide settings.
@@ -7,10 +7,10 @@
 
 export const SiteConfig = {
   // ---- Site identity ----
-  title: 'Genomes & Promoters',
-  subtitle: 'Whole Genome Promoter Prediction Database',
-  description: 'Interactive database for browsing predicted promoters and whole genome data.',
-  keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation'],
+  title: 'SeqEdge',
+  subtitle: 'A Modern Edge-Native Portal for Genomic Databases',
+  description: 'Interactive database for browsing predicted promoters, whole genome annotations, and genomic data — powered by serverless edge infrastructure.',
+  keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation', 'seqedge'],
   contactEmail: 'lab@university.edu',
 
   // ---- Branding ----

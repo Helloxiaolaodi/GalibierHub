@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Promoter, DashboardStats } from '@/types/genome';
@@ -8,7 +8,7 @@ import PromoterTable from '@/components/promoter-table';
 import PromoterDetail from '@/components/promoter-detail';
 import GenomeBrowser from '@/components/genome-browser';
 
-// Demo data for development — replace with Supabase queries in production
+// Fallback demo data — used only when Supabase is not yet connected
 const DEMO_PROMOTERS: Promoter[] = [
   { id: '1', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43044295, end: 43045800, score: 0.95, strand: '+', gene_symbol: 'BRCA1', sequence: 'ATGCGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCATCGATCG', created_at: '2025-01-15' },
   { id: '2', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43050000, end: 43051500, score: 0.88, strand: '-', gene_symbol: 'BRCA1', sequence: 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-15' },
@@ -49,26 +49,49 @@ const DEMO_STATS: DashboardStats = {
 
 export default function HomePage() {
   const [promoters, setPromoters] = useState<Promoter[]>(DEMO_PROMOTERS);
-  const [stats] = useState<DashboardStats>(DEMO_STATS);
+  const [stats, setStats] = useState<DashboardStats>(DEMO_STATS);
   const [selectedPromoter, setSelectedPromoter] = useState<Promoter | null>(null);
   const [browserLocus, setBrowserLocus] = useState('chr17:43,044,295-43,125,483');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome'>('overview');
 
+  // Fetch stats from API on mount — falls back to demo data when Supabase is not configured
+  useEffect(() => {
+    fetch('/api/stats')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && !data.error) setStats(data);
+      })
+      .catch(() => { /* keep DEMO_STATS */ });
+  }, []);
+
   const handleSearch = useCallback((filters: FiltersType) => {
     setLoading(true);
-    // Filter demo data — in production, this queries Supabase
-    setTimeout(() => {
-      let filtered = DEMO_PROMOTERS;
-      if (filters.chrom) filtered = filtered.filter((p) => p.chrom === filters.chrom);
-      if (filters.geneSymbol) filtered = filtered.filter((p) => p.gene_symbol?.toLowerCase().includes(filters.geneSymbol.toLowerCase()));
-      if (filters.minScore) filtered = filtered.filter((p) => p.score >= parseFloat(filters.minScore));
-      if (filters.start) filtered = filtered.filter((p) => p.start >= parseInt(filters.start));
-      if (filters.end) filtered = filtered.filter((p) => p.end <= parseInt(filters.end));
-      if (filters.sampleId) filtered = filtered.filter((p) => p.sample_id.toLowerCase().includes(filters.sampleId.toLowerCase()));
-      setPromoters(filtered);
-      setLoading(false);
-    }, 300);
+    const params = new URLSearchParams();
+    if (filters.chrom) params.set('chrom', filters.chrom);
+    if (filters.geneSymbol) params.set('gene_symbol', filters.geneSymbol);
+    if (filters.minScore) params.set('min_score', filters.minScore);
+    if (filters.start) params.set('start', filters.start);
+    if (filters.end) params.set('end', filters.end);
+    if (filters.sampleId) params.set('sample_id', filters.sampleId);
+
+    fetch(`/api/promoters?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.data) setPromoters(data.data);
+      })
+      .catch(() => {
+        // Fallback: filter demo data client-side
+        let filtered = DEMO_PROMOTERS;
+        if (filters.chrom) filtered = filtered.filter((p) => p.chrom === filters.chrom);
+        if (filters.geneSymbol) filtered = filtered.filter((p) => p.gene_symbol?.toLowerCase().includes(filters.geneSymbol.toLowerCase()));
+        if (filters.minScore) filtered = filtered.filter((p) => p.score >= parseFloat(filters.minScore));
+        if (filters.start) filtered = filtered.filter((p) => p.start >= parseInt(filters.start));
+        if (filters.end) filtered = filtered.filter((p) => p.end <= parseInt(filters.end));
+        if (filters.sampleId) filtered = filtered.filter((p) => p.sample_id.toLowerCase().includes(filters.sampleId.toLowerCase()));
+        setPromoters(filtered);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleRowClick = useCallback((promoter: Promoter) => {
@@ -85,14 +108,14 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
-              GP
+              SE
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900 leading-tight">
-                Genomes & Promoters
+                SeqEdge
               </h1>
               <p className="text-xs text-gray-500">
-                Whole Genome Promoter Prediction Database
+                A Modern Edge-Native Portal for Genomic Databases
               </p>
             </div>
           </div>

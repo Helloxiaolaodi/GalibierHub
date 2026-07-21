@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Genomes & Promoters — Whole Genome Promoter Prediction Database",
-  description: "Interactive database for browsing predicted promoters and whole genome data. Powered by Supabase, JBrowse 2, and Cloudflare R2.",
-  keywords: ["promoter", "genome", "bioinformatics", "transcription factor", "TFBS", "gene regulation"],
+  title: "SeqEdge — A Modern Edge-Native Portal for Genomic Databases",
+  description: "Interactive database for browsing predicted promoters, whole genome annotations, and genomic data. Powered by Next.js, Supabase, Cloudflare R2, and JBrowse 2.",
+  keywords: ["promoter", "genome", "bioinformatics", "transcription factor", "TFBS", "gene regulation", "seqedge"],
 };
 
 export default function RootLayout({
