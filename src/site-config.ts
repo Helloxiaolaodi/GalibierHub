@@ -1,5 +1,5 @@
-// ============================================================
-// Site Configuration — Edit this file to customize your database
+﻿// ============================================================
+// Site Configuration â€” Edit this file to customize your database
 // ============================================================
 // This is the SINGLE source of truth for all site-wide settings.
 // Other users who fork this template only need to edit this file
@@ -9,7 +9,7 @@ export const SiteConfig = {
   // ---- Site identity ----
   title: 'SeqEdge',
   subtitle: 'A Modern Edge-Native Portal for Genomic Databases',
-  description: 'Interactive database for browsing predicted promoters, whole genome annotations, and genomic data — powered by serverless edge infrastructure.',
+  description: 'Interactive database for browsing predicted promoters, whole genome annotations, and genomic data â€” powered by serverless edge infrastructure.',
   keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation', 'seqedge'],
   contactEmail: 'lab@university.edu',
 
@@ -24,8 +24,8 @@ export const SiteConfig = {
 
   // ---- Genome browser defaults ----
   jbrowse: {
-    defaultAssembly: 'hg38',
-    defaultLocus: 'chr17:43,044,295-43,125,483',
+    defaultAssembly: 'volvox',
+    defaultLocus: 'ctgA:1-5000',
     // Change this to your Cloudflare R2 or other object storage URL
     storageBaseUrl: process.env.NEXT_PUBLIC_R2_PUBLIC_URL || 'https://your-r2-bucket.r2.dev',
     tracks: [
@@ -38,9 +38,8 @@ export const SiteConfig = {
 
   // ---- Search filters ----
   chromosomes: [
-    'chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8',
-    'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16',
-    'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX', 'chrY', 'chrMT',
+    'ctgA', 'ctgB',
+    // For human genomes, replace with: 'chr1', 'chr2', ..., 'chr22', 'chrX', 'chrY', 'chrMT'
   ],
 
   // ---- Table pagination ----

@@ -2,7 +2,7 @@
 
 > **A modern, open-source template for building genomic databases**  
 > Stack: Next.js + Supabase + Cloudflare R2 + JBrowse 2 + TanStack Table + ECharts  
-> Tagline: _Bringing 100k+ Genomes to the Edge._
+> Tagline: _Scalable Genomics at the Edge._
 
 ## What is SeqEdge?
 
@@ -433,4 +433,18 @@ MIT — use freely for academic and commercial projects.
 
 ## Acknowledgments
 
-SeqEdge builds on the architecture and design principles of databases like [EPD](https://epd.epfl.ch/), [DBTSS](https://dbtss.hgc.jp/), and [RegulonDB](https://regulondb.ccg.unam.mx/), modernized with cloud-native infrastructure.
+SeqEdge would not be possible without the outstanding open-source tools it builds upon. We are deeply grateful to the creators and maintainers of these projects:
+
+- **[Next.js](https://nextjs.org/)** — The React framework for production. Powers our frontend, API routes, and server-side rendering.
+- **[Supabase](https://supabase.com/)** — The open-source Firebase alternative. Provides our PostgreSQL database, real-time subscriptions, and REST API.
+- **[JBrowse 2](https://jbrowse.org/jb2/)** — A fast, embeddable genome browser built with modern web technologies. Drives our interactive genome viewing experience.
+- **[Cloudflare R2](https://www.cloudflare.com/products/r2/)** — Object storage with zero egress fees. Stores and serves our large genomic data files via HTTP Range Requests.
+- **[Vercel](https://vercel.com/)** — The platform for frontend developers. Deploys our Next.js application with global CDN distribution.
+- **[TanStack Table](https://tanstack.com/table/)** — Headless UI for building powerful tables. Powers our sortable, filterable, paginated promoter data table.
+- **[Apache ECharts](https://echarts.apache.org/)** — A powerful, interactive charting library. Drives our species distribution and score visualizations.
+- **[Tailwind CSS](https://tailwindcss.com/)** — A utility-first CSS framework. Enables our rapid, consistent UI styling.
+
+SeqEdge also draws design inspiration from foundational genomic databases like [EPD](https://epd.epfl.ch/), [DBTSS](https://dbtss.hgc.jp/), and [RegulonDB](https://regulondb.ccg.unam.mx/), modernized with cloud-native infrastructure.
+
+*Part of the SeqEdge project — [github.com/Helloxiaolaodi/SeqEdge](https://github.com/Helloxiaolaodi/SeqEdge)*
+*Stack: Next.js · Supabase · Cloudflare R2 · JBrowse 2 · TanStack Table · ECharts*

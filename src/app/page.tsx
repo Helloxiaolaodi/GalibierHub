@@ -156,13 +156,8 @@ export default function HomePage() {
                 Genome Browser — Click a promoter row to navigate
               </div>
               <GenomeBrowser
-                assemblyName="Demo Assembly (hg38)"
                 locus={browserLocus}
                 onLocusChange={setBrowserLocus}
-                tracks={[
-                  { name: 'Predicted Promoters', type: 'annotation', url: '', format: 'bed' },
-                  { name: 'RNA-seq Coverage', type: 'quantitative', url: '', format: 'bigwig' },
-                ]}
               />
             </div>
           </>
@@ -181,15 +176,8 @@ export default function HomePage() {
           <>
             <SearchFilters onSearch={handleSearch} loading={loading} />
             <GenomeBrowser
-              assemblyName="Demo Assembly (hg38)"
               locus={browserLocus}
               onLocusChange={setBrowserLocus}
-              tracks={[
-                { name: 'Predicted Promoters', type: 'annotation', url: '', format: 'bed' },
-                { name: 'Gene Annotations', type: 'annotation', url: '', format: 'gff3' },
-                { name: 'RNA-seq Coverage', type: 'quantitative', url: '', format: 'bigwig' },
-                { name: 'ChIP-seq Peaks', type: 'annotation', url: '', format: 'bed' },
-              ]}
             />
             <div className="text-sm text-gray-500">
               Showing {promoters.length} promoters in current view. Click a row in the table to navigate to that promoter.
