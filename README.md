@@ -238,7 +238,7 @@ Supabase provides the PostgreSQL database that stores your promoter metadata, sa
 For small datasets, use the Table Editor's **Insert** button in the Supabase Dashboard.
 
 For large datasets, use Python:
-`python
+```python
 import pandas as pd
 from supabase import create_client, Client
 
@@ -253,7 +253,7 @@ for i in range(0, len(records), 500):
     batch = records[i:i+500]
     supabase.table("predicted_promoters").insert(batch).execute()
     print(f"Inserted {min(i+500, len(records))}/{len(records)}")
-`
+```
 
 **Free tier limits:**
 - 500 MB database storage (enough for millions of metadata rows)
@@ -314,7 +314,7 @@ R2 stores your large genome files (FASTA, BED, BigWig, BAM) and serves them via 
 For small test files, use the Cloudflare Dashboard's **Upload** button.
 
 For large uploads, use [rclone](https://rclone.org/):
-`ash
+```bash
 # Install rclone, then configure Cloudflare R2 backend:
 rclone config
 # Choose "s3" as storage type
@@ -324,10 +324,10 @@ rclone config
 # Upload your files:
 rclone copy ./local-genomes/ r2:seqedge-genomic-data/test-data/ --progress --transfers 4
 rclone copy ./local-tracks/ r2:seqedge-genomic-data/test-data/ --progress --transfers 4
-`
+```
 
 **Required file structure in R2:**
-`
+```
 seqedge-genomic-data/
   test-data/
     volvox.fa                          # Volvox test genome FASTA
@@ -340,7 +340,7 @@ seqedge-genomic-data/
     volvox-sorted.bam.bai              # BAM index (REQUIRED)
     volvox.gff3                        # Gene annotations
     volvox.bb                          # BigBed binary annotation track
-`
+```
 
 > **Critical**: Every indexed file (BED.gz, BAM, VCF) MUST have its companion index file (.tbi, .bai) in the same directory. JBrowse's range requests will fail without them.
 
