@@ -273,7 +273,7 @@ R2 stores your large genome files (FASTA, BED, BigWig, BAM) and serves them via 
 
 1. In the Cloudflare Dashboard, go to **R2 Object Storage** (left sidebar)
 2. Click **Create bucket**
-3. Bucket name: seqedge-genomes (must be globally unique)
+3. Bucket name: seqedge-genomic-data (must be globally unique)
 4. Choose a location hint close to your users
 5. Click **Create bucket**
 
@@ -281,13 +281,13 @@ R2 stores your large genome files (FASTA, BED, BigWig, BAM) and serves them via 
 
 1. Go to your bucket → **Settings → Public access**
 2. For development: enable **R2.dev subdomain**
-   - This gives you a URL like https://seqedge-genomes.your-account.r2.dev
+   - This gives you a URL like https://pub-xxxxxxxxx.r2.dev
    - Click **Allow access** and confirm
 3. For production: bind a **Custom domain** (e.g. data.yourdomain.org)
    - Requires the domain's DNS to be on Cloudflare
 4. Copy the public URL — it goes into .env.local:
    `env
-   NEXT_PUBLIC_R2_PUBLIC_URL=https://seqedge-genomes.your-account.r2.dev
+   NEXT_PUBLIC_R2_PUBLIC_URL=https://pub-xxxxxxxxx.r2.dev
    `
 
 **Step 4 — Configure CORS**
@@ -322,23 +322,24 @@ rclone config
 # Use your Cloudflare API token as the secret
 
 # Upload your files:
-rclone copy ./local-genomes/ r2:seqedge-genomes/genomes/ --progress --transfers 4
-rclone copy ./local-tracks/ r2:seqedge-genomes/tracks/ --progress --transfers 4
+rclone copy ./local-genomes/ r2:seqedge-genomic-data/test-data/ --progress --transfers 4
+rclone copy ./local-tracks/ r2:seqedge-genomic-data/test-data/ --progress --transfers 4
 `
 
 **Required file structure in R2:**
 `
-seqedge-genomes/
-  genomes/
-    hg38.fa              # Reference genome FASTA
-    hg38.fa.fai          # FASTA index (REQUIRED for JBrowse)
-    hg38.fa.dict         # Sequence dictionary (optional)
-  tracks/
-    predicted_promoters.bed.gz        # BED track
-    predicted_promoters.bed.gz.tbi    # Tabix index (REQUIRED)
-    rnaseq_coverage.bw                # BigWig signal track
-    chipseq_peaks.bed.gz              # Annotation track
-    chipseq_peaks.bed.gz.tbi          # Tabix index
+seqedge-genomic-data/
+  test-data/
+    volvox.fa                          # Volvox test genome FASTA
+    volvox.fa.fai                      # FASTA index (REQUIRED for JBrowse)
+    reference.fa                       # E. coli K-12 reference genome
+    reference.fa.fai                   # FASTA index
+    volvox-bed12.bed.gz                # BED track
+    volvox-bed12.bed.gz.tbi            # Tabix index (REQUIRED)
+    volvox-sorted.bam                  # Read alignment data
+    volvox-sorted.bam.bai              # BAM index (REQUIRED)
+    volvox.gff3                        # Gene annotations
+    volvox.bb                          # BigBed binary annotation track
 `
 
 > **Critical**: Every indexed file (BED.gz, BAM, VCF) MUST have its companion index file (.tbi, .bai) in the same directory. JBrowse's range requests will fail without them.
@@ -362,22 +363,43 @@ Vercel hosts your Next.js app and serves it through a global CDN. Pushing to Git
 1. Click **Add New → Project**
 2. Under **Import Git Repository**, find your SeqEdge fork
 3. Framework Preset: **Next.js** (auto-detected)
-4. Click **Deploy** (we will add env vars next)
+4. Click **Deploy** (env vars can be added after first deploy)
 
 **Step 3 — Add environment variables**
 
-1. After the first deploy, go to **Settings → Environment Variables**
-2. Add all three variables:
+After your first deployment (or before), add all required environment variables:
+
+1. Go to your Vercel project → **Settings → Environment Variables**
 
 | Variable | Example | Where to find it |
 |----------|---------|------------------|
 | NEXT_PUBLIC_SUPABASE_URL | https://abcdefgh.supabase.co | Supabase → Settings → API |
 | NEXT_PUBLIC_SUPABASE_ANON_KEY | eyJhbGciOi... | Supabase → Settings → API |
-| NEXT_PUBLIC_R2_PUBLIC_URL | https://seqedge-genomes.your-account.r2.dev | Cloudflare R2 → bucket settings |
+| NEXT_PUBLIC_R2_PUBLIC_URL | https://pub-xxxxxxxxx.r2.dev | Cloudflare R2 → bucket Settings → Public Development URL |
 
-3. Click **Save**
-4. Go to **Deployments** → click the three dots on the latest deploy → **Redeploy**
-5. Your site is now live at https://your-project.vercel.app
+2. For each variable, enter the **Key** and **Value**, then check all three environments: **Production**, **Preview**, and **Development**.
+3. Click **Save**.
+
+#### How to find your R2 public URL
+
+1. Open your [Cloudflare Dashboard](https://dash.cloudflare.com/)
+2. Navigate to **R2 Object Storage** → click your bucket (e.g. seqedge-genomic-data)
+3. Click the **Settings** tab
+4. Scroll to **Public Development URL** → copy the ``https://pub-...r2.dev`` URL
+5. Paste it as the value for ``NEXT_PUBLIC_R2_PUBLIC_URL``
+   - **Important**: do **not** add a trailing slash ``/`` at the end of the URL
+
+#### Redeploy after changing environment variables
+
+After adding or modifying environment variables, you **must** redeploy for the changes to take effect:
+
+1. Go to your Vercel project → **Deployments** tab
+2. Find the latest deployment at the top of the list
+3. Click the **⋯** (three dots) button on the right
+4. Select **Redeploy**
+5. Wait about 1 minute for the build to complete
+
+Your SeqEdge site will now be able to load genomic files from your R2 bucket.
 
 **Step 4 — Custom domain (optional)**
 
@@ -392,6 +414,7 @@ Vercel hosts your Next.js app and serves it through a global CDN. Pushing to Git
 - 100 GB bandwidth per month (more than enough for a database portal)
 - Unlimited deployments
 - Automatic HTTPS on .vercel.app subdomain
+- Serverless Functions: 100k invocations/day (Hobby plan)
 
 ## Tech Stack
 
@@ -402,7 +425,7 @@ Vercel hosts your Next.js app and serves it through a global CDN. Pushing to Git
 - **Data Table**: [TanStack Table](https://tanstack.com/table) (virtual scrolling support)
 - **Charts**: [Apache ECharts](https://echarts.apache.org/) via echarts-for-react
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) v4
-- **Deployment**: [Vercel](https://vercel.com/)
+- **Deployment**: [Vercel](https://vercel.com/) (global CDN, auto-deploy from Git)
 
 ## License
 
