@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "build:cf": "next build --webpack && opennextjs-cloudflare build --skipNextBuild && node -e \"require('fs').copyFileSync('.open-next/worker.js', '.open-next/_worker.js')\"",
+    "build:cf": "next build && opennextjs-cloudflare build --skipNextBuild && node -e \"require('fs').copyFileSync('.open-next/worker.js', '.open-next/_worker.js')\"",
     "preview:cf": "opennextjs-cloudflare preview",
     "deploy:cf": "opennextjs-cloudflare deploy"
   },
@@ -19,7 +19,7 @@
     "@types/echarts": "^4.9.22",
     "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.6",
-    "next": "16.2.11",
+    "next": "15.5.21",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -30,7 +30,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.11",
+    "eslint-config-next": "15.5.21",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "^4.113.0"
