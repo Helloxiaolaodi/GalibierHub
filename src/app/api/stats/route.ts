@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase, isSupabaseConfigured } from '@/utils/supabase';
+import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
 export async function GET() {
   // Return fallback demo data when Supabase is not configured
@@ -8,16 +8,17 @@ export async function GET() {
   }
 
   // Fetch counts from Supabase
+  const sb = getSupabase();
   const [
     { count: totalSamples },
     { count: totalPromoters },
     { count: totalVariants },
     { data: sampleData },
   ] = await Promise.all([
-    supabase.from('genome_samples').select('*', { count: 'exact', head: true }),
-    supabase.from('predicted_promoters').select('*', { count: 'exact', head: true }),
-    supabase.from('variant_index').select('*', { count: 'exact', head: true }),
-    supabase.from('genome_samples').select('species'),
+    sb.from('genome_samples').select('*', { count: 'exact', head: true }),
+    sb.from('predicted_promoters').select('*', { count: 'exact', head: true }),
+    sb.from('variant_index').select('*', { count: 'exact', head: true }),
+    sb.from('genome_samples').select('species'),
   ]);
 
   // Build species distribution from sample data
@@ -30,7 +31,7 @@ export async function GET() {
   }
 
   // Compute score distribution via Supabase
-  const { data: scoreData } = await supabase
+  const { data: scoreData } = await getSupabase()
     .from('predicted_promoters')
     .select('score');
 

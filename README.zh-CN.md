@@ -583,6 +583,23 @@ npm run build:cf
 
 将本地 SeqEdge 目录中的修改推送到 GitHub。Cloudflare Pages 会自动触发一次新部署。构建日志应显示先运行 `next build`，再执行 `opennextjs-cloudflare build`，最终输出到 `.open-next/assets`。
 
+**故障排查：构建失败提示 `supabaseUrl is required`**
+
+此错误说明 Cloudflare Pages 后台缺少三个 `NEXT_PUBLIC_` 环境变量。Next.js 在构建时需要这些变量来生成静态页面。
+
+| 环境变量 | 用途 |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目地址 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名密钥 |
+| `NEXT_PUBLIC_R2_PUBLIC_URL` | Cloudflare R2 文件地址 |
+
+修复步骤：
+
+1. 进入 Cloudflare Dashboard → Pages → SeqEdge 项目 → Settings → Environment variables
+2. 添加上述三个变量，值与本地 `.env.local` 中的一致
+3. 同时勾选 **Production** 和 **Preview** 环境
+4. 保存后重新触发部署
+
 **Cloudflare 兼容性相关文件：**
 
 | 文件 | 修改说明 |

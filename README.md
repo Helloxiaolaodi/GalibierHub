@@ -579,6 +579,23 @@ In the Cloudflare Pages dashboard, go to **Settings → Build & deployments** an
 
 Push your code to GitHub. Cloudflare Pages will automatically trigger a new deployment. The build log should show `next build` followed by `opennextjs-cloudflare build`, with final output in `.open-next/assets`.
 
+**Troubleshooting: Build fails with `supabaseUrl is required`**
+
+This error means the three `NEXT_PUBLIC_` environment variables are missing from the Cloudflare Pages dashboard. Next.js needs these at build time to generate static pages.
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key |
+| `NEXT_PUBLIC_R2_PUBLIC_URL` | Cloudflare R2 public file URL |
+
+To fix:
+
+1. Go to Cloudflare Dashboard → Pages → SeqEdge → Settings → Environment variables
+2. Add all three variables with the same values as your local `.env.local`
+3. Check both **Production** and **Preview** environments
+4. Save and trigger a new deployment
+
 **Files modified for Cloudflare compatibility:**
 
 | File | Change |

@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from 'next/server';
-import { supabase, isSupabaseConfigured } from '@/utils/supabase';
+import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -23,7 +23,8 @@ export async function GET(request: Request) {
     });
   }
 
-  let query = supabase
+  const sb = getSupabase();
+  let query = sb
     .from('predicted_promoters')
     .select('*', { count: 'exact' });
 
