@@ -1,6 +1,6 @@
 ﻿<div align="center"><a name="readme-top"></a>
 
-<img src="./public/seqedge-github-img-readme.jpg" alt="SeqEdge Screenshot — Overview" width="100%">
+<img src="./seqedge-github-img-readme.jpg" alt="SeqEdge Screenshot — Overview" width="100%">
 
 <br/>
 
@@ -171,7 +171,10 @@ Edit `.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
-NEXT_PUBLIC_R2_PUBLIC_URL=https://your-r2-bucket.r2.dev
+NEXT_PUBLIC_STORAGE_BASE_URL=https://your-r2-bucket.r2.dev
+
+# Legacy fallback still supported:
+# NEXT_PUBLIC_R2_PUBLIC_URL=https://your-r2-bucket.r2.dev
 ```
 
 ### Step 3 - Set Up Database
@@ -303,7 +306,19 @@ Hugging Face Datasets is the most generous free option for large omics data: 50 
 per file via Git LFS, no hard cap on total repo size, free global CDN, native CORS +
 HTTP range support — exactly what JBrowse 2 needs.
 
-**1. Install Git LFS (one-time)**
+**1. Create a Hugging Face account**
+
+Go to [huggingface.co](https://huggingface.co/), sign up, verify your email, and pick
+the username you want to expose in your raw file URLs.
+
+**2. Create a public Dataset repo**
+
+After signing in, open **New Dataset** and create a dataset repo such as
+`seqedge-data`. Set visibility to **Public**. SeqEdge loads track files anonymously
+from the browser, so a private dataset will fail unless you build your own signed-URL
+proxy layer.
+
+**3. Install Git LFS (one-time)**
 
 ```bash
 # macOS
@@ -315,15 +330,14 @@ sudo apt-get install git-lfs
 git lfs install
 ```
 
-**2. Create a public Dataset repo**
-
-Sign in at [huggingface.co](https://huggingface.co), then **New → Dataset**. Give it a
-name (e.g. `my-genome-tracks`) and set visibility to **Public** so the site can read
-it without a token.
-
-**3. Clone, add files, push**
+**4. Authenticate, clone, add files, push**
 
 ```bash
+# Optional but recommended: login first so git push uses your HF access token
+# Create the token at https://huggingface.co/settings/tokens
+pip install -U huggingface_hub
+huggingface-cli login
+
 git clone https://huggingface.co/datasets/<user>/my-genome-tracks
 cd my-genome-tracks
 
@@ -342,7 +356,11 @@ git commit -m "add genome tracks"
 git push
 ```
 
-**4. Get the raw file URL prefix**
+When `git push` asks for credentials, use your Hugging Face username and an **Access
+Token** from **Settings → Access Tokens** as the password. Do not use your normal web
+password in Git operations.
+
+**5. Get the raw file URL prefix**
 
 The URL pattern is:
 
@@ -356,7 +374,19 @@ Set the **prefix** (everything up to and including `/resolve/main`) as your base
 NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/my-genome-tracks/resolve/main
 ```
 
-**5. Verify CORS + range support**
+**6. Configure SeqEdge on Cloudflare Pages**
+
+In **Cloudflare Dashboard → Workers & Pages → your SeqEdge project → Settings →
+Variables and Secrets**, set:
+
+```env
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/my-genome-tracks/resolve/main
+```
+
+Then trigger a new deployment. Relative paths stored in Supabase such as
+`tracks/sample1.bb` will now resolve against your Hugging Face dataset.
+
+**7. Verify CORS + range support**
 
 ```bash
 # 206 Partial Content + accept-ranges: bytes means JBrowse can stream it

@@ -1,6 +1,6 @@
 ﻿<div align="center"><a name="readme-top"></a>
 
-<img src="./public/seqedge-github-img-readme.jpg" alt="SeqEdge 截图 — 总览页面" width="100%">
+<img src="./seqedge-github-img-readme.jpg" alt="SeqEdge 截图 — 总览页面" width="100%">
 
 <br/>
 
@@ -171,7 +171,10 @@ cp .env.example .env.local
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
-NEXT_PUBLIC_R2_PUBLIC_URL=https://your-r2-bucket.r2.dev
+NEXT_PUBLIC_STORAGE_BASE_URL=https://your-r2-bucket.r2.dev
+
+# 旧变量名仍兼容：
+# NEXT_PUBLIC_R2_PUBLIC_URL=https://your-r2-bucket.r2.dev
 ```
 
 ### 第 3 步：初始化数据库
@@ -307,7 +310,15 @@ https://huggingface.co/datasets/<用户名>/<大文件仓库>/resolve/main/chr1.
 <details>
 <summary><kbd>把基因组文件推送到 Hugging Face（完整命令行指南）</kbd></summary>
 
-**1. 安装 Git LFS**（大文件必需，只需一次）
+**1. 注册 Hugging Face 账号**
+
+访问 [huggingface.co](https://huggingface.co/)，完成注册、邮箱验证，并确定你希望出现在原始文件 URL 里的用户名。
+
+**2. 创建一个 Public 的 Dataset 仓库**
+
+登录后进入 **New Dataset**，例如创建 `seqedge-data`。可见性必须选 **Public**。因为 SeqEdge 是在浏览器端匿名拉取轨道文件，若数据集设为 Private，就会在真实访问中遇到权限和跨域限制，除非你额外自建签名代理层。
+
+**3. 安装 Git LFS**（大文件必需，只需一次）
 
 ```bash
 # Debian/Ubuntu
@@ -318,11 +329,7 @@ brew install git-lfs
 git lfs install
 ```
 
-**2. 创建一个 Public 的 Dataset 仓库**
-
-在 https://huggingface.co/new-dataset 新建，可见性选 **Public**（方便网站匿名读取）。
-
-**3. 克隆并推送文件（含索引）**
+**4. 登录、克隆并推送文件（含索引）**
 
 ```bash
 # 用 huggingface-cli 登录（token 在 https://huggingface.co/settings/tokens 获取）
@@ -344,7 +351,9 @@ git commit -m "add genome tracks"
 git push
 ```
 
-**4. 取真实直链（Raw / resolve）**
+执行 `git push` 时，如果 Git 询问密码，请输入 **Hugging Face Access Token**，不要输入网页登录密码。Token 可在 **Settings → Access Tokens** 中创建。
+
+**5. 取真实直链（Raw / resolve）**
 
 在仓库文件列表点开文件，复制 **Download** 链接。结构固定为：
 
@@ -352,9 +361,15 @@ git push
 https://huggingface.co/datasets/<用户名>/<仓库名>/resolve/main/<路径>/文件.cram
 ```
 
-**5. 填入环境变量**
+**6. 在 Cloudflare Pages 中填入环境变量**
 
-把 `resolve/main` 之前的部分作为前缀填进 `NEXT_PUBLIC_STORAGE_BASE_URL`，重新部署即可。
+进入 **Cloudflare Dashboard → Workers & Pages → 你的 SeqEdge 项目 → Settings → Variables and Secrets**，把 `resolve/main` 之前的部分作为前缀填进 `NEXT_PUBLIC_STORAGE_BASE_URL`，保存后重新部署即可。
+
+```env
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<用户名>/<仓库名>/resolve/main
+```
+
+之后，Supabase 里保存的相对路径（例如 `tracks/chr1.bb`）就会自动拼接到这个 HF 前缀上。
 
 </details>
 

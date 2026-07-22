@@ -96,7 +96,9 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
               SeqEdge ships as an open-source template. Configure{' '}
               <code className="px-1 rounded bg-gray-100">NEXT_PUBLIC_SUPABASE_URL</code>,{' '}
               <code className="px-1 rounded bg-gray-100">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> and{' '}
-              <code className="px-1 rounded bg-gray-100">NEXT_PUBLIC_R2_PUBLIC_URL</code> as
+              <code className="px-1 rounded bg-gray-100">NEXT_PUBLIC_STORAGE_BASE_URL</code>{' '}
+              (or the legacy fallback{' '}
+              <code className="px-1 rounded bg-gray-100">NEXT_PUBLIC_R2_PUBLIC_URL</code>) as
               Cloudflare Pages environment variables (never commit them to the repo), then
               trigger a new build.
             </p>
