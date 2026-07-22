@@ -12,7 +12,7 @@
 
 一个现代化、开源、可快速二次开发的交互式基因组数据库模板。
 
-**网站**：[https://seqedge.pages.dev](https://seqedge.pages.dev)（主力）· [国内备用](https://seqedge.vercel.app) · [GitHub][github-repo-link]
+**🚀 主力部署**: [https://seq-edge.vercel.app](https://seq-edge.vercel.app) | **国内镜像**: [https://seqedge.pages.dev](https://seqedge.pages.dev) · [GitHub][github-repo-link]
 
 **English** | **简体中文** | [问题反馈][github-issues-link]
 

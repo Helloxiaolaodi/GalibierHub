@@ -12,7 +12,7 @@
 
 A modern, open-source template for building interactive genomic databases.
 
-**Website**: [https://seqedge.pages.dev](https://seqedge.pages.dev) (Primary) · [Mirror for China](https://seqedge.vercel.app) · [GitHub][github-repo-link]
+**🚀 Primary**: [https://seq-edge.vercel.app](https://seq-edge.vercel.app) | **Mirror (China-friendly)**: [https://seqedge.pages.dev](https://seqedge.pages.dev) · [GitHub][github-repo-link]
 
 **English** | [简体中文](./README.zh-CN.md) | [Issues][github-issues-link]
 
