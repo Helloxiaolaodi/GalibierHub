@@ -1,0 +1,98 @@
+<svg width="1600" height="840" viewBox="0 0 1600 840" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="80" x2="1460" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="0.48" stop-color="#102A43"/>
+      <stop offset="1" stop-color="#0B1120"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="1050" y1="120" x2="1380" y2="660" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D4ED8" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#10B981" stop-opacity="0.16"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#10B981"/>
+      <stop offset="1" stop-color="#60A5FA"/>
+    </linearGradient>
+    <filter id="soft" x="0" y="0" width="1600" height="840" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="60"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="840" rx="36" fill="url(#bg)"/>
+
+  <g opacity="0.5" filter="url(#soft)">
+    <circle cx="1260" cy="190" r="120" fill="#2563EB"/>
+    <circle cx="1410" cy="620" r="140" fill="#10B981"/>
+    <circle cx="1110" cy="700" r="110" fill="#6366F1"/>
+  </g>
+
+  <path d="M0 610C220 520 330 490 520 548C720 610 810 650 1030 590C1220 538 1340 444 1600 512" stroke="#1E293B" stroke-width="2"/>
+  <path d="M0 650C230 590 370 558 570 608C730 648 870 694 1048 654C1236 612 1372 520 1600 570" stroke="#1E293B" stroke-width="2"/>
+
+  <g opacity="0.82">
+    <path d="M112 196H502" stroke="#0EA5E9" stroke-width="8" stroke-linecap="round"/>
+    <path d="M112 252H442" stroke="#10B981" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <g>
+    <rect x="108" y="124" width="76" height="76" rx="20" fill="url(#accent)"/>
+    <path d="M133 163C133 146.431 146.431 133 163 133C179.569 133 193 146.431 193 163C193 179.569 179.569 193 163 193" stroke="#F8FAFC" stroke-width="10" stroke-linecap="round"/>
+    <path d="M163 163H216" stroke="#F8FAFC" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="216" cy="163" r="11" fill="#F8FAFC"/>
+  </g>
+
+  <text x="218" y="178" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="62" font-weight="700">SeqEdge</text>
+  <text x="112" y="324" fill="#E2E8F0" font-family="Segoe UI, Arial, sans-serif" font-size="52" font-weight="600">Scalable Genomics at the Edge</text>
+  <text x="112" y="390" fill="#94A3B8" font-family="Segoe UI, Arial, sans-serif" font-size="28">A serverless template for promoter databases, annotation portals, and genome-scale exploration.</text>
+
+  <g transform="translate(112 468)">
+    <rect width="212" height="56" rx="28" fill="#111827" stroke="#1F2937"/>
+    <text x="34" y="36" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="22">Next.js + Supabase</text>
+  </g>
+  <g transform="translate(342 468)">
+    <rect width="202" height="56" rx="28" fill="#111827" stroke="#1F2937"/>
+    <text x="34" y="36" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="22">R2 + JBrowse 2</text>
+  </g>
+  <g transform="translate(562 468)">
+    <rect width="218" height="56" rx="28" fill="#111827" stroke="#1F2937"/>
+    <text x="34" y="36" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="22">Tables + Charts</text>
+  </g>
+
+  <g transform="translate(1040 118)">
+    <rect width="418" height="566" rx="28" fill="url(#panel)" stroke="#334155"/>
+    <rect x="30" y="30" width="358" height="70" rx="18" fill="#0F172A" stroke="#334155"/>
+    <text x="56" y="74" fill="#E2E8F0" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="600">Promoter Overview</text>
+
+    <rect x="30" y="126" width="104" height="92" rx="18" fill="#111827" stroke="#334155"/>
+    <rect x="156" y="126" width="104" height="92" rx="18" fill="#111827" stroke="#334155"/>
+    <rect x="282" y="126" width="106" height="92" rx="18" fill="#111827" stroke="#334155"/>
+    <text x="52" y="164" fill="#10B981" font-family="Segoe UI, Arial, sans-serif" font-size="18">Samples</text>
+    <text x="52" y="198" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">126</text>
+    <text x="178" y="164" fill="#60A5FA" font-family="Segoe UI, Arial, sans-serif" font-size="18">Loci</text>
+    <text x="178" y="198" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">125K</text>
+    <text x="304" y="164" fill="#A78BFA" font-family="Segoe UI, Arial, sans-serif" font-size="18">Tracks</text>
+    <text x="304" y="198" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">14</text>
+
+    <rect x="30" y="244" width="358" height="128" rx="22" fill="#0F172A" stroke="#334155"/>
+    <path d="M58 330C92 304 120 314 148 288C176 262 214 252 250 274C286 296 310 272 360 286" stroke="#10B981" stroke-width="6" stroke-linecap="round"/>
+    <path d="M58 338H362" stroke="#1E293B" stroke-width="2"/>
+    <circle cx="148" cy="288" r="7" fill="#10B981"/>
+    <circle cx="250" cy="274" r="7" fill="#60A5FA"/>
+
+    <rect x="30" y="398" width="358" height="138" rx="22" fill="#0F172A" stroke="#334155"/>
+    <rect x="56" y="432" width="120" height="16" rx="8" fill="#1E293B"/>
+    <rect x="196" y="432" width="98" height="16" rx="8" fill="#1E293B"/>
+    <rect x="310" y="432" width="50" height="16" rx="8" fill="#1E293B"/>
+    <rect x="56" y="466" width="248" height="12" rx="6" fill="#10B981" fill-opacity="0.8"/>
+    <rect x="56" y="490" width="186" height="12" rx="6" fill="#60A5FA" fill-opacity="0.75"/>
+    <rect x="56" y="514" width="226" height="12" rx="6" fill="#A78BFA" fill-opacity="0.7"/>
+  </g>
+
+  <g opacity="0.9">
+    <circle cx="920" cy="220" r="5" fill="#10B981"/>
+    <circle cx="952" cy="255" r="5" fill="#60A5FA"/>
+    <circle cx="978" cy="204" r="5" fill="#A78BFA"/>
+    <path d="M920 220L952 255L978 204" stroke="#475569" stroke-width="2"/>
+    <path d="M978 204L1046 232" stroke="#475569" stroke-width="2"/>
+  </g>
+</svg>
