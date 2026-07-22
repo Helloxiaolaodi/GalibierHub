@@ -45,6 +45,7 @@
   - [功能模块](#功能模块)
   - [成本估算](#成本估算)
   - [云服务配置](#云服务配置)
+  - [部署后自检清单](#部署后自检清单)
   - [技术栈](#技术栈)
   - [测试数据、来源与致谢](#测试数据来源与致谢)
   - [许可证](#许可证)
@@ -118,6 +119,13 @@ npm run dev
 
 - **Vercel**：主站
 - **Cloudflare Pages**：中国大陆更友好的镜像站
+
+Cloudflare Pages 部署说明：
+
+- Cloudflare 的构建命令请设置为 `npm run build:cf`。
+- Pages 的输出目录请设置为 `.open-next`。
+- 请保留仓库中的 `public/demo-data`。Cloudflare 的 postbuild 步骤会把这些同源 demo 回退文件复制进 `.open-next`，并在路由中排除 `/demo-data/*`，这样 Pages 才会把它们当作静态资源直接返回。
+- 如果你的对象文件实际位于 `test-data/` 之类的子目录下，请把这个前缀直接写进 `NEXT_PUBLIC_STORAGE_BASE_URL`。
 
 ## 自定义配置
 
@@ -193,6 +201,62 @@ SeqEdge 目前支持三种存储模式：
 ### D. Vercel 与 Cloudflare Pages
 
 推荐 Vercel 作为主站，Cloudflare Pages 作为镜像站。
+
+对 Cloudflare Pages，稳定可用的配置是：
+
+- 构建命令：`npm run build:cf`
+- 输出目录：`.open-next`
+- 运行时要求：`/demo-data/*` 必须作为静态资源直接返回，不能被 worker 拦截
+
+这样配置的原因是：当你配置的对象存储被 CORS 拦截、基址漏写子目录前缀，或者远端文件暂时不可达时，Genome Browser 会自动回退到 `public/demo-data` 里的同源演示数据。
+
+## 部署后自检清单
+
+每次部署到 Vercel 或 Cloudflare Pages 之后，建议先完成下面这组检查，再对外分享链接。
+
+### A. 基础可用性检查
+
+- 打开网站首页 `/`，确认页面正常渲染，没有空白页。
+- 打开 `/api/stats`，确认返回 `200`。
+- 打开浏览器开发者工具，确认没有持续出现 `Reference data unreachable` 报错。
+
+### B. 同源 demo 回退检查
+
+以下地址在部署域名下必须能直接访问：
+
+- `/demo-data/volvox.fa`
+- `/demo-data/volvox.fa.fai`
+- `/demo-data/scov2.fa`
+- `/demo-data/scov2.fa.fai`
+
+对于 Cloudflare Pages，若这些地址返回 `404`，优先检查：
+
+- Pages 的构建命令是否为 `npm run build:cf`；
+- 输出目录是否为 `.open-next`；
+- 生成后的 `.open-next/_routes.json` 是否排除了 `/demo-data/*`；
+- 生成后的 `.open-next/demo-data` 目录里是否真的有这些文件。
+
+### C. 对象存储检查
+
+- 确认 `NEXT_PUBLIC_STORAGE_BASE_URL` 指向支持 CORS 的对象存储地址。
+- 如果文件实际放在某个子目录下，确认基址已包含该前缀。
+- 若使用 Hugging Face Datasets，确认使用的是 `resolve/main`，而不是 `blob/main`。
+- 对参考序列索引、BAM/CRAM 索引做一次 Range 请求验证。
+
+示例：
+
+```bash
+curl -I https://your-bucket.r2.dev/test-data/volvox.fa.fai
+curl -H "Range: bytes=0-0" -I https://your-bucket.r2.dev/test-data/volvox.fa.fai
+curl -I https://huggingface.co/datasets/<user>/<repo>/resolve/main/scov2.fa.fai
+```
+
+### D. Genome Browser 检查
+
+- 确认默认装配能够加载，参考序列能够正常渲染。
+- 确认可选轨道缺失时只静默隐藏该轨道，而不会让整个浏览器崩溃。
+- 若某条轨道缺少伴随索引文件，应该只隐藏该轨道。
+- 若外部对象存储暂时失败，浏览器应能通过 `public/demo-data` 自动回退并继续工作。
 
 ## 技术栈
 

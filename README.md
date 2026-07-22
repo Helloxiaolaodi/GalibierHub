@@ -45,6 +45,7 @@ Stack: Next.js | Supabase | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 | 
   - [Feature Modules](#feature-modules)
   - [Cost Estimate](#cost-estimate)
   - [Cloud Service Setup](#cloud-service-setup)
+  - [Deployment Self-Check](#deployment-self-check)
   - [Tech Stack](#tech-stack)
   - [Test Data & Attribution](#test-data--attribution)
   - [License](#license)
@@ -150,6 +151,13 @@ Recommended targets:
 - **Vercel** for the primary site
 - **Cloudflare Pages** for the mirror deployment
 
+Cloudflare Pages deployment note:
+
+- Set the Cloudflare build command to `npm run build:cf`.
+- Set the Pages output directory to `.open-next`.
+- Keep `public/demo-data` in the repository. The Cloudflare postbuild step copies these same-origin fallback files into `.open-next` and excludes `/demo-data/*` from the worker route so Pages can serve them as static assets.
+- If you use a bucket subfolder such as `test-data/`, include that subpath directly in `NEXT_PUBLIC_STORAGE_BASE_URL`.
+
 ## Customization
 
 ### The One File You Must Edit
@@ -222,6 +230,62 @@ Best for large public files. For JBrowse and similar tools, always use `resolve/
 ### D. Vercel and Cloudflare Pages
 
 Use Vercel as the primary deployment and Cloudflare Pages as the mirror deployment.
+
+For Cloudflare Pages, the production-safe setup is:
+
+- build command: `npm run build:cf`
+- output directory: `.open-next`
+- runtime expectation: `/demo-data/*` must be served as static assets, not intercepted by the worker
+
+This matters because the genome browser now uses a same-origin fallback bundle in `public/demo-data` whenever your configured object storage is blocked, missing CORS headers, or missing a bucket prefix.
+
+## Deployment Self-Check
+
+After every Vercel or Cloudflare Pages deployment, run this checklist before sharing the site.
+
+### A. Core health checks
+
+- Open `/` and confirm the home page renders without a blank screen.
+- Open `/api/stats` and confirm it returns `200`.
+- Open the browser developer tools and confirm there is no repeated `Reference data unreachable` error.
+
+### B. Same-origin demo fallback checks
+
+These URLs must work on the deployed domain itself:
+
+- `/demo-data/volvox.fa`
+- `/demo-data/volvox.fa.fai`
+- `/demo-data/scov2.fa`
+- `/demo-data/scov2.fa.fai`
+
+For Cloudflare Pages specifically, these requests must not return `404` from the worker. If they do, check that:
+
+- the Pages build command is `npm run build:cf`;
+- the output directory is `.open-next`;
+- the generated `.open-next/_routes.json` excludes `/demo-data/*`;
+- the generated `.open-next/demo-data` directory actually contains the bundled files.
+
+### C. Object storage checks
+
+- Confirm `NEXT_PUBLIC_STORAGE_BASE_URL` points to a CORS-enabled host.
+- If your files live in a bucket subfolder, include that prefix in the base URL.
+- For Hugging Face Datasets, use `resolve/main`, not `blob/main`.
+- Verify range requests against your reference index and alignment indexes.
+
+Examples:
+
+```bash
+curl -I https://your-bucket.r2.dev/test-data/volvox.fa.fai
+curl -H "Range: bytes=0-0" -I https://your-bucket.r2.dev/test-data/volvox.fa.fai
+curl -I https://huggingface.co/datasets/<user>/<repo>/resolve/main/scov2.fa.fai
+```
+
+### D. Genome browser checks
+
+- Confirm the default assembly loads and the reference sequence renders.
+- Confirm missing optional tracks fail quietly instead of crashing the whole browser.
+- If one optional track is missing its companion index, only that track should stay hidden.
+- If the configured storage fails, the browser should still recover through `public/demo-data`.
 
 ## Tech Stack
 
