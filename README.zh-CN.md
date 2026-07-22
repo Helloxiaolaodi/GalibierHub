@@ -54,6 +54,7 @@
   - [成本估算](#成本估算)
   - [云服务配置](#云服务配置)
   - [技术栈](#技术栈)
+  - [更新亮点 — 重大升级](#更新亮点--重大升级)
   - [致谢](#致谢)
   - [许可证](#许可证)
 
@@ -750,17 +751,54 @@ npm run build:cf
 
 ## 技术栈
 
-| 分类 | 技术 | 说明 |
-| --- | --- | --- |
-| 框架 | [Next.js][nextjs-link] | React 19 与 App Router |
-| 数据库 | [Supabase][supabase-link] | PostgreSQL 与 REST API |
-| 文件存储 | [Cloudflare R2][r2-link] | 兼容 S3、出口免费 |
-| 基因组浏览器 | [JBrowse 2][jbrowse-link] | 可嵌入的基因组浏览流程 |
-| 数据表格 | [TanStack Table][tanstack-link] | 适合大表格的排序、筛选和展示 |
-| 图表 | [Apache ECharts][echarts-link] | 交互式统计可视化 |
-| 样式系统 | [Tailwind CSS][tailwind-link] | 工具类 CSS |
-| 主力部署 | [Vercel][vercel-link] | 全球 CDN 与 Git 驱动部署 |
-| 备用镜像 | [Cloudflare Pages](https://pages.cloudflare.com/) | 面向国内的边缘网络 |
+以下版本号取自仓库的 `package.json`，可作为二次开发时锁定依赖的参考。
+
+| 分类 | 技术 | 版本 | 说明 |
+| --- | --- | --- | --- |
+| 框架 | [Next.js][nextjs-link] | `15.5.21` | App Router；刻意锁定在 15.x 而非 16，以兼容 OpenNext Cloudflare 适配器 |
+| UI 库 | React / React-DOM | `19.2.4` | 前端组件运行时 |
+| 数据库客户端 | [Supabase][supabase-link] | `@supabase/supabase-js` `2.110.7` | PostgreSQL 元数据查询与 REST API |
+| 文件存储 | [Cloudflare R2][r2-link] | 服务 | 兼容 S3、出口免费（无包版本，属云端服务） |
+| 基因组浏览器 | [JBrowse 2][jbrowse-link] | `@jbrowse/react-linear-genome-view` `3.1.0`、`@jbrowse/product-core` `4.3.0` | 可嵌入的线性基因组浏览视图 |
+| 数据表格 | [TanStack Table][tanstack-link] | `@tanstack/react-table` `8.21.3` | 适合大表格的排序、筛选和分页 |
+| 图表 | [Apache ECharts][echarts-link] | `echarts` `6.1.0` + `echarts-for-react` `3.0.6` | 交互式统计可视化 |
+| 样式系统 | [Tailwind CSS][tailwind-link] | `4.x`（`@tailwindcss/postcss` `4`） | 工具类 CSS |
+| 主力部署 | [Vercel][vercel-link] | 服务 | 全球 CDN 与 Git 驱动部署（无包版本，属云端服务） |
+| 备用镜像 | [Cloudflare Pages](https://pages.cloudflare.com/) | `@opennextjs/cloudflare` `1.20.2` + `wrangler` `4.113.0` | 面向国内的边缘网络，经 OpenNext 适配器部署 |
+| 语言与工具链 | TypeScript / ESLint | TypeScript `5.x`、ESLint `9.x`、`eslint-config-next` `15.5.21` | 类型检查与代码规范 |
+
+<div align="right">
+
+[![][back-to-top]](#readme-top)
+
+</div>
+
+## 更新亮点 —— 重大升级
+
+本轮迭代围绕专业展示、存储成本、上手体验和存储无关设计，落地了以下四项重大升级。
+
+### 1. 专业展示度提升
+
+- **一键图表导出**：每个 ECharts 图表（物种环形图、评分直方图）都在 `src/components/exportable-chart.tsx` 中配备了 PNG + SVG 导出按钮。PNG 采用 2 倍像素比，适合直接放进幻灯片；SVG 为矢量格式，适合论文出版排版。
+- **多维队列/元数据筛选面板**：`src/components/search-filters.tsx` 支持按物种、组织、队列前缀（P- / C- / V-）、WHO 成人 BMI 分档筛选，并叠加启动子位点/评分条件。筛选在 `src/app/api/promoters/route.ts` 中实现为两跳查询：先按样本元数据过滤出允许的 sample_ids，再据此检索启动子。
+- **卡片式启动子详情弹窗**：`src/components/promoter-detail.tsx` 以卡片形式呈现启动子详情，内含从 `/api/samples/[id]` 拉取的样本表型卡片（队列、BMI 分档、年龄/性别、覆盖度），并提供 Copy-as-BED、Copy-FASTA、在浏览器中查看等操作。
+
+### 2. 输入数据极限瘦身指南
+
+- 新增 `docs/data-compression-guide.md`，系统讲解如何压缩基因组输入以适配免费存储额度：BAM → CRAM（基于参考序列，体积约减 50%）、BED → BigBed、VCF → bgzip + tabix（`.vcf.gz` + `.tbi`）、FASTA → bgzip + faidx。
+- 指南附带一键转换脚本，以及 R2 上传规范（`Content-Type`、`Accept-Ranges`、CORS），确保压缩后的文件仍可被 JBrowse 通过 Range 请求正确读取。
+
+### 3. 使用指南按钮
+
+- 页眉右上角新增「User Guide（使用指南）」开关（`src/components/user-guide.tsx`），点击后从侧边滑出抽屉。
+- 抽屉包含总览、启动子、基因组浏览器、数据与存储、导出图表、部署共 6 个板块，让首次访问者无需离开页面即可自助上手。
+
+### 4. 同时保留 Cloudflare R2 + Hugging Face Datasets
+
+- 通过 `src/lib/storage.ts` 的 `getStorageUrl()` 实现存储无关设计：相对路径统一拼接单个 `NEXT_PUBLIC_STORAGE_BASE_URL`（可指向 R2 / HF / S3），而绝对 `https://` 路径直接放行，从而支持混合托管（例如把 50GB+ 的 CRAM 放到 Hugging Face）。
+- 旧变量 `NEXT_PUBLIC_R2_PUBLIC_URL` 仍作为兜底继续可用，已有部署无需改动即可升级。
+- 基因组浏览器现在会在配置的存储桶为空时自动回退到公开的 JBrowse 演示数据，使模板始终开箱即用。
+- 更多细节可交叉参考本 README 的[数据存储配置](#自定义配置)章节。
 
 <div align="right">
 

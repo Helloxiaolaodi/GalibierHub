@@ -54,6 +54,7 @@ Stack: Next.js | Supabase | Cloudflare R2 | JBrowse 2 | TanStack Table | ECharts
   - [Cost Estimate](#cost-estimate)
   - [Cloud Service Setup](#cloud-service-setup)
   - [Tech Stack](#tech-stack)
+  - [What's New — Major Upgrades](#whats-new--major-upgrades)
   - [Acknowledgments](#acknowledgments)
   - [License](#license)
 
@@ -760,17 +761,54 @@ To fix:
 
 ## Tech Stack
 
-| Category | Technology | Description |
-| --- | --- | --- |
-| Framework | [Next.js][nextjs-link] | React 19 and App Router |
-| Database | [Supabase][supabase-link] | PostgreSQL and REST APIs |
-| File Storage | [Cloudflare R2][r2-link] | S3-compatible object storage with free egress |
-| Genome Browser | [JBrowse 2][jbrowse-link] | Embeddable genome browser workflow |
-| Data Table | [TanStack Table][tanstack-link] | Sorting, filtering, and scalable table rendering |
-| Charts | [Apache ECharts][echarts-link] | Interactive genomic summary charts |
-| Styling | [Tailwind CSS][tailwind-link] | Utility-first styling |
-| Primary Deploy | [Vercel][vercel-link] | Global CDN and Git-based deployment |
-| Mirror Deploy | [Cloudflare Pages](https://pages.cloudflare.com/) | Edge network for China access |
+| Category | Technology | Version | Description |
+| --- | --- | --- | --- |
+| Framework | [Next.js][nextjs-link] | `15.5.21` | App Router (pinned to 15.x, not 16, for OpenNext Cloudflare adapter compatibility) |
+| UI Runtime | [React][nextjs-link] | `19.2.4` | `react` / `react-dom` |
+| Database | [Supabase][supabase-link] | `2.110.7` | `@supabase/supabase-js` client for PostgreSQL and REST APIs |
+| File Storage | [Cloudflare R2][r2-link] | service | S3-compatible object storage with free egress |
+| Genome Browser | [JBrowse 2][jbrowse-link] | `3.1.0` / `4.3.0` | `@jbrowse/react-linear-genome-view` `3.1.0`, `@jbrowse/product-core` `4.3.0` |
+| Data Table | [TanStack Table][tanstack-link] | `8.21.3` | `@tanstack/react-table` — sorting, filtering, and scalable table rendering |
+| Charts | [Apache ECharts][echarts-link] | `6.1.0` | `echarts` `6.1.0` + `echarts-for-react` `3.0.6` |
+| Styling | [Tailwind CSS][tailwind-link] | `4.x` | `@tailwindcss/postcss` `4`, utility-first styling |
+| Primary Deploy | [Vercel][vercel-link] | service | Global CDN and Git-based deployment |
+| Mirror Deploy | [Cloudflare Pages](https://pages.cloudflare.com/) | `1.20.2` / `4.113.0` | Edge network for China access via `@opennextjs/cloudflare` `1.20.2` + `wrangler` `4.113.0` |
+| Language / Tooling | [TypeScript](https://www.typescriptlang.org/) | `5.x` | TypeScript `5.x`, ESLint `9.x`, `eslint-config-next` `15.5.21` |
+
+<div align="right">
+
+[![][back-to-top]](#readme-top)
+
+</div>
+
+## What's New — Major Upgrades
+
+The latest release focuses on making SeqEdge presentation-ready, cheaper to host, and friendlier for first-time visitors.
+
+### 1. Professional presentation upgrades
+
+- **One-click chart export.** Every ECharts figure — the species donut and the score histogram — now carries PNG and SVG export buttons (`src/components/exportable-chart.tsx`). PNG is rendered at 2× pixel ratio so it stays crisp on slides, and SVG comes out as a true vector for publication figures.
+- **Multi-dimensional cohort/metadata filter panel.** The search panel (`src/components/search-filters.tsx`) filters by species, tissue, cohort prefix (`P-` / `C-` / `V-`), WHO adult BMI class, and promoter locus/score. It runs as a two-hop query — sample metadata → allowed `sample_id`s → promoters — in `src/app/api/promoters/route.ts`.
+- **Card-based promoter detail modal.** The detail view (`src/components/promoter-detail.tsx`) shows a sample-phenotype card (cohort, BMI class, age/sex, coverage) fetched from `/api/samples/[id]`, alongside Copy-as-BED, Copy-FASTA, and View-in-browser actions.
+
+### 2. Input data extreme compression guide
+
+A new guide (`docs/data-compression-guide.md`) shows how to shrink genome inputs so they fit inside free storage tiers:
+
+- **BAM → CRAM** — reference-based compression, roughly 50% smaller.
+- **BED → BigBed** — indexed binary tracks for range queries.
+- **VCF → bgzip + tabix** — `.vcf.gz` plus `.tbi`.
+- **FASTA → bgzip + faidx** — compressed, still range-readable.
+
+It bundles a one-shot conversion script and R2 upload etiquette (correct `Content-Type`, `Accept-Ranges`, and CORS).
+
+### 3. User Guide button
+
+A top-right **User Guide** toggle in the header (`src/components/user-guide.tsx`) opens a slide-in drawer with six sections — Overview, Promoters, Genome Browser, Data & storage, Exporting figures, and Deployment — so first-time visitors can self-onboard without leaving the page.
+
+### 4. Dual storage: Cloudflare R2 + Hugging Face Datasets
+
+SeqEdge stays storage-agnostic through `getStorageUrl()` in `src/lib/storage.ts`. Relative paths join a single `NEXT_PUBLIC_STORAGE_BASE_URL` (R2, Hugging Face, or S3), while absolute `https://` paths pass straight through — so you can park a 50 GB+ CRAM on Hugging Face while keeping smaller tracks on R2. The legacy `NEXT_PUBLIC_R2_PUBLIC_URL` still works as a fallback. When a configured bucket is empty, the genome browser auto-falls-back to the public JBrowse demo dataset, so the template is usable out-of-the-box. See the [Storage Configuration](#storage-configuration) section above for the full setup.
 
 <div align="right">
 
