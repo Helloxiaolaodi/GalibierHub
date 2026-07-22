@@ -26,10 +26,20 @@ export const SiteConfig = {
   jbrowse: {
     defaultAssembly: 'volvox',
     defaultLocus: 'ctgA:1-5000',
-    // Your own object storage (Cloudflare R2, S3, etc). Leave the env var unset
-    // to fall back to the public JBrowse demo data below, so the browser works
-    // out-of-the-box the moment someone forks this template.
-    storageBaseUrl: process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '',
+    // Your own object storage — Cloudflare R2, Hugging Face Datasets, AWS S3, or
+    // any CORS-enabled host that supports HTTP range requests. Leave both env
+    // vars unset to fall back to the public JBrowse demo data below, so the
+    // browser works out-of-the-box the moment someone forks this template.
+    //
+    // NEXT_PUBLIC_STORAGE_BASE_URL is the storage-agnostic name (preferred).
+    // NEXT_PUBLIC_R2_PUBLIC_URL is kept as a fallback for older deployments that
+    // already set it, so renaming the env var is not a breaking change.
+    //   R2  example: https://pub-xxxxxxxx.r2.dev
+    //   HF  example: https://huggingface.co/datasets/<user>/<repo>/resolve/main
+    storageBaseUrl:
+      process.env.NEXT_PUBLIC_STORAGE_BASE_URL ||
+      process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
+      '',
     // Public JBrowse 2 demo track set (volvox) — reference + alignments + BigBed.
     // Used automatically whenever storageBaseUrl is empty. Confirmed reachable
     // with permissive CORS + HTTP range requests, which JBrowse needs.
