@@ -1,3 +1,0 @@
-To https://github.com/Helloxiaolaodi/SeqEdge.git
-   b8d90fd..014b7be  main -> main
-EXIT=0

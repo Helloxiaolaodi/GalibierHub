@@ -43,3 +43,8 @@ next-env.d.ts
 # Cloudflare / OpenNext
 .open-next/
 .wrangler/
+
+# scratch / debug output
+_*.txt
+tsc-out*.txt
+commit-out.txt
