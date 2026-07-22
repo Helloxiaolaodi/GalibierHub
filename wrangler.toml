@@ -3,8 +3,3 @@ compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
 
 pages_build_output_dir = ".open-next"
-
-[vars]
-NEXT_PUBLIC_SUPABASE_URL = "https://mqpbkfkdtnlrsvxzagpa.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xcGJrZmtkdG5scnN2eHphZ3BhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NDc4MjUsImV4cCI6MjEwMDIyMzgyNX0.Zq7LvyvZ8xmfaQUFG2Du0hpc2Aq_dEyvxRsf3dDgAF8"
-NEXT_PUBLIC_R2_PUBLIC_URL = "https://pub-e730bb1fa4454168b689c626cbd07881.r2.dev"
