@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "build:cf": "opennextjs-cloudflare build && node -e \"require('fs').copyFileSync('.open-next/worker.js', '.open-next/_worker.js')\"",
+    "build:cf": "next build --webpack && opennextjs-cloudflare build --skipNextBuild && node -e \"require('fs').copyFileSync('.open-next/worker.js', '.open-next/_worker.js')\"",
     "preview:cf": "opennextjs-cloudflare preview",
     "deploy:cf": "opennextjs-cloudflare deploy"
   },
