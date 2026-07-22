@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "build:cf": "next build && opennextjs-cloudflare build --skipNextBuild && node -e \"require('fs').copyFileSync('.open-next/worker.js', '.open-next/_worker.js')\"",
+    "build:cf": "next build && opennextjs-cloudflare build --skipNextBuild && node -e \"const fs=require('fs'),p=require('path');const src='.open-next/assets';for(const f of fs.readdirSync(src))fs.renameSync(p.join(src,f),p.join('.open-next',f));fs.rmdirSync(src);fs.copyFileSync('.open-next/worker.js','.open-next/_worker.js');\"",
     "preview:cf": "opennextjs-cloudflare preview",
     "deploy:cf": "opennextjs-cloudflare deploy"
   },
