@@ -6,14 +6,12 @@
 // (plus .env.local and schema.sql) to create their own database site.
 
 export const SiteConfig = {
-  // ---- Site identity ----
   title: 'SeqEdge',
   subtitle: 'A Modern Edge-Native Portal for Genomic Databases',
   description: 'Interactive database for browsing predicted promoters, whole genome annotations, and genomic data - powered by serverless edge infrastructure.',
   keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation', 'seqedge'],
   contactEmail: 'lab@university.edu',
 
-  // ---- Branding ----
   colors: {
     primary: '#1E3A8A',
     secondary: '#10B981',
@@ -22,45 +20,67 @@ export const SiteConfig = {
     headerBorder: '#e5e7eb',
   },
 
-  // ---- Genome browser defaults ----
   jbrowse: {
     defaultAssembly: 'NC_045512.2',
     defaultLocus: 'NC_045512.2:1-5000',
-    // Your own object storage - Cloudflare R2, Hugging Face Datasets, AWS S3, or
-    // any CORS-enabled host that supports HTTP range requests. Leave both env
-    // vars unset to fall back to the public demo data below, so the browser works
-    // out-of-the-box the moment someone forks this template.
-    //
-    // NEXT_PUBLIC_STORAGE_BASE_URL is the storage-agnostic name (preferred).
-    // NEXT_PUBLIC_R2_PUBLIC_URL is kept as a fallback for older deployments that
-    // already set it, so renaming the env var is not a breaking change.
-    //   R2 example: https://pub-xxxxxxxx.r2.dev
-    //   HF example: https://huggingface.co/datasets/<user>/<repo>/resolve/main
     storageBaseUrl:
       process.env.NEXT_PUBLIC_STORAGE_BASE_URL ||
       process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
       '',
-    // Public SARS-CoV-2 genome dataset hosted on Hugging Face (NCBI NC_045512.2).
-    // Used automatically whenever storageBaseUrl is empty. The dataset includes
-    // reference FASTA + index and gene annotations exported from GenBank.
     demoBaseUrl: 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main',
+    demoData: {
+      fasta: 'volvox.fa',
+      fastaIndex: 'volvox.fa.fai',
+      tracks: [
+        {
+          trackId: 'demo-genes',
+          name: 'Gene Annotations',
+          type: 'FeatureTrack',
+          adapter: {
+            type: 'Gff3TabixAdapter',
+            gffGzLocation: 'volvox.sort.gff3.gz',
+            index: { location: 'volvox.sort.gff3.gz.tbi', indexType: 'TBI' },
+          },
+          displays: [
+            { displayId: 'demo-genes-LinearBasicDisplay', type: 'LinearBasicDisplay' },
+          ],
+        },
+        {
+          trackId: 'demo-alignments',
+          name: 'Read Alignments',
+          type: 'AlignmentsTrack',
+          adapter: {
+            type: 'BamAdapter',
+            bamLocation: 'volvox-sorted.bam',
+            index: { location: 'volvox-sorted.bam.bai', indexType: 'BAI' },
+          },
+        },
+        {
+          trackId: 'demo-bigbed',
+          name: 'BigBed Annotations',
+          type: 'FeatureTrack',
+          adapter: {
+            type: 'BigBedAdapter',
+            bigBedLocation: 'volvox.bb',
+          },
+          displays: [
+            { displayId: 'demo-bigbed-LinearBasicDisplay', type: 'LinearBasicDisplay' },
+          ],
+        },
+      ],
+    },
     tracks: [
       { name: 'SARS-CoV-2 Genes (BED)', type: 'annotation', format: 'bed' },
       { name: 'SARS-CoV-2 Genes (GFF3)', type: 'annotation', format: 'gff3' },
     ],
   },
 
-  // ---- Search filters ----
   chromosomes: [
     'NC_045512.2',
-    // For multi-chromosome genomes, list all here, e.g.:
-    //   'chr1', 'chr2', ..., 'chr22', 'chrX', 'chrY', 'chrMT'
   ],
 
-  // ---- Table pagination ----
   pageSize: 20,
 
-  // ---- Feature flags ----
   features: {
     enableGenomeBrowser: true,
     enableStatsCharts: true,

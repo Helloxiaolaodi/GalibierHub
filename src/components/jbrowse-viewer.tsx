@@ -6,18 +6,35 @@ import PluginLinearGenomeView from '@jbrowse/plugin-linear-genome-view';
 import { SiteConfig } from '@/site-config';
 import { getStorageUrl } from '@/lib/storage';
 
+interface DemoTrackAdapter {
+  type: string;
+  gffGzLocation?: string;
+  bamLocation?: string;
+  bigBedLocation?: string;
+  index?: {
+    location: string;
+    indexType: string;
+  };
+}
+
+interface DemoTrack {
+  trackId: string;
+  name: string;
+  type: string;
+  adapter: DemoTrackAdapter;
+  displays?: ReadonlyArray<{ displayId: string; type: string }>;
+}
+
 interface JBrowseViewerProps {
   locus?: string;
   onLocusChange?: (locus: string) => void;
-  // Base URL for the track files (user R2 or the public JBrowse demo bucket).
   dataBase: string;
+  tracks: DemoTrack[];
 }
 
-export default function JBrowseViewer({ locus, dataBase }: JBrowseViewerProps) {
+export default function JBrowseViewer({ locus, dataBase, tracks }: JBrowseViewerProps) {
   const assemblyName = SiteConfig.jbrowse.defaultAssembly;
-  // Resolve every track file through getStorageUrl so a relative name joins the
-  // resolved base, while a full https:// path (mixed-source hosting, e.g. a large
-  // CRAM parked on Hugging Face) is passed through untouched.
+  const demoData = SiteConfig.jbrowse.demoData;
   const url = (path: string) => getStorageUrl(path, dataBase);
   const lastNavLocus = useRef<string | null>(null);
 
@@ -29,74 +46,49 @@ export default function JBrowseViewer({ locus, dataBase }: JBrowseViewerProps) {
         trackId: `${assemblyName}-sequence`,
         adapter: {
           type: 'IndexedFastaAdapter',
-          fastaLocation: { uri: url('volvox.fa') },
-          faiLocation: { uri: url('volvox.fa.fai') },
+          fastaLocation: { uri: url(demoData.fasta) },
+          faiLocation: { uri: url(demoData.fastaIndex) },
         },
       },
     },
-    tracks: [
-      {
-        trackId: 'volvox-genes',
-        name: 'Gene Annotations',
+    tracks: tracks.map((track) => {
+      const adapter: Record<string, unknown> = { type: track.adapter.type };
+
+      if (track.adapter.gffGzLocation) {
+        adapter.gffGzLocation = { uri: url(track.adapter.gffGzLocation) };
+      }
+      if (track.adapter.bamLocation) {
+        adapter.bamLocation = { uri: url(track.adapter.bamLocation) };
+      }
+      if (track.adapter.bigBedLocation) {
+        adapter.bigBedLocation = { uri: url(track.adapter.bigBedLocation) };
+      }
+      if (track.adapter.index) {
+        adapter.index = {
+          location: { uri: url(track.adapter.index.location) },
+          indexType: track.adapter.index.indexType,
+        };
+      }
+
+      return {
+        trackId: track.trackId,
+        name: track.name,
         assemblyNames: [assemblyName],
-        type: 'FeatureTrack',
-        adapter: {
-          type: 'Gff3TabixAdapter',
-          gffGzLocation: { uri: url('volvox.sort.gff3.gz') },
-          index: { location: { uri: url('volvox.sort.gff3.gz.tbi') }, indexType: 'TBI' },
-        },
-        displays: [
-          { displayId: 'volvox-genes-LinearBasicDisplay', type: 'LinearBasicDisplay' },
-        ],
-      },
-      {
-        trackId: 'volvox-variants',
-        name: 'Variants (VCF)',
-        assemblyNames: [assemblyName],
-        type: 'VariantTrack',
-        adapter: {
-          type: 'VcfTabixAdapter',
-          vcfGzLocation: { uri: url('volvox.filtered.vcf.gz') },
-          index: { location: { uri: url('volvox.filtered.vcf.gz.tbi') }, indexType: 'TBI' },
-        },
-      },
-      {
-        trackId: 'volvox-alignments',
-        name: 'Read Alignments',
-        assemblyNames: [assemblyName],
-        type: 'AlignmentsTrack',
-        adapter: {
-          type: 'BamAdapter',
-          bamLocation: { uri: url('volvox-sorted.bam') },
-          index: { location: { uri: url('volvox-sorted.bam.bai') }, indexType: 'BAI' },
-        },
-      },
-      {
-        trackId: 'volvox-bigbed',
-        name: 'BigBed Annotations',
-        assemblyNames: [assemblyName],
-        type: 'FeatureTrack',
-        adapter: {
-          type: 'BigBedAdapter',
-          bigBedLocation: { uri: url('volvox.bb') },
-        },
-        displays: [
-          { displayId: 'volvox-bigbed-LinearBasicDisplay', type: 'LinearBasicDisplay' },
-        ],
-      },
-    ],
+        type: track.type,
+        adapter,
+        ...(track.displays ? { displays: [...track.displays] } : {}),
+      };
+    }),
     location: locus || SiteConfig.jbrowse.defaultLocus,
     plugins: [PluginLinearGenomeView],
   });
 
-  // Navigate when locus prop changes
   useEffect(() => {
     if (locus && locus !== lastNavLocus.current) {
       try {
         viewState.session.view.navToLocString(locus);
         lastNavLocus.current = locus;
       } catch {
-        // Invalid locus for this assembly — ignore
       }
     }
   }, [viewState, locus]);

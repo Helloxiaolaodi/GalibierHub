@@ -1,7 +1,6 @@
-<div align="center"><a name="readme-top"></a>
+﻿<div align="center"><a name="readme-top"></a>
 
-<img src="./seqedge-github-img-readme.jpg" alt="SeqEdge Screenshot â€” Overview" width="100%">
-
+<img src="../deploy-notes/seqedge-github-img-readme.jpg" alt="SeqEdge Screenshot - Overview" width="100%">
 
 # SeqEdge
 
@@ -9,18 +8,16 @@
 
 A modern, open-source template for building interactive genomic databases.
 
-**ðŸš€ Primary**: [https://seq-edge.vercel.app](https://seq-edge.vercel.app) | **Mirror (China-friendly)**: [https://seqedge.pages.dev](https://seqedge.pages.dev) Â· [GitHub][github-repo-link]
+**Primary**: [https://seq-edge.vercel.app](https://seq-edge.vercel.app) | **Mirror (China-friendly)**: [https://seqedge.pages.dev](https://seqedge.pages.dev) · [GitHub][github-repo-link]
 
-**English** | [ç®€ä½“ä¸­æ–‡](./README.zh-CN.md) | [Issues][github-issues-link]
+**English** | [简体中文](./README.zh-CN.md) | [Issues][github-issues-link]
 
-> ?? **Detailed Build Guide**: [SeqEdge Developer Notes](https://www.cnblogs.com/Helloxiaolaodi/p/21776736) â€” In-depth walkthrough from fork to deployment.
+> **Detailed Build Guide**: [SeqEdge Developer Notes](https://www.cnblogs.com/Helloxiaolaodi/p/21776736) - In-depth walkthrough from fork to deployment.
 
-Stack: Next.js | Supabase | Cloudflare R2 | JBrowse 2 | TanStack Table | ECharts
-
-<!-- SHIELD GROUP -->
+Stack: Next.js | Supabase | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 | TanStack Table | ECharts
 
 [![][github-license-shield]][github-license-link]
-Stack: Next.js | Supabase | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 | TanStack Table | ECharts
+[![][github-stars-shield]][github-stars-link]
 [![][github-forks-shield]][github-forks-link]
 [![][github-issues-shield]][github-issues-link]<br/>
 [![][nextjs-shield]][nextjs-link]
@@ -51,9 +48,7 @@ Stack: Next.js | Supabase | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 | 
   - [Cost Estimate](#cost-estimate)
   - [Cloud Service Setup](#cloud-service-setup)
   - [Tech Stack](#tech-stack)
-  - [What's New â€” Major Upgrades](#whats-new--major-upgrades)
   - [Test Data & Attribution](#test-data--attribution)
-  - [Acknowledgments](#acknowledgments)
   - [License](#license)
 
 <br/>
@@ -84,7 +79,7 @@ The name combines **Seq** (Sequencing / Sequence) and **Edge** (Edge Computing /
 +-----------------------------------------------------------+
 |  Vercel (Primary)          Cloudflare Pages (Mirror)      |
 |  Global CDN                 Edge network for China        |
-|  Next.js frontend + API    Next.js frontend + API        |
+|  Next.js frontend + API    Next.js frontend + API         |
 |   +-----------+             +-----------+                 |
 |   | ECharts   |             | ECharts   |                 |
 |   | TanStack  |             | TanStack  |                 |
@@ -105,55 +100,29 @@ The name combines **Seq** (Sequencing / Sequence) and **Edge** (Edge Computing /
 
 **Deployment model**
 
-- **Vercel** (Primary) â€” serves the majority of global traffic through its CDN.
-- **Cloudflare Pages** (Mirror) â€” provides an alternate deployment optimized for users in mainland China, served from Cloudflare's edge network via `opennextjs-cloudflare`.
+- **Vercel** (Primary) serves the majority of global traffic through its CDN.
+- **Cloudflare Pages** (Mirror) provides an alternate deployment optimized for users in mainland China, served from Cloudflare's edge network via `opennextjs-cloudflare`.
 
 **Data flow**
 
-1. A visitor opens the site through Vercel's global CDN (or Cloudflare Pages in China).
+1. A visitor opens the site through Vercel's global CDN, or Cloudflare Pages in China.
 2. The frontend queries Supabase for metadata such as coordinates, scores, and gene names.
-3. When a user opens a locus or promoter, the genome browser fetches only the required byte ranges from R2.
+3. When a user opens a locus or promoter, the genome browser fetches only the required byte ranges from object storage.
 4. Large genomic files stay in object storage instead of being copied into the relational database.
-
-**Genomic input data types read by SeqEdge:**
-
-The following table lists the genomic input data formats supported by SeqEdge, along with their storage location and purpose:
-
-| Data Type | File Format | Storage | Purpose |
-|---|---|---|---|
-| Reference genome sequence | FASTA (.fa, .fasta) + .fai index | Cloudflare R2 | JBrowse 2 reference sequence track providing chromosomal coordinate reference |
-| Gene annotations / promoter regions | BED (.bed) | Cloudflare R2 | JBrowse 2 annotation track displaying predicted promoter and gene positions |
-| Alignment reads | BAM (.bam) + .bai index | Cloudflare R2 | JBrowse 2 alignment track showing sequencing read alignments to the reference |
-| Reference genome sequence | FASTA (.fa, .fasta) + .fai index | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 reference sequence track providing chromosomal coordinate reference |
-| Gene annotations / promoter regions | BED (.bed) | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 annotation track displaying predicted promoter and gene positions |
-| Alignment reads | BAM (.bam) + .bai index | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 alignment track showing sequencing read alignments to the reference |
-| Signal coverage | BigWig (.bw, .bigwig) | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 quantitative track (XYPlot) displaying read depth or signal intensity |
-| Variant data | VCF (.vcf) + .tbi index | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 variant track showing SNP/InDel and other variant sites |
-- **Metadata** (sample info, promoter scores/sequences, variant annotations) is stored in three Supabase PostgreSQL tables (`genome_samples`, `promoters`, `variants`), queried by Next.js API routes and returned as JSON to the frontend.
-- **Large files** (FASTA, BED, BAM, BigWig, VCF with their corresponding index files) are stored on Cloudflare R2 and read directly by the JBrowse 2 genome browser via HTTP Range requests, on demand.
-- In demo mode, metadata can still fall back to local sample data, but the default public browser demo now points to the SARS-CoV-2 reference assembly `NC_045512.2` served from `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main`. The older Volvox assets remain useful as validation fixtures, but they are no longer the default first-run assembly.
-
-- **Large files** (FASTA, BED, BAM, BigWig, VCF with their corresponding index files) are stored in object storage such as Cloudflare R2 or Hugging Face Datasets and are read directly by the JBrowse 2 genome browser via HTTP Range requests, on demand.
-
-[![][back-to-top]](#readme-top)
-
-</div>
 
 ## Quick Start
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+
-- [Git](https://git-scm.com/)
-- A [Supabase](https://supabase.com/) account
-- A [Vercel](https://vercel.com/) account
-- A [Cloudflare](https://cloudflare.com/) account for R2 (optional during local development)
+- Node.js `18+`
+- npm
+- A Supabase project
+- An object store that supports CORS and HTTP range requests
 
 ### Step 1 - Fork and Clone
 
 ```bash
-# Fork this repo on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/SeqEdge.git
+git clone https://github.com/<your-account>/SeqEdge.git
 cd SeqEdge
 npm install
 ```
@@ -161,26 +130,20 @@ npm install
 ### Step 2 - Configure Environment
 
 ```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local`:
-
-```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
-NEXT_PUBLIC_STORAGE_BASE_URL=https://your-r2-bucket.r2.dev
+NEXT_PUBLIC_STORAGE_BASE_URL=https://your-bucket.your-account.r2.dev
+```
 
-# Legacy fallback still supported:
-# NEXT_PUBLIC_R2_PUBLIC_URL=https://your-r2-bucket.r2.dev
+Legacy fallback remains supported:
+
+```bash
+NEXT_PUBLIC_R2_PUBLIC_URL=https://your-bucket.your-account.r2.dev
 ```
 
 ### Step 3 - Set Up Database
 
-1. Go to your Supabase project dashboard.
-2. Open the **SQL Editor**.
-3. Copy and paste the contents of `schema.sql`.
-4. Click **Run** to create the tables, indexes, and sample data.
+Run the schema in `schema.sql` and import your metadata tables.
 
 ### Step 4 - Run Locally
 
@@ -188,766 +151,163 @@ NEXT_PUBLIC_STORAGE_BASE_URL=https://your-r2-bucket.r2.dev
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the demo data locally.
-
 ### Step 5 - Deploy
 
-SeqEdge supports deployment on **Vercel** (recommended) or **Cloudflare Pages** (experimental edge deployment).
+Recommended targets:
 
-**Option A: Vercel**
-
-1. Push your code to GitHub.
-2. Import the repository on [vercel.com/new](https://vercel.com/new).
-3. Add your environment variables in the Vercel dashboard.
-4. Deploy and publish the site.
-
-**Option B: Cloudflare Pages**
-
-1. Build locally and verify: `npm run build:cf`
-2. In Cloudflare Pages dashboard ? Settings ? Build & deployments:
-   - **Framework preset**: `None`
-   - **Build command**: `npm run build:cf`
-   - **Build output directory**: `.open-next/assets`
-3. **Open-source safe setup: inject variables from Cloudflare** (never commit real secrets to the GitHub repo)
-
-   * Confirm `.gitignore` includes `.env*.local` and `.env.production` so no keys leak.
-   * If `wrangler.toml` has a `[vars]` block with `NEXT_PUBLIC_*` values, remove that block, commit, and push to unlock the Cloudflare dashboard.
-   * Open Cloudflare Dashboard â†’ Workers & Pages â†’ seqedge â†’ Settings â†’ Variables and Secrets, delete any old gray/conflicting `NEXT_PUBLIC_*` entries, then add these three as **Plaintext** (enable **"Available at build time"** / select **Build**):
-
-   | Variable name | Value | Type |
-   |---|---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | `https://mqpbkfdtnlrsvxzagpa.supabase.co` | Plaintext |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `<your Supabase anon public key>` | Plaintext |
-   | NEXT_PUBLIC_STORAGE_BASE_URL | https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main or https://pub-e730b1fa4454168b689c626bd07881.r2.dev | Plaintext |
-   | NEXT_PUBLIC_R2_PUBLIC_URL | https://pub-e730b1fa4454168b689c626bd07881.r2.dev | Optional legacy fallback |
-
-   For the full four-step workflow, see `SeqEdge Developer Notes` chapter "Open-Source Template Standard".
-
-> [!TIP]
->
-> For the first working deployment, keep the demo dataset and verify the Supabase and R2 connections before importing your full production data.
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
+- **Vercel** for the primary site
+- **Cloudflare Pages** for the mirror deployment
 
 ## Customization
 
 ### The One File You Must Edit
 
-`src/site-config.ts` is the central configuration file. Change these values to personalize your database:
-
-```typescript
-export const SiteConfig = {
-  title: 'MyGenomeDB',
-  subtitle: 'A Promoter Database',
-  colors: {
-    primary: '#1E3A8A',
-  },
-  jbrowse: {
-    defaultAssembly: 'hg38',
-    storageBaseUrl: process.env.NEXT_PUBLIC_R2_PUBLIC_URL,
-  },
-  chromosomes: ['chr1', 'chr2'],
-  // ...
-};
-```
-
-### Connecting Real Data
-
-1. Upload genome files to Cloudflare R2, including required index files such as `.fai`, `.bai`, and `.tbi`.
-2. Import metadata into Supabase, including promoter predictions, sample information, and optional variant summaries.
-3. Update `src/site-config.ts` with your assembly name and track definitions.
-4. Replace demo queries in `src/app/page.tsx` with your real Supabase queries.
+The main configuration entry is `src/site-config.ts`. In most forks, this is where users should define the assembly name, default locus, demo file names, and branding values.
 
 ### Storage Configuration
 
-SeqEdge is **storage-agnostic**. It never hard-codes a provider â€” every genome file is
-addressed by a URL that resolves through a single base prefix, so you can host on
-**Cloudflare R2**, **Hugging Face Datasets**, **AWS S3**, or any CORS-enabled object
-store that supports HTTP range requests. Pick whichever fits your data volume.
+SeqEdge supports three hosting modes without code changes:
 
-| Provider | Free single-file limit | Free total capacity | Best for |
-| --- | --- | --- | --- |
-| Cloudflare R2 | 5 TB/object | 10 GB free tier | Smallâ€“medium demo track sets |
-| Hugging Face Datasets | 50 GB/file (Git LFS) | No hard cap (100s of GB is routine) | Hundreds of GB of whole-genome CRAM/VCF |
-| AWS S3 | 5 TB/object | Pay-as-you-go | Existing AWS pipelines |
+1. **Pure Cloudflare R2**
+2. **Pure Hugging Face Datasets**
+3. **Mixed hosting** with relative paths for common files and absolute `https://` links for very large files
 
-**Set one environment variable** â€” the storage-agnostic name is preferred; the legacy
-`NEXT_PUBLIC_R2_PUBLIC_URL` still works as a backward-compatible fallback:
+### Configurable JBrowse demo tracks
 
-```env
-# Cloudflare R2
-NEXT_PUBLIC_STORAGE_BASE_URL=https://pub-xxxxxxxx.r2.dev
+Default demo file names are now configured in `src/site-config.ts` instead of being hard-coded inside `src/components/jbrowse-viewer.tsx`.
 
-# â€” or â€” Hugging Face Datasets (note the /resolve/main suffix, NOT /blob/main)
-NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
-```
+Default reference files:
 
-#### Two hosting modes
+- `volvox.fa`
+- `volvox.fa.fai`
 
-1. **Single-source hosting (recommended).** Store **relative paths** in Supabase
-   (e.g. `tracks/sample1.bb`) and set `NEXT_PUBLIC_STORAGE_BASE_URL` to your bucket
-   root. Every file resolves against that one prefix. Zero code changes to switch
-   providers â€” just change the env var and redeploy.
+Default optional tracks:
 
-2. **Mixed-source hosting (advanced).** Keep small files on R2 but park a 50 GB+ CRAM
-   on Hugging Face by storing its **full `https://` URL** directly in Supabase. The
-   `getStorageUrl()` helper (`src/lib/storage.ts`) detects the leading scheme and
-   returns absolute URLs untouched, so the file loads cross-origin with no extra
-   config. You can freely mix providers per-file.
+- `volvox.sort.gff3.gz` + `volvox.sort.gff3.gz.tbi`
+- `volvox-sorted.bam` + `volvox-sorted.bam.bai`
+- `volvox.bb`
 
-#### Hosting large genomes on Hugging Face (step by step)
-
-Hugging Face Datasets is the most generous free option for large omics data: 50 GB
-per file via Git LFS, no hard cap on total repo size, free global CDN, native CORS +
-HTTP range support â€” exactly what JBrowse 2 needs.
-
-**1. Create a Hugging Face account**
-
-Go to [huggingface.co](https://huggingface.co/), sign up, verify your email, and pick
-the username you want to expose in your raw file URLs.
-
-**2. Create a public Dataset repo**
-
-After signing in, open **New Dataset** and create a dataset repo such as
-`seqedge-data`. Set visibility to **Public**. SeqEdge loads track files anonymously
-from the browser, so a private dataset will fail unless you build your own signed-URL
-proxy layer.
-
-**3. Install Git LFS (one-time)**
-
-```bash
-# macOS
-brew install git-lfs
-# Debian/Ubuntu
-sudo apt-get install git-lfs
-# Windows (Git for Windows already bundles it; otherwise)
-#   download from https://git-lfs.com
-git lfs install
-```
-
-**4. Authenticate, clone, add files, push**
-
-```bash
-# Optional but recommended: login first so git push uses your HF access token
-# Create the token at https://huggingface.co/settings/tokens
-pip install -U huggingface_hub
-huggingface-cli login
-
-git clone https://huggingface.co/datasets/<user>/my-genome-tracks
-cd my-genome-tracks
-
-# Track large binary formats with LFS so they upload as real files, not pointers
-git lfs track "*.cram" "*.crai" "*.bam" "*.bai" "*.bb" "*.bw" \
-              "*.vcf.gz" "*.vcf.gz.tbi" "*.fa" "*.fa.fai" "*.gz" "*.gzi"
-git add .gitattributes
-
-# IMPORTANT: keep each index file next to its data file, same base name
-#   scov2.fa             scov2.fa.fai
-#   sample1.cram         sample1.cram.crai
-#   variants.vcf.gz      variants.vcf.gz.tbi
-cp /path/to/*.cram* /path/to/*.vcf.gz* .
-git add .
-git commit -m "add genome tracks"
-git push
-```
-
-When `git push` asks for credentials, use your Hugging Face username and an **Access
-Token** from **Settings â†’ Access Tokens** as the password. Do not use your normal web
-password in Git operations.
-
-**5. Get the raw file URL prefix**
-
-The URL pattern is:
-
-```
-https://huggingface.co/datasets/<user>/<repo>/resolve/main/<path>
-```
-
-Set the **prefix** (everything up to and including `/resolve/main`) as your base URL:
-
-```env
-NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/my-genome-tracks/resolve/main
-```
-
-**6. Configure SeqEdge on Cloudflare Pages**
-
-In **Cloudflare Dashboard â†’ Workers & Pages â†’ your SeqEdge project â†’ Settings â†’
-Variables and Secrets**, set:
-
-```env
-NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/my-genome-tracks/resolve/main
-```
-
-Then trigger a new deployment. Relative paths stored in Supabase such as
-`tracks/sample1.bb` will now resolve against your Hugging Face dataset.
-
-**7. Verify CORS + range support**
-
-```bash
-# 206 Partial Content + accept-ranges: bytes means JBrowse can stream it
-curl -sI -H "Range: bytes=0-0" \
-  "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa.fai"
-```
-
-> [!IMPORTANT]
-> Two Hugging Face gotchas that cause most failures:
-> - Use **`/resolve/main`**, never **`/blob/main`**. `blob` returns an HTML preview
->   page; `resolve` returns the raw byte stream JBrowse needs.
-> - Keep each **index file** (`.fai` / `.tbi` / `.crai` / `.bai`) in the **same
->   directory with the same base name** as its data file. JBrowse derives the index
->   URL by appending the extension, so the paths must line up exactly.
->
-> Hugging Face answers large-file requests with a `302` redirect to its CDN. SeqEdge's
-> reachability probe issues a `Range` GET (not a bare `HEAD`) specifically so it
-> follows that redirect correctly.
-
-### Data Format Requirements
-
-**Supabase `predicted_promoters` table columns**
-
-| Column | Type | Required | Example |
-| --- | --- | --- | --- |
-| `sample_id` | `text` | yes | `SAMPLE-001` |
-| `chrom` | `text` | yes | `chr17` |
-| `start` | `integer` | yes | `43044295` |
-| `end_pos` | `integer` | yes | `43045800` |
-| `score` | `numeric(0-1)` | yes | `0.95` |
-| `strand` | `text (+/-)` | yes | `+` |
-| `gene_symbol` | `text` | no | `BRCA1` |
-| `sequence` | `text` | no | `ATGCGTAC...` |
-
-**Cloudflare R2 file structure**
-
-```text
-your-bucket/
-  genomes/
-    hg38.fa
-    hg38.fa.fai
-    hg38.fa.dict
-  tracks/
-    predicted_promoters.bed.gz
-    predicted_promoters.bed.gz.tbi
-    rnaseq_coverage.bw
-    chipseq_peaks.bed.gz
-    chipseq_peaks.bed.gz.tbi
-```
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
+The app now automatically probes these optional tracks. If a required file is missing, that track is hidden instead of crashing the whole browser.
 
 ## Feature Modules
 
-The codebase is designed to be modular. Each feature is implemented as a separate component or surface.
-
-| Component | File | Purpose |
-| --- | --- | --- |
-| Stats Dashboard | `src/components/stats-chart.tsx` | Pie chart for species distribution and bar chart for score distribution |
-| Search Filters | `src/components/search-filters.tsx` | Multi-faceted promoter search |
-| Data Table | `src/components/promoter-table.tsx` | Sortable, filterable, paginated table |
-| Promoter Detail | `src/components/promoter-detail.tsx` | Modal with coordinates, score, sequence, and BED/FASTA export |
-| Genome Browser | `src/components/genome-browser.tsx` | Custom genome viewer with JBrowse 2 integration path |
-
-To disable a feature, update `src/site-config.ts`:
-
-```typescript
-features: {
-  enableGenomeBrowser: false,
-  enableStatsCharts: true,
-  enableVariantSearch: false,
-}
-```
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
+- **Overview** for summary statistics and charts
+- **Promoters** for searchable coordinate-based records
+- **Genome Browser** for JBrowse 2 track rendering
+- **User Guide** for inline usage help
 
 ## Cost Estimate
 
-| Service | Free Tier | Paid Tier |
-| --- | --- | --- |
-| Vercel (Primary) | 100 GB bandwidth / month | Pro $20 / month |
-| Cloudflare Pages (Mirror) | 500 builds / month, unlimited bandwidth | $5 / month for higher limits |
-| Supabase | 500 MB DB, 2 GB bandwidth | Pro $25 / month |
-| Cloudflare R2 | 10 GB storage, free egress | $0.015 / GB / month storage |
-| Domain | `.vercel.app` / `.pages.dev` free | Custom domain ~$10 / year |
+With moderate usage, SeqEdge usually fits within free tiers or very low-cost hosting:
 
-> [!NOTE]
->
-> A typical paper-supporting portal can usually stay on the free tiers during development and review. Production use with persistent traffic is still inexpensive if metadata remains in Supabase and only large assets are stored in R2.
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
-
----
+- Vercel for frontend and API delivery
+- Cloudflare Pages / Workers for mirrored access
+- Supabase for metadata
+- Hugging Face Datasets for larger public files
 
 ## Cloud Service Setup
 
-This section walks through the three cloud services SeqEdge depends on. All three have free tiers that are enough for development and early sharing.
+### A. Supabase
 
-### A. Supabase (PostgreSQL Database)
+Stores structured metadata and powers filtering queries.
 
-Supabase stores promoter metadata, sample information, and variant indexes.
+### B. Cloudflare R2
 
-**Step 1 - Create an account**
+Best for common small-to-medium genomic files, especially when you want low-latency object delivery.
 
-1. Go to [supabase.com](https://supabase.com/) and click **Start your project**.
-2. Sign up with GitHub or email.
+### C. Hugging Face Datasets
 
-**Step 2 - Create a project**
+Best for large public files. For JBrowse and similar tools, always use `resolve/main`, not `blob/main`.
 
-1. Click **New Project**.
-2. Fill in:
-   - **Name**: `seqedge-db`
-   - **Database Password**: create and save a strong password
-   - **Region**: choose the region closest to your users
-3. Wait for the project to initialize.
+### D. Vercel and Cloudflare Pages
 
-**Step 3 - Get your credentials**
-
-1. Open **Settings -> API**.
-2. Copy:
-   - **Project URL**
-   - **anon public key**
-3. Add them to `.env.local`:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://abcdefgh.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
-```
-
-**Step 4 - Create database tables**
-
-1. Open **SQL Editor**.
-2. Create a new query.
-3. Paste the contents of `schema.sql`.
-4. Run the script.
-5. Verify the expected tables and sample rows in **Table Editor**.
-
-**Step 5 - Import your real data**
-
-For small datasets, use the dashboard insert tools.
-
-For larger imports, use Python:
-
-```python
-import pandas as pd
-from supabase import create_client
-
-url = "https://abcdefgh.supabase.co"
-key = "eyJhbGciOi..."
-supabase = create_client(url, key)
-
-df = pd.read_csv("your_promoters.csv")
-records = df.to_dict("records")
-
-for i in range(0, len(records), 500):
-    batch = records[i:i + 500]
-    supabase.table("predicted_promoters").insert(batch).execute()
-    print(f"Inserted {min(i + 500, len(records))}/{len(records)}")
-```
-
-> [!NOTE]
->
-> Free tier limits: 500 MB database storage, 2 GB bandwidth per month, and auto-pause after inactivity.
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
-
-### B. Cloudflare R2 (Genome File Storage)
-
-R2 stores large genome assets such as FASTA, BED, BigWig, BAM, and indexed track files. JBrowse-compatible range requests depend on these files being directly accessible and correctly indexed.
-
-**Step 1 - Create an account**
-
-1. Go to [cloudflare.com](https://cloudflare.com/) and sign up.
-2. You can use R2 without moving your domain DNS to Cloudflare.
-
-**Step 2 - Create an R2 bucket**
-
-1. Open **R2 Object Storage**.
-2. Click **Create bucket**.
-3. Use a globally unique bucket name such as `seqedge-genomic-data`.
-4. Choose a location hint close to your users.
-
-**Step 3 - Enable public access**
-
-1. Open the bucket settings.
-2. Enable the `r2.dev` public development URL for testing.
-3. Copy the public URL into `.env.local`:
-
-```env
-NEXT_PUBLIC_R2_PUBLIC_URL=https://pub-xxxxxxxxx.r2.dev
-```
-
-**Step 4 - Configure CORS**
-
-Add a policy similar to this:
-
-```json
-[
-  {
-    "AllowedOrigins": [
-      "https://your-deployment.vercel.app",
-      "http://localhost:3000"
-    ],
-    "AllowedMethods": ["GET", "HEAD"],
-    "AllowedHeaders": ["*"],
-    "MaxAgeSeconds": 86400
-  }
-]
-```
-
-**Step 5 - Upload genome files**
-
-For small tests, use the dashboard uploader.
-
-For larger uploads, `rclone` is a practical choice:
-
-```bash
-rclone config
-rclone copy ./local-genomes/ r2:seqedge-genomic-data/test-data/ --progress --transfers 4
-rclone copy ./local-tracks/ r2:seqedge-genomic-data/test-data/ --progress --transfers 4
-```
-
-**Required file structure in R2**
-
-```text
-seqedge-genomic-data/
-  test-data/
-    volvox.fa
-    volvox.fa.fai
-    reference.fa
-    reference.fa.fai
-    volvox-bed12.bed.gz
-    volvox-bed12.bed.gz.tbi
-    volvox-sorted.bam
-    volvox-sorted.bam.bai
-    volvox.gff3
-    volvox.bb
-```
-
-> [!WARNING]
->
-> Every indexed file such as `BED.gz`, `BAM`, and `VCF` must have its companion index file in the same directory. Range requests fail without the matching index.
-
-> [!NOTE]
->
-> Free tier highlights: 10 GB storage and zero egress fees, which is the main reason SeqEdge uses R2 instead of standard S3 for public genome data delivery.
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
-
-### C. Vercel (Frontend Deployment)
-
-Vercel hosts the Next.js app and handles preview and production deployments from GitHub.
-
-**Step 1 - Create an account**
-
-1. Go to [vercel.com](https://vercel.com/) and sign up with GitHub.
-
-**Step 2 - Import your repository**
-
-1. Click **Add New -> Project**.
-2. Select your SeqEdge fork.
-3. Keep the **Next.js** preset.
-4. Deploy.
-
-**Step 3 - Add environment variables**
-
-Open **Settings -> Environment Variables** and add:
-
-| Variable | Example | Source |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://abcdefgh.supabase.co` | Supabase API settings |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGciOi...` | Supabase API settings |
-| `NEXT_PUBLIC_R2_PUBLIC_URL` | `https://pub-xxxxxxxxx.r2.dev` | Cloudflare R2 bucket settings |
-
-Enable the variables for **Production**, **Preview**, and **Development**.
-
-<details>
-<summary><kbd>How to find your R2 public URL</kbd></summary>
-
-1. Open the Cloudflare dashboard.
-2. Go to **R2 Object Storage** and select your bucket.
-3. Open **Settings**.
-4. Copy the **Public Development URL**.
-5. Paste it into `NEXT_PUBLIC_R2_PUBLIC_URL` without a trailing slash.
-
-</details>
-
-<details>
-<summary><kbd>Redeploy after changing environment variables</kbd></summary>
-
-1. Open your Vercel project.
-2. Go to the **Deployments** tab.
-3. Find the latest deployment.
-4. Open the menu and click **Redeploy**.
-5. Wait for the rebuild to finish.
-
-</details>
-
-**Step 4 - Add a custom domain (optional)**
-
-1. Open **Settings -> Domains**.
-2. Add your domain, for example `seqedge.yourlab.org`.
-3. If the domain uses Cloudflare DNS, add the recommended CNAME record.
-4. Let Vercel provision the SSL certificate.
-
-> [!NOTE]
->
-> Free tier highlights: 100 GB bandwidth per month, unlimited deployments, and automatic HTTPS on the default `.vercel.app` domain.
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
-
-### D. Cloudflare Pages (Mirror Deployment for China)
-
-SeqEdge can be deployed to Cloudflare's global edge network via `opennextjs-cloudflare`. This mirror is optimized for users in mainland China where Vercel access is limited.
-
-> All API routes (`/api/stats`, `/api/promoters`, `/api/variants`) and dynamic routes (`/promoter/[id]`) are automatically recognized as server functions by the OpenNext adapter and will work on Cloudflare's edge infrastructure.
-
-**Step 1 - Build locally and verify**
-
-```bash
-npm run build:cf
-```
-
-This produces deployable assets in `.open-next/assets`.
-
-**Step 2 - Configure Cloudflare Pages**
-
-In the Cloudflare Pages dashboard, go to **Settings â†’ Build & deployments** and set:
-
-| Setting | Value |
-| --- | --- |
-| Framework preset | `None` |
-| Build command | `npm run build:cf` |
-| Build output directory | `.open-next/assets` |
-
-> **Important**: Confirm that all three environment variables are configured under **Settings â†’ Environment variables**:
-> - `NEXT_PUBLIC_SUPABASE_URL`
-> - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-> - `NEXT_PUBLIC_R2_PUBLIC_URL`
-
-**Step 3 - Commit and push**
-
-Push your code to GitHub. Cloudflare Pages will automatically trigger a new deployment. The build log should show `next build` followed by `opennextjs-cloudflare build`, with final output in `.open-next/assets`.
-
-**Troubleshooting: Build fails with `supabaseUrl is required`**
-
-This error means the three `NEXT_PUBLIC_` environment variables are missing from the Cloudflare Pages dashboard. Next.js needs these at build time to generate static pages.
-
-| Variable | Purpose |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key |
-| `NEXT_PUBLIC_R2_PUBLIC_URL` | Cloudflare R2 public file URL |
-
-To fix:
-
-1. Go to Cloudflare Dashboard â†’ Pages â†’ SeqEdge â†’ Settings â†’ Environment variables
-2. Add all three variables with the same values as your local `.env.local`
-3. Check both **Production** and **Preview** environments
-4. Save and trigger a new deployment
-
-**Files modified for Cloudflare compatibility:**
-
-| File | Change |
-| --- | --- |
-| `.gitignore` | Added `.open-next/` and `.wrangler/` |
-| `package.json` | Replaced with OpenNext scripts and pinned dependency versions |
-| `package-lock.json` | Regenerated lock file after reinstall |
-| `next.config.ts` | Cleaned empty comments |
-| `wrangler.toml` | Added Cloudflare compatibility configuration |
-| `open-next.config.ts` | Added OpenNext full configuration |
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
+Use Vercel as the primary deployment and Cloudflare Pages as the mirror deployment.
 
 ## Tech Stack
 
-| Category | Technology | Version | Description |
-| --- | --- | --- | --- |
-| Framework | [Next.js][nextjs-link] | `15.5.21` | App Router (pinned to 15.x, not 16, for OpenNext Cloudflare adapter compatibility) |
-| UI Runtime | [React][nextjs-link] | `19.2.4` | `react` / `react-dom` |
-| Database | [Supabase][supabase-link] | `2.110.7` | `@supabase/supabase-js` client for PostgreSQL and REST APIs |
-| File Storage | [Cloudflare R2][r2-link] | service | S3-compatible object storage with free egress |
-| Genome Browser | [JBrowse 2][jbrowse-link] | `3.1.0` / `4.3.0` | `@jbrowse/react-linear-genome-view` `3.1.0`, `@jbrowse/product-core` `4.3.0` |
-| Data Table | [TanStack Table][tanstack-link] | `8.21.3` | `@tanstack/react-table` â€” sorting, filtering, and scalable table rendering |
-| Charts | [Apache ECharts][echarts-link] | `6.1.0` | `echarts` `6.1.0` + `echarts-for-react` `3.0.6` |
-| Styling | [Tailwind CSS][tailwind-link] | `4.x` | `@tailwindcss/postcss` `4`, utility-first styling |
-| Primary Deploy | [Vercel][vercel-link] | service | Global CDN and Git-based deployment |
-| Mirror Deploy | [Cloudflare Pages](https://pages.cloudflare.com/) | `1.20.2` / `4.113.0` | Edge network for China access via `@opennextjs/cloudflare` `1.20.2` + `wrangler` `4.113.0` |
-| Language / Tooling | [TypeScript](https://www.typescriptlang.org/) | `5.x` | TypeScript `5.x`, ESLint `9.x`, `eslint-config-next` `15.5.21` |
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
-
-## What's New â€” Major Upgrades
-
-The latest release focuses on making SeqEdge presentation-ready, cheaper to host, and friendlier for first-time visitors.
-
-### 1. Professional presentation upgrades
-
-- **One-click chart export.** Every ECharts figure â€” the species donut and the score histogram â€” now carries PNG and SVG export buttons (`src/components/exportable-chart.tsx`). PNG is rendered at 2Ã— pixel ratio so it stays crisp on slides, and SVG comes out as a true vector for publication figures.
-- **Multi-dimensional cohort/metadata filter panel.** The search panel (`src/components/search-filters.tsx`) filters by species, tissue, cohort prefix (`P-` / `C-` / `V-`), WHO adult BMI class, and promoter locus/score. It runs as a two-hop query â€” sample metadata â†’ allowed `sample_id`s â†’ promoters â€” in `src/app/api/promoters/route.ts`.
-- **Card-based promoter detail modal.** The detail view (`src/components/promoter-detail.tsx`) shows a sample-phenotype card (cohort, BMI class, age/sex, coverage) fetched from `/api/samples/[id]`, alongside Copy-as-BED, Copy-FASTA, and View-in-browser actions.
-
-### 2. Input data extreme compression guide
-
-A new guide (`docs/data-compression-guide.md`) shows how to shrink genome inputs so they fit inside free storage tiers:
-
-- **BAM â†’ CRAM** â€” reference-based compression, roughly 50% smaller.
-- **BED â†’ BigBed** â€” indexed binary tracks for range queries.
-- **VCF â†’ bgzip + tabix** â€” `.vcf.gz` plus `.tbi`.
-- **FASTA â†’ bgzip + faidx** â€” compressed, still range-readable.
-
-It bundles a one-shot conversion script and R2 upload etiquette (correct `Content-Type`, `Accept-Ranges`, and CORS).
-
-### 3. User Guide button
-
-A top-right **User Guide** toggle in the header (`src/components/user-guide.tsx`) opens a slide-in drawer with six sections â€” Overview, Promoters, Genome Browser, Data & storage, Exporting figures, and Deployment â€” so first-time visitors can self-onboard without leaving the page.
-
-### 4. Dual storage: Cloudflare R2 + Hugging Face Datasets
-
-SeqEdge stays storage-agnostic through `getStorageUrl()` in `src/lib/storage.ts`. Relative paths join a single `NEXT_PUBLIC_STORAGE_BASE_URL` (R2, Hugging Face, or S3), while absolute `https://` paths pass straight through â€” so you can park a 50 GB+ CRAM on Hugging Face while keeping smaller tracks on R2. The legacy `NEXT_PUBLIC_R2_PUBLIC_URL` still works as a fallback. When a configured bucket is empty, the genome browser auto-falls-back to the public JBrowse demo dataset, so the template is usable out-of-the-box. See the [Storage Configuration](#storage-configuration) section above for the full setup.
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
+- Next.js `15.5.21`
+- React `19.2.4`
+- `@supabase/supabase-js` `^2.110.7`
+- `@jbrowse/product-core` `^4.3.0`
+- `@jbrowse/react-linear-genome-view` `^3.1.0`
+- `@tanstack/react-table` `^8.21.3`
+- `echarts` `^6.1.0`
+- `@opennextjs/cloudflare` `^1.20.2`
+- `wrangler` `^4.113.0`
 
 ## Test Data & Attribution
 
-SeqEdge currently uses two categories of public test data: the default online demo dataset hosted on Hugging Face and the local validation data stored under `deploy-notes/test-data`.
+### A. Default template demo data
 
-### A. SARS-CoV-2 default demo dataset
+SeqEdge intentionally keeps a small public demo dataset so the template stays usable immediately after forking, even before a user uploads any real genome files. The default genome browser configuration is now file-name configurable through `src/site-config.ts`, rather than hard-coded inside the JBrowse React component.
 
-The current public demo dataset includes `scov2.fa`, `scov2.fa.fai`, `scov2.gb`, `scov2.genes.bed`, and `scov2.genes.gff3`. These files map to the NCBI RefSeq reference assembly `NC_045512.2` and are served from `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main`.
+Default demo files:
 
-Recommended citation for the public source context:
+- `volvox.fa`
+- `volvox.fa.fai`
+- `volvox.sort.gff3.gz`
+- `volvox.sort.gff3.gz.tbi`
+- `volvox-sorted.bam`
+- `volvox-sorted.bam.bai`
+- `volvox.bb`
 
-- Wu F, Zhao S, Yu B, Chen Y-M, Wang W, Song Z-G, Hu Y, Tao Z-W, Tian J-H, Pei Y-Y, et al.
-- *A new coronavirus associated with human respiratory disease in China.*
-- Nature 579, 265-269 (2020)
-- DOI: `10.1038/s41586-020-2008-3`
+Sources:
 
-Thanks to NCBI and the original data producers for making the reference and annotation resources publicly available.
+- GMOD / JBrowse example data: `https://github.com/GMOD/jbrowse-components/tree/main/test_data`
+- Canonical public demo host: `https://jbrowse.org/code/jb2/main/demos/volvox`
 
-### B. GMOD / JBrowse Volvox validation dataset
+Acknowledgment:
 
-SeqEdge still keeps the public Volvox browser-validation files from the GMOD / JBrowse test-data suite for regression testing of GFF3, BED.gz + tabix, BAM + BAI, and BigBed handling.
+- Thanks to the JBrowse and GMOD maintainers for publishing and maintaining these example assets for the community.
 
-Source:
+### B. SARS-CoV-2 validation data
 
-- `https://github.com/GMOD/jbrowse-components/tree/main/test_data`
+During development, SeqEdge was also validated against a small SARS-CoV-2 dataset hosted on Hugging Face Datasets.
 
-Thanks to the JBrowse and GMOD maintainers for publishing reusable browser test fixtures.
+Files:
 
-### C. E. coli K-12 MG1655 validation genome
+- `scov2.fa`
+- `scov2.fa.fai`
+- `scov2.gb`
+- `scov2.genes.bed`
+- `scov2.genes.gff3`
 
-The local validation genome `reference.fa` is based on the public RefSeq assembly `GCF_000005845.2` with accession `NC_000913.3`.
+Primary sources:
+
+- NCBI RefSeq accession `NC_045512.2`
+- The corresponding NCBI GenBank record
 
 Recommended citation:
 
-- Blattner FR, Plunkett G 3rd, Bloch CA, Perna NT, Burland V, Riley M, Collado-Vides J, Glasner JD, Rode CK, Mayhew GF, et al.
-- *The complete genome sequence of Escherichia coli K-12.*
-- Science 277(5331):1453-1462 (1997)
-- DOI: `10.1126/science.277.5331.1453`
+- Wu F, Zhao S, Yu B, et al. *A new coronavirus associated with human respiratory disease in China*. Nature. 2020;579(7798):265-269. DOI: `10.1038/s41586-020-2008-3`
 
-Thanks to the authors and NCBI RefSeq for continued public access to this benchmark genome.
+Acknowledgment:
 
-<div align="right">
+- Thanks to the original authors, submitting laboratories, and NCBI / GenBank / RefSeq.
 
-[![][back-to-top]](#readme-top)
+### C. E. coli K-12 MG1655 validation data
 
-</div>
-## Acknowledgments
+A lightweight *Escherichia coli* validation genome was used while checking FASTA indexing and browser compatibility.
 
-SeqEdge builds on a strong open-source ecosystem. These projects make the template practical for research-facing genomic applications.
+Files:
 
-| Project | Role |
-| --- | --- |
-| [Next.js](https://nextjs.org/) | Frontend framework and application runtime |
-| [Supabase](https://supabase.com/) | Hosted PostgreSQL and API layer |
-| [JBrowse 2](https://jbrowse.org/jb2/) | Interactive genome browser foundation |
-| [Cloudflare R2](https://www.cloudflare.com/products/r2/) | Storage layer for large genomic assets |
-| [Vercel](https://vercel.com/) | Deployment and edge delivery |
-| [TanStack Table](https://tanstack.com/table) | Data grid behavior for promoter and locus tables |
-| [Apache ECharts](https://echarts.apache.org/) | Chart rendering for summary analytics |
-| [Tailwind CSS](https://tailwindcss.com/) | Consistent UI styling |
+- `reference.fa`
+- `reference.fa.fai`
+- `ecoli_k12_genomic.fna.gz`
 
-SeqEdge also draws inspiration from classic genomic databases such as [EPD](https://epd.epfl.ch/), [DBTSS](https://dbtss.hgc.jp/), and [RegulonDB](https://regulondb.ccg.unam.mx/), updated with a cloud-native deployment model.
+Primary sources:
 
-<div align="right">
+- NCBI RefSeq assembly `GCF_000005845.2`
+- Chromosome accession `NC_000913.3`
 
-[![][back-to-top]](#readme-top)
+Recommended citation:
 
-</div>
+- Blattner FR, Plunkett G 3rd, Bloch CA, et al. *The complete genome sequence of Escherichia coli K-12*. Science. 1997;277(5331):1453-1462. DOI: `10.1126/science.277.5331.1453`
 
----
+Acknowledgment:
+
+- Thanks to the original authors and NCBI for preserving and distributing this foundational bacterial reference genome.
 
 ## License
 
-MIT - use freely for academic and commercial projects.
-
-Part of the SeqEdge project: [github.com/Helloxiaolaodi/SeqEdge][github-repo-link]
-
-<!-- LINK GROUP -->
-
-[back-to-top]: https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square
-[echarts-link]: https://echarts.apache.org/
-[github-forks-link]: https://github.com/Helloxiaolaodi/SeqEdge/network/members
-[github-forks-shield]: https://img.shields.io/github/forks/Helloxiaolaodi/SeqEdge?color=8ae8ff&labelColor=black&style=flat-square
-[github-issues-link]: https://github.com/Helloxiaolaodi/SeqEdge/issues
-[github-issues-shield]: https://img.shields.io/github/issues/Helloxiaolaodi/SeqEdge?color=ff80eb&labelColor=black&style=flat-square
-[github-license-link]: https://github.com/Helloxiaolaodi/SeqEdge/blob/main/LICENSE
-[github-license-shield]: https://img.shields.io/badge/license-MIT-white?labelColor=black&style=flat-square
-[github-repo-link]: https://github.com/Helloxiaolaodi/SeqEdge
-[github-stars-link]: https://github.com/Helloxiaolaodi/SeqEdge/stargazers
-[github-stars-shield]: https://img.shields.io/github/stars/Helloxiaolaodi/SeqEdge?color=ffcb47&labelColor=black&style=flat-square
-[image-banner]: ./public/seqedge-banner.svg
-[jbrowse-link]: https://jbrowse.org/jb2/
-[nextjs-link]: https://nextjs.org/
-[nextjs-shield]: https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white&style=flat-square
-[r2-link]: https://www.cloudflare.com/products/r2/
-[share-reddit-link]: https://www.reddit.com/submit?title=SeqEdge%20-%20Scalable%20Genomics%20at%20the%20Edge&url=https%3A%2F%2Fgithub.com%2FHelloxiaolaodi%2FSeqEdge
-[share-reddit-shield]: https://img.shields.io/badge/-share%20on%20reddit-black?labelColor=black&logo=reddit&logoColor=white&style=flat-square
-[share-weibo-link]: http://service.weibo.com/share/share.php?sharesource=weibo&title=Check%20this%20GitHub%20repository%20out%20SeqEdge%20-%20A%20modern%2C%20open-source%20template%20for%20building%20genomic%20databases.&url=https%3A%2F%2Fgithub.com%2FHelloxiaolaodi%2FSeqEdge
-[share-weibo-shield]: https://img.shields.io/badge/-share%20on%20weibo-black?labelColor=black&logo=sinaweibo&logoColor=white&style=flat-square
-[share-x-link]: https://x.com/intent/tweet?text=Check%20out%20SeqEdge%20-%20A%20modern%2C%20open-source%20template%20for%20building%20genomic%20databases.&url=https%3A%2F%2Fgithub.com%2FHelloxiaolaodi%2FSeqEdge
-[share-x-shield]: https://img.shields.io/badge/-share%20on%20x-black?labelColor=black&logo=x&logoColor=white&style=flat-square
-[supabase-link]: https://supabase.com/
-[supabase-shield]: https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase&logoColor=white&labelColor=black&style=flat-square
-[tailwind-link]: https://tailwindcss.com/
-[tanstack-link]: https://tanstack.com/table
-[vercel-link]: https://vercel.com/
-[vercel-shield]: https://img.shields.io/badge/Vercel-000000?logo=vercel&logoColor=white&labelColor=black&style=flat-square
+Released under the license declared in this repository.
