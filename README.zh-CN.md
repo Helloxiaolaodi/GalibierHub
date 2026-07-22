@@ -264,6 +264,107 @@ export const SiteConfig = {
 3. 在 `src/site-config.ts` 中更新物种装配名称和轨道定义。
 4. 把 `src/app/page.tsx` 中的示例查询替换为你的真实 Supabase 查询逻辑。
 
+### 数据存储配置（Storage Configuration）
+
+SeqEdge 不绑定任何存储厂商。所有基因组文件都通过一个 URL 前缀访问，因此可以**零代码切换**任何符合 CORS 规范的对象存储——Cloudflare R2、Hugging Face Datasets、AWS S3 等都行。核心逻辑只有一条：**相对路径走环境变量前缀，绝对 `https://` 直链直接放行**（由 `src/lib/storage.ts` 的 `getStorageUrl()` 实现）。
+
+#### 方式一：单源统一托管（推荐）
+
+在 Supabase 中只存**相对路径**（如 `tracks/chr1.bb`），并配置**一个**环境变量：
+
+```env
+# 用 Cloudflare R2：
+NEXT_PUBLIC_STORAGE_BASE_URL=https://pub-xxxxxxxx.r2.dev
+
+# 或用 Hugging Face Datasets：
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<用户名>/<仓库名>/resolve/main
+```
+
+> 旧变量 `NEXT_PUBLIC_R2_PUBLIC_URL` 仍作为向后兼容的兜底保留——已有部署升级后无需改动即可继续工作。新部署请使用中性的 `NEXT_PUBLIC_STORAGE_BASE_URL`。
+
+#### 方式二：多源混合托管（高阶）
+
+小文件放 R2、把超过 50GB 的超大 `.cram` 放 Hugging Face？只需在 Supabase 对应记录里直接填写**完整的 `https://` 直链**：
+
+```
+https://huggingface.co/datasets/<用户名>/<大文件仓库>/resolve/main/chr1.cram
+```
+
+`getStorageUrl()` 检测到 `https://` 开头会自动跳过前缀拼接，直接跨源加载该文件。R2 和 HF 可以在同一个站点里混用。
+
+#### 为什么 Hugging Face 适合托管海量组学数据
+
+| 维度 | Cloudflare R2 免费版 | Hugging Face Datasets |
+| --- | --- | --- |
+| 单文件上限 | 无硬上限（受总容量约束） | 50 GB（Git LFS） |
+| 总容量 | 10 GB | 无严格硬上限，几百 GB 很常见 |
+| 出站流量 | 免费 | 免费，自带全球 CDN |
+| Range 请求 / CORS | 支持 | 支持（JBrowse 可直接读取） |
+
+对于动辄上百 GB 的比对文件和变异特征，Hugging Face 的免费额度非常慷慨，无需为迁就 R2 的 10GB 而裁切数据。
+
+<details>
+<summary><kbd>把基因组文件推送到 Hugging Face（完整命令行指南）</kbd></summary>
+
+**1. 安装 Git LFS**（大文件必需，只需一次）
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install git-lfs
+# macOS
+brew install git-lfs
+# Windows：安装 Git 时勾选，或从 https://git-lfs.com 下载
+git lfs install
+```
+
+**2. 创建一个 Public 的 Dataset 仓库**
+
+在 https://huggingface.co/new-dataset 新建，可见性选 **Public**（方便网站匿名读取）。
+
+**3. 克隆并推送文件（含索引）**
+
+```bash
+# 用 huggingface-cli 登录（token 在 https://huggingface.co/settings/tokens 获取）
+pip install -U huggingface_hub
+huggingface-cli login
+
+git clone https://huggingface.co/datasets/<用户名>/<仓库名>
+cd <仓库名>
+
+# 追踪大文件类型（生成 .gitattributes）
+git lfs track "*.cram" "*.bam" "*.bb" "*.bw" "*.vcf.gz" "*.fa"
+
+# 拷入基因组文件 + 对应索引（.fai / .crai / .bai / .tbi 必须同目录同名前缀）
+cp /path/to/*.cram /path/to/*.cram.crai .
+cp /path/to/*.vcf.gz /path/to/*.vcf.gz.tbi .
+
+git add .
+git commit -m "add genome tracks"
+git push
+```
+
+**4. 取真实直链（Raw / resolve）**
+
+在仓库文件列表点开文件，复制 **Download** 链接。结构固定为：
+
+```
+https://huggingface.co/datasets/<用户名>/<仓库名>/resolve/main/<路径>/文件.cram
+```
+
+**5. 填入环境变量**
+
+把 `resolve/main` 之前的部分作为前缀填进 `NEXT_PUBLIC_STORAGE_BASE_URL`，重新部署即可。
+
+</details>
+
+> [!IMPORTANT]
+>
+> **接入 Hugging Face 的两个高频坑：**
+> 1. **必须用 `resolve/main` 而不是 `blob/main`**。`blob` 返回的是网页预览页（HTML），`resolve` 才是真实文件流——这是最常见的错误。
+> 2. **索引文件必须与主文件同目录、同名前缀**（`sample.cram` ↔ `sample.cram.crai`，`x.vcf.gz` ↔ `x.vcf.gz.tbi`）。JBrowse 靠 `主文件名 + 索引后缀` 拼接查找索引。
+>
+> HF 对大文件会返回 302 跳转到其 CDN，JBrowse 与本项目的可达性预检（带 `Range` 的 GET）都会正确跟随，无需额外配置。
+
 ### 数据格式要求
 
 **Supabase `predicted_promoters` 表建议字段**

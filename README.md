@@ -259,6 +259,122 @@ export const SiteConfig = {
 3. Update `src/site-config.ts` with your assembly name and track definitions.
 4. Replace demo queries in `src/app/page.tsx` with your real Supabase queries.
 
+### Storage Configuration
+
+SeqEdge is **storage-agnostic**. It never hard-codes a provider — every genome file is
+addressed by a URL that resolves through a single base prefix, so you can host on
+**Cloudflare R2**, **Hugging Face Datasets**, **AWS S3**, or any CORS-enabled object
+store that supports HTTP range requests. Pick whichever fits your data volume.
+
+| Provider | Free single-file limit | Free total capacity | Best for |
+| --- | --- | --- | --- |
+| Cloudflare R2 | 5 TB/object | 10 GB free tier | Small–medium demo track sets |
+| Hugging Face Datasets | 50 GB/file (Git LFS) | No hard cap (100s of GB is routine) | Hundreds of GB of whole-genome CRAM/VCF |
+| AWS S3 | 5 TB/object | Pay-as-you-go | Existing AWS pipelines |
+
+**Set one environment variable** — the storage-agnostic name is preferred; the legacy
+`NEXT_PUBLIC_R2_PUBLIC_URL` still works as a backward-compatible fallback:
+
+```env
+# Cloudflare R2
+NEXT_PUBLIC_STORAGE_BASE_URL=https://pub-xxxxxxxx.r2.dev
+
+# — or — Hugging Face Datasets (note the /resolve/main suffix, NOT /blob/main)
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
+```
+
+#### Two hosting modes
+
+1. **Single-source hosting (recommended).** Store **relative paths** in Supabase
+   (e.g. `tracks/sample1.bb`) and set `NEXT_PUBLIC_STORAGE_BASE_URL` to your bucket
+   root. Every file resolves against that one prefix. Zero code changes to switch
+   providers — just change the env var and redeploy.
+
+2. **Mixed-source hosting (advanced).** Keep small files on R2 but park a 50 GB+ CRAM
+   on Hugging Face by storing its **full `https://` URL** directly in Supabase. The
+   `getStorageUrl()` helper (`src/lib/storage.ts`) detects the leading scheme and
+   returns absolute URLs untouched, so the file loads cross-origin with no extra
+   config. You can freely mix providers per-file.
+
+#### Hosting large genomes on Hugging Face (step by step)
+
+Hugging Face Datasets is the most generous free option for large omics data: 50 GB
+per file via Git LFS, no hard cap on total repo size, free global CDN, native CORS +
+HTTP range support — exactly what JBrowse 2 needs.
+
+**1. Install Git LFS (one-time)**
+
+```bash
+# macOS
+brew install git-lfs
+# Debian/Ubuntu
+sudo apt-get install git-lfs
+# Windows (Git for Windows already bundles it; otherwise)
+#   download from https://git-lfs.com
+git lfs install
+```
+
+**2. Create a public Dataset repo**
+
+Sign in at [huggingface.co](https://huggingface.co), then **New → Dataset**. Give it a
+name (e.g. `my-genome-tracks`) and set visibility to **Public** so the site can read
+it without a token.
+
+**3. Clone, add files, push**
+
+```bash
+git clone https://huggingface.co/datasets/<user>/my-genome-tracks
+cd my-genome-tracks
+
+# Track large binary formats with LFS so they upload as real files, not pointers
+git lfs track "*.cram" "*.crai" "*.bam" "*.bai" "*.bb" "*.bw" \
+              "*.vcf.gz" "*.vcf.gz.tbi" "*.fa" "*.fa.fai" "*.gz" "*.gzi"
+git add .gitattributes
+
+# IMPORTANT: keep each index file next to its data file, same base name
+#   volvox.fa            volvox.fa.fai
+#   sample1.cram         sample1.cram.crai
+#   variants.vcf.gz      variants.vcf.gz.tbi
+cp /path/to/*.cram* /path/to/*.vcf.gz* .
+git add .
+git commit -m "add genome tracks"
+git push
+```
+
+**4. Get the raw file URL prefix**
+
+The URL pattern is:
+
+```
+https://huggingface.co/datasets/<user>/<repo>/resolve/main/<path>
+```
+
+Set the **prefix** (everything up to and including `/resolve/main`) as your base URL:
+
+```env
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/my-genome-tracks/resolve/main
+```
+
+**5. Verify CORS + range support**
+
+```bash
+# 206 Partial Content + accept-ranges: bytes means JBrowse can stream it
+curl -sI -H "Range: bytes=0-0" \
+  "https://huggingface.co/datasets/<user>/my-genome-tracks/resolve/main/volvox.fa.fai"
+```
+
+> [!IMPORTANT]
+> Two Hugging Face gotchas that cause most failures:
+> - Use **`/resolve/main`**, never **`/blob/main`**. `blob` returns an HTML preview
+>   page; `resolve` returns the raw byte stream JBrowse needs.
+> - Keep each **index file** (`.fai` / `.tbi` / `.crai` / `.bai`) in the **same
+>   directory with the same base name** as its data file. JBrowse derives the index
+>   URL by appending the extension, so the paths must line up exactly.
+>
+> Hugging Face answers large-file requests with a `302` redirect to its CDN. SeqEdge's
+> reachability probe issues a `Range` GET (not a bare `HEAD`) specifically so it
+> follows that redirect correctly.
+
 ### Data Format Requirements
 
 **Supabase `predicted_promoters` table columns**

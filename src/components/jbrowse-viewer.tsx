@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { createViewState, JBrowseLinearGenomeView } from '@jbrowse/react-linear-genome-view';
 import PluginLinearGenomeView from '@jbrowse/plugin-linear-genome-view';
 import { SiteConfig } from '@/site-config';
+import { getStorageUrl } from '@/lib/storage';
 
 interface JBrowseViewerProps {
   locus?: string;
@@ -14,7 +15,10 @@ interface JBrowseViewerProps {
 
 export default function JBrowseViewer({ locus, dataBase }: JBrowseViewerProps) {
   const assemblyName = SiteConfig.jbrowse.defaultAssembly;
-  const baseUrl = dataBase.replace(/\/$/, '');
+  // Resolve every track file through getStorageUrl so a relative name joins the
+  // resolved base, while a full https:// path (mixed-source hosting, e.g. a large
+  // CRAM parked on Hugging Face) is passed through untouched.
+  const url = (path: string) => getStorageUrl(path, dataBase);
   const lastNavLocus = useRef<string | null>(null);
 
   const viewState = createViewState({
@@ -25,8 +29,8 @@ export default function JBrowseViewer({ locus, dataBase }: JBrowseViewerProps) {
         trackId: `${assemblyName}-sequence`,
         adapter: {
           type: 'IndexedFastaAdapter',
-          fastaLocation: { uri: `${baseUrl}/volvox.fa` },
-          faiLocation: { uri: `${baseUrl}/volvox.fa.fai` },
+          fastaLocation: { uri: url('volvox.fa') },
+          faiLocation: { uri: url('volvox.fa.fai') },
         },
       },
     },
@@ -38,8 +42,8 @@ export default function JBrowseViewer({ locus, dataBase }: JBrowseViewerProps) {
         type: 'FeatureTrack',
         adapter: {
           type: 'Gff3TabixAdapter',
-          gffGzLocation: { uri: `${baseUrl}/volvox.sort.gff3.gz` },
-          index: { location: { uri: `${baseUrl}/volvox.sort.gff3.gz.tbi` }, indexType: 'TBI' },
+          gffGzLocation: { uri: url('volvox.sort.gff3.gz') },
+          index: { location: { uri: url('volvox.sort.gff3.gz.tbi') }, indexType: 'TBI' },
         },
         displays: [
           { displayId: 'volvox-genes-LinearBasicDisplay', type: 'LinearBasicDisplay' },
@@ -52,8 +56,8 @@ export default function JBrowseViewer({ locus, dataBase }: JBrowseViewerProps) {
         type: 'VariantTrack',
         adapter: {
           type: 'VcfTabixAdapter',
-          vcfGzLocation: { uri: `${baseUrl}/volvox.filtered.vcf.gz` },
-          index: { location: { uri: `${baseUrl}/volvox.filtered.vcf.gz.tbi` }, indexType: 'TBI' },
+          vcfGzLocation: { uri: url('volvox.filtered.vcf.gz') },
+          index: { location: { uri: url('volvox.filtered.vcf.gz.tbi') }, indexType: 'TBI' },
         },
       },
       {
@@ -63,8 +67,8 @@ export default function JBrowseViewer({ locus, dataBase }: JBrowseViewerProps) {
         type: 'AlignmentsTrack',
         adapter: {
           type: 'BamAdapter',
-          bamLocation: { uri: `${baseUrl}/volvox-sorted.bam` },
-          index: { location: { uri: `${baseUrl}/volvox-sorted.bam.bai` }, indexType: 'BAI' },
+          bamLocation: { uri: url('volvox-sorted.bam') },
+          index: { location: { uri: url('volvox-sorted.bam.bai') }, indexType: 'BAI' },
         },
       },
       {
@@ -74,7 +78,7 @@ export default function JBrowseViewer({ locus, dataBase }: JBrowseViewerProps) {
         type: 'FeatureTrack',
         adapter: {
           type: 'BigBedAdapter',
-          bigBedLocation: { uri: `${baseUrl}/volvox.bb` },
+          bigBedLocation: { uri: url('volvox.bb') },
         },
         displays: [
           { displayId: 'volvox-bigbed-LinearBasicDisplay', type: 'LinearBasicDisplay' },
