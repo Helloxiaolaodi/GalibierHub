@@ -1,6 +1,6 @@
 ﻿<div align="center"><a name="readme-top"></a>
 
-<img src="../deploy-notes/seqedge-github-img-readme.jpg" alt="SeqEdge 截图 — 总览页面" width="100%">
+![SeqEdge 截图](./seqedge-github-img-readme.jpg)
 
 # SeqEdge
 
@@ -8,27 +8,25 @@
 
 一个现代化、开源、可快速二次开发的交互式基因组数据库模板。
 
-**🚀 主力部署**: [https://seq-edge.vercel.app](https://seq-edge.vercel.app) | **国内镜像**: [https://seqedge.pages.dev](https://seqedge.pages.dev) · [GitHub][github-repo-link]
+**主力部署**: [https://seq-edge.vercel.app](https://seq-edge.vercel.app) | **国内镜像**: [https://seqedge.pages.dev](https://seqedge.pages.dev) · [GitHub](https://github.com/Helloxiaolaodi/SeqEdge)
 
-**English** | **简体中文** | [问题反馈][github-issues-link]
+**English** | **简体中文** | [问题反馈](https://github.com/Helloxiaolaodi/SeqEdge/issues)
 
-> 📘 **详细搭建指南**：[https://www.cnblogs.com/Helloxiaolaodi/p/21776373](https://www.cnblogs.com/Helloxiaolaodi/p/21776373) —— 从 fork 到部署的完整流程。
+> **详细搭建指南**：[https://www.cnblogs.com/Helloxiaolaodi/p/21776373](https://www.cnblogs.com/Helloxiaolaodi/p/21776373) —— 从 fork 到部署的完整流程。
 
 技术栈：Next.js | Supabase | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 | TanStack Table | ECharts
 
-[![][github-license-shield]][github-license-link]
-[![][github-stars-shield]][github-stars-link]
-[![][github-forks-shield]][github-forks-link]
-[![][github-issues-shield]][github-issues-link]<br/>
-[![][nextjs-shield]][nextjs-link]
-[![][supabase-shield]][supabase-link]
-[![][vercel-shield]][vercel-link]
+![License](https://img.shields.io/github/license/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Stars](https://img.shields.io/github/stars/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Forks](https://img.shields.io/github/forks/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Issues](https://img.shields.io/github/issues/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Next.js](https://img.shields.io/badge/Next.js-15.5.21-black?style=flat-square&logo=next.js)
+![Supabase](https://img.shields.io/badge/Supabase-2.110.7-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=flat-square&logo=vercel)
 
 **分享 SeqEdge 仓库**
 
-[![][share-x-shield]][share-x-link]
-[![][share-reddit-shield]][share-reddit-link]
-[![][share-weibo-shield]][share-weibo-link]
+[X / Twitter](https://twitter.com/intent/tweet?text=SeqEdge%20-%20Open-source%20genomic%20database%20template&url=https://github.com/Helloxiaolaodi/SeqEdge) · [Reddit](https://www.reddit.com/submit?url=https://github.com/Helloxiaolaodi/SeqEdge&title=SeqEdge%20-%20Open-source%20genomic%20database%20template) · [微博](https://service.weibo.com/share/share.php?title=SeqEdge%20-%20Open-source%20genomic%20database%20template&url=https://github.com/Helloxiaolaodi/SeqEdge)
 
 <sup>开源基因组数据库模板</sup>
 
@@ -125,7 +123,7 @@ npm run dev
 
 ### 必改的核心文件
 
-- `src/site-config.ts`
+- `src/site-config.ts`（尤其是 `jbrowse.defaultAssembly` 与 `jbrowse.assemblies`）
 - `.env.local`
 - `schema.sql`
 
@@ -137,22 +135,30 @@ SeqEdge 目前支持三种存储模式：
 2. **纯 Hugging Face Datasets**：环境变量指向 `resolve/main` 前缀，数据库保存相对路径
 3. **混合模式**：环境变量指向常规对象存储，数据库中的超大文件直接保存完整 `https://` 地址
 
+如果你的对象文件实际放在 `test-data/` 之类的子目录下，那么 `NEXT_PUBLIC_STORAGE_BASE_URL` 应直接包含这个前缀，例如 `https://your-bucket.r2.dev/test-data`。
+
 ### JBrowse demo 现在如何配置
 
-默认 demo 文件名已经从组件硬编码中抽离到 `src/site-config.ts`。未来使用者只需要改配置，不需要修改 `src/components/jbrowse-viewer.tsx`。
+默认 demo 装配和轨道文件已经从组件硬编码中抽离到 `src/site-config.ts`。未来使用者主要修改 `jbrowse.defaultAssembly`、`jbrowse.assemblies` 和对象存储基址，而不需要改 `src/components/jbrowse-viewer.tsx`。浏览器现在会按装配与存储基址逐层探测：
 
-默认 demo 当前配置的参考文件为：
+1. 先尝试用户配置的 `NEXT_PUBLIC_STORAGE_BASE_URL` 或兼容旧部署的 `NEXT_PUBLIC_R2_PUBLIC_URL`；
+2. 若失败，则尝试项目内置的同源 demo 数据 `public/demo-data`；
+3. 若仍失败，最后才回退到官方公开 JBrowse volvox demo。
 
-- `volvox.fa`
-- `volvox.fa.fai`
+当前内置装配包括：
 
-默认可选轨道为：
+- `volvox`，参考文件为 `volvox.fa` + `volvox.fa.fai`
+- `NC_045512.2`，参考文件为 `scov2.fa` + `scov2.fa.fai`
+
+当前已配置的可选轨道包括：
 
 - `volvox.sort.gff3.gz` + `volvox.sort.gff3.gz.tbi`
 - `volvox-sorted.bam` + `volvox-sorted.bam.bai`
 - `volvox.bb`
+- `scov2.genes.bed`
+- `scov2.genes.gff3`
 
-应用现在会自动探测这些可选轨道文件是否可达：缺哪个轨道，就隐藏哪个轨道，而不是让整个浏览器报错。
+应用现在会按装配逐条探测这些可选轨道是否可达：缺哪个轨道，就只隐藏哪个轨道，而不是让整个浏览器报错。
 
 ## 功能模块
 
@@ -204,17 +210,26 @@ SeqEdge 目前支持三种存储模式：
 
 ### A. 模板默认演示数据
 
-SeqEdge 作为模板仓库，需要保证用户 fork 后即使还没有上传真实组学文件，也能立刻打开并体验 Genome Browser。因此当前默认演示数据仍保留为公开 demo，并且已经把文件名配置从组件硬编码中抽离到 `src/site-config.ts`。
+SeqEdge 现在在 `public/demo-data` 中内置了一套同源回退 demo，因此即使外部对象存储配置错误、CORS 被拦截，或者存储基址漏写了 `test-data` 这类子目录前缀，模板也仍然可以正常打开 Genome Browser。默认浏览器配置已经改为装配感知，并通过 `src/site-config.ts` 统一管理，而不是写死在 JBrowse 组件内部。
 
-默认演示配置当前使用以下文件：
+当前内置 demo 文件包括：
 
 - `volvox.fa`
 - `volvox.fa.fai`
 - `volvox.sort.gff3.gz`
-- `volvox.sort.gff3.gz.tbi`
 - `volvox-sorted.bam`
 - `volvox-sorted.bam.bai`
 - `volvox.bb`
+- `scov2.fa`
+- `scov2.fa.fai`
+- `scov2.genes.bed`
+- `scov2.genes.gff3`
+
+运行时行为：
+
+- `volvox` 仍然是模板默认装配
+- `NC_045512.2` 作为额外验证装配一并内置
+- 可选轨道只有在所有伴随文件都可达时才会显示
 
 来源：
 

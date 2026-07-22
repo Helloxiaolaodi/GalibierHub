@@ -1,6 +1,6 @@
 ﻿<div align="center"><a name="readme-top"></a>
 
-<img src="../deploy-notes/seqedge-github-img-readme.jpg" alt="SeqEdge Screenshot - Overview" width="100%">
+![SeqEdge Screenshot](./seqedge-github-img-readme.jpg)
 
 # SeqEdge
 
@@ -8,27 +8,25 @@
 
 A modern, open-source template for building interactive genomic databases.
 
-**Primary**: [https://seq-edge.vercel.app](https://seq-edge.vercel.app) | **Mirror (China-friendly)**: [https://seqedge.pages.dev](https://seqedge.pages.dev) · [GitHub][github-repo-link]
+**Primary**: [https://seq-edge.vercel.app](https://seq-edge.vercel.app) | **Mirror (China-friendly)**: [https://seqedge.pages.dev](https://seqedge.pages.dev) · [GitHub](https://github.com/Helloxiaolaodi/SeqEdge)
 
-**English** | [简体中文](./README.zh-CN.md) | [Issues][github-issues-link]
+**English** | [简体中文](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/SeqEdge/issues)
 
 > **Detailed Build Guide**: [SeqEdge Developer Notes](https://www.cnblogs.com/Helloxiaolaodi/p/21776736) - In-depth walkthrough from fork to deployment.
 
 Stack: Next.js | Supabase | Cloudflare R2 / Hugging Face Datasets | JBrowse 2 | TanStack Table | ECharts
 
-[![][github-license-shield]][github-license-link]
-[![][github-stars-shield]][github-stars-link]
-[![][github-forks-shield]][github-forks-link]
-[![][github-issues-shield]][github-issues-link]<br/>
-[![][nextjs-shield]][nextjs-link]
-[![][supabase-shield]][supabase-link]
-[![][vercel-shield]][vercel-link]
+![License](https://img.shields.io/github/license/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Stars](https://img.shields.io/github/stars/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Forks](https://img.shields.io/github/forks/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Issues](https://img.shields.io/github/issues/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Next.js](https://img.shields.io/badge/Next.js-15.5.21-black?style=flat-square&logo=next.js)
+![Supabase](https://img.shields.io/badge/Supabase-2.110.7-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=flat-square&logo=vercel)
 
 **Share SeqEdge Repository**
 
-[![][share-x-shield]][share-x-link]
-[![][share-reddit-shield]][share-reddit-link]
-[![][share-weibo-shield]][share-weibo-link]
+[X / Twitter](https://twitter.com/intent/tweet?text=SeqEdge%20-%20Open-source%20genomic%20database%20template&url=https://github.com/Helloxiaolaodi/SeqEdge) · [Reddit](https://www.reddit.com/submit?url=https://github.com/Helloxiaolaodi/SeqEdge&title=SeqEdge%20-%20Open-source%20genomic%20database%20template) · [Weibo](https://service.weibo.com/share/share.php?title=SeqEdge%20-%20Open-source%20genomic%20database%20template&url=https://github.com/Helloxiaolaodi/SeqEdge)
 
 <sup>Open-source genomic database template</sup>
 
@@ -66,12 +64,6 @@ The name combines **Seq** (Sequencing / Sequence) and **Edge** (Edge Computing /
 > [!IMPORTANT]
 >
 > SeqEdge is designed to be forked and adapted quickly. If the repository is useful for your lab or project, star it to track future updates.
-
-<div align="right">
-
-[![][back-to-top]](#readme-top)
-
-</div>
 
 ## Architecture
 
@@ -162,7 +154,7 @@ Recommended targets:
 
 ### The One File You Must Edit
 
-The main configuration entry is `src/site-config.ts`. In most forks, this is where users should define the assembly name, default locus, demo file names, and branding values.
+The main configuration entry is `src/site-config.ts`. In most forks, this is where users should define `jbrowse.defaultAssembly`, `jbrowse.assemblies`, the default locus for each assembly, demo storage behavior, and branding values.
 
 ### Storage Configuration
 
@@ -172,22 +164,30 @@ SeqEdge supports three hosting modes without code changes:
 2. **Pure Hugging Face Datasets**
 3. **Mixed hosting** with relative paths for common files and absolute `https://` links for very large files
 
+If your objects live under a bucket prefix such as `test-data/`, include that prefix directly in `NEXT_PUBLIC_STORAGE_BASE_URL`, for example `https://your-bucket.r2.dev/test-data`.
+
 ### Configurable JBrowse demo tracks
 
-Default demo file names are now configured in `src/site-config.ts` instead of being hard-coded inside `src/components/jbrowse-viewer.tsx`.
+Default demo assemblies and track files are now configured in `src/site-config.ts` instead of being hard-coded inside `src/components/jbrowse-viewer.tsx`. The browser probes assemblies in order, starting with `jbrowse.defaultAssembly`, and then tries storage bases in this order:
 
-Default reference files:
+1. your configured `NEXT_PUBLIC_STORAGE_BASE_URL` or legacy `NEXT_PUBLIC_R2_PUBLIC_URL`;
+2. the packaged same-origin demo bundle at `public/demo-data`;
+3. the official public JBrowse volvox demo as a last-resort fallback.
 
-- `volvox.fa`
-- `volvox.fa.fai`
+Current bundled assemblies:
 
-Default optional tracks:
+- `volvox` with `volvox.fa` + `volvox.fa.fai`
+- `NC_045512.2` with `scov2.fa` + `scov2.fa.fai`
+
+Configured optional tracks currently include:
 
 - `volvox.sort.gff3.gz` + `volvox.sort.gff3.gz.tbi`
 - `volvox-sorted.bam` + `volvox-sorted.bam.bai`
 - `volvox.bb`
+- `scov2.genes.bed`
+- `scov2.genes.gff3`
 
-The app now automatically probes these optional tracks. If a required file is missing, that track is hidden instead of crashing the whole browser.
+The app now probes these optional tracks per assembly. If one required file is missing, only that track is hidden; the reference assembly and other healthy tracks continue to render.
 
 ## Feature Modules
 
@@ -239,17 +239,26 @@ Use Vercel as the primary deployment and Cloudflare Pages as the mirror deployme
 
 ### A. Default template demo data
 
-SeqEdge intentionally keeps a small public demo dataset so the template stays usable immediately after forking, even before a user uploads any real genome files. The default genome browser configuration is now file-name configurable through `src/site-config.ts`, rather than hard-coded inside the JBrowse React component.
+SeqEdge now ships a same-origin fallback demo bundle in `public/demo-data` so the template remains runnable even when an external object store is misconfigured, blocked by CORS, or missing a folder prefix such as `test-data/`. The default genome browser configuration is assembly-aware and file-name configurable through `src/site-config.ts`, rather than being hard-coded inside the JBrowse React component.
 
-Default demo files:
+Current bundled demo files:
 
 - `volvox.fa`
 - `volvox.fa.fai`
 - `volvox.sort.gff3.gz`
-- `volvox.sort.gff3.gz.tbi`
 - `volvox-sorted.bam`
 - `volvox-sorted.bam.bai`
 - `volvox.bb`
+- `scov2.fa`
+- `scov2.fa.fai`
+- `scov2.genes.bed`
+- `scov2.genes.gff3`
+
+Runtime behavior:
+
+- `volvox` remains the default template assembly
+- `NC_045512.2` is also bundled as an alternate validation assembly
+- optional tracks are rendered only when every required companion file is reachable
 
 Sources:
 

@@ -1,0 +1,50 @@
+##gff-version 3
+NC_045512.2	.	gene	266	21555	.	+	.	ID=ORF1ab;Name=ORF1ab;product=
+NC_045512.2	.	CDS	266	21555	.	+	.	ID=ORF1ab;Name=ORF1ab;product=ORF1ab polyprotein
+NC_045512.2	.	mat_peptide	266	805	.	+	.	ID=ORF1ab;Name=ORF1ab;product=leader protein
+NC_045512.2	.	mat_peptide	806	2719	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp2
+NC_045512.2	.	mat_peptide	2720	8554	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp3
+NC_045512.2	.	mat_peptide	8555	10054	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp4
+NC_045512.2	.	mat_peptide	10055	10972	.	+	.	ID=ORF1ab;Name=ORF1ab;product=3C-like proteinase
+NC_045512.2	.	mat_peptide	10973	11842	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp6
+NC_045512.2	.	mat_peptide	11843	12091	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp7
+NC_045512.2	.	mat_peptide	12092	12685	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp8
+NC_045512.2	.	mat_peptide	12686	13024	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp9
+NC_045512.2	.	mat_peptide	13025	13441	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp10
+NC_045512.2	.	mat_peptide	13442	16236	.	+	.	ID=ORF1ab;Name=ORF1ab;product=RNA-dependent RNA polymerase
+NC_045512.2	.	mat_peptide	16237	18039	.	+	.	ID=ORF1ab;Name=ORF1ab;product=helicase
+NC_045512.2	.	mat_peptide	18040	19620	.	+	.	ID=ORF1ab;Name=ORF1ab;product=3'-to-5' exonuclease
+NC_045512.2	.	mat_peptide	19621	20658	.	+	.	ID=ORF1ab;Name=ORF1ab;product=endoRNAse
+NC_045512.2	.	mat_peptide	20659	21552	.	+	.	ID=ORF1ab;Name=ORF1ab;product=2'-O-ribose methyltransferase
+NC_045512.2	.	CDS	266	13483	.	+	.	ID=ORF1ab;Name=ORF1ab;product=ORF1a polyprotein
+NC_045512.2	.	mat_peptide	266	805	.	+	.	ID=ORF1ab;Name=ORF1ab;product=leader protein
+NC_045512.2	.	mat_peptide	806	2719	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp2
+NC_045512.2	.	mat_peptide	2720	8554	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp3
+NC_045512.2	.	mat_peptide	8555	10054	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp4
+NC_045512.2	.	mat_peptide	10055	10972	.	+	.	ID=ORF1ab;Name=ORF1ab;product=3C-like proteinase
+NC_045512.2	.	mat_peptide	10973	11842	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp6
+NC_045512.2	.	mat_peptide	11843	12091	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp7
+NC_045512.2	.	mat_peptide	12092	12685	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp8
+NC_045512.2	.	mat_peptide	12686	13024	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp9
+NC_045512.2	.	mat_peptide	13025	13441	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp10
+NC_045512.2	.	mat_peptide	13442	13480	.	+	.	ID=ORF1ab;Name=ORF1ab;product=nsp11
+NC_045512.2	.	gene	21563	25384	.	+	.	ID=S;Name=S;product=
+NC_045512.2	.	CDS	21563	25384	.	+	.	ID=S;Name=S;product=surface glycoprotein
+NC_045512.2	.	gene	25393	26220	.	+	.	ID=ORF3a;Name=ORF3a;product=
+NC_045512.2	.	CDS	25393	26220	.	+	.	ID=ORF3a;Name=ORF3a;product=ORF3a protein
+NC_045512.2	.	gene	26245	26472	.	+	.	ID=E;Name=E;product=
+NC_045512.2	.	CDS	26245	26472	.	+	.	ID=E;Name=E;product=envelope protein
+NC_045512.2	.	gene	26523	27191	.	+	.	ID=M;Name=M;product=
+NC_045512.2	.	CDS	26523	27191	.	+	.	ID=M;Name=M;product=membrane glycoprotein
+NC_045512.2	.	gene	27202	27387	.	+	.	ID=ORF6;Name=ORF6;product=
+NC_045512.2	.	CDS	27202	27387	.	+	.	ID=ORF6;Name=ORF6;product=ORF6 protein
+NC_045512.2	.	gene	27394	27759	.	+	.	ID=ORF7a;Name=ORF7a;product=
+NC_045512.2	.	CDS	27394	27759	.	+	.	ID=ORF7a;Name=ORF7a;product=ORF7a protein
+NC_045512.2	.	gene	27756	27887	.	+	.	ID=ORF7b;Name=ORF7b;product=
+NC_045512.2	.	CDS	27756	27887	.	+	.	ID=ORF7b;Name=ORF7b;product=ORF7b
+NC_045512.2	.	gene	27894	28259	.	+	.	ID=ORF8;Name=ORF8;product=
+NC_045512.2	.	CDS	27894	28259	.	+	.	ID=ORF8;Name=ORF8;product=ORF8 protein
+NC_045512.2	.	gene	28274	29533	.	+	.	ID=N;Name=N;product=
+NC_045512.2	.	CDS	28274	29533	.	+	.	ID=N;Name=N;product=nucleocapsid phosphoprotein
+NC_045512.2	.	gene	29558	29674	.	+	.	ID=ORF10;Name=ORF10;product=
+NC_045512.2	.	CDS	29558	29674	.	+	.	ID=ORF10;Name=ORF10;product=ORF10 protein
