@@ -1,6 +1,10 @@
 <div align="center"><a name="readme-top"></a>
 
-[![][image-banner]][github-repo-link]
+<img src="./public/seqedge-github-img-readme.jpg" alt="SeqEdge Screenshot — Overview" width="100%">
+
+<br/>
+
+<img src="./public/seqedge-github-img-02-readme.jpg" alt="SeqEdge Screenshot — Genome Browser" width="100%">
 
 # SeqEdge
 
@@ -8,7 +12,11 @@
 
 A modern, open-source template for building interactive genomic databases.
 
-**English** | [简体中文](./README.zh-CN.md) | [GitHub][github-repo-link] | [Issues][github-issues-link]
+**Website**: [https://seqedge.pages.dev](https://seqedge.pages.dev) (Primary) · [Mirror for China](https://seqedge.vercel.app) · [GitHub][github-repo-link]
+
+**English** | [简体中文](./README.zh-CN.md) | [Issues][github-issues-link]
+
+> ?? **Detailed Build Guide**: [SeqEdge Developer Notes](https://www.cnblogs.com/Helloxiaolaodi/p/21776736) — In-depth walkthrough from fork to deployment.
 
 Stack: Next.js | Supabase | Cloudflare R2 | JBrowse 2 | TanStack Table | ECharts
 
@@ -75,12 +83,14 @@ The name combines **Seq** (Sequencing / Sequence) and **Edge** (Edge Computing /
 
 ```text
 +-----------------------------------------------------------+
-|                     Vercel (Free)                         |
-|            Next.js frontend + API routes                 |
-|   +-----------+   +--------------+   +----------------+   |
-|   | ECharts   |   | TanStack     |   | Genome Browser |   |
-|   | Stats     |   | Table        |   | JBrowse/custom |   |
-|   +-----------+   +--------------+   +----------------+   |
+|  Vercel (Primary)          Cloudflare Pages (Mirror)      |
+|  Global CDN                 Edge network for China        |
+|  Next.js frontend + API    Next.js frontend + API        |
+|   +-----------+             +-----------+                 |
+|   | ECharts   |             | ECharts   |                 |
+|   | TanStack  |             | TanStack  |                 |
+|   | Browser   |             | Browser   |                 |
+|   +-----------+             +-----------+                 |
 +------------------------+----------------------+-----------+
                          |                      |
                          v                      v
@@ -94,9 +104,14 @@ The name combines **Seq** (Sequencing / Sequence) and **Edge** (Edge Computing /
                                        +------------------------+
 ```
 
+**Deployment model**
+
+- **Vercel** (Primary) — serves the majority of global traffic through its CDN.
+- **Cloudflare Pages** (Mirror) — provides an alternate deployment optimized for users in mainland China, served from Cloudflare's edge network via `opennextjs-cloudflare`.
+
 **Data flow**
 
-1. A visitor opens the site through Vercel's global CDN.
+1. A visitor opens the site through Vercel's global CDN (or Cloudflare Pages in China).
 2. The frontend queries Supabase for metadata such as coordinates, scores, and gene names.
 3. When a user opens a locus or promoter, the genome browser fetches only the required byte ranges from R2.
 4. Large genomic files stay in object storage instead of being copied into the relational database.
@@ -155,12 +170,26 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to view the demo data locally.
 
-### Step 5 - Deploy to Vercel
+### Step 5 - Deploy
+
+SeqEdge supports deployment on **Vercel** (recommended) or **Cloudflare Pages** (experimental edge deployment).
+
+**Option A: Vercel**
 
 1. Push your code to GitHub.
 2. Import the repository on [vercel.com/new](https://vercel.com/new).
 3. Add your environment variables in the Vercel dashboard.
 4. Deploy and publish the site.
+
+**Option B: Cloudflare Pages**
+
+1. Build locally and verify: `npm run build:cf`
+2. In Cloudflare Pages dashboard ? Settings ? Build & deployments:
+   - **Framework preset**: `None`
+   - **Build command**: `npm run build:cf`
+   - **Build output directory**: `.open-next/assets`
+3. Confirm environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_R2_PUBLIC_URL`) are configured.
+4. Commit, push to GitHub, and trigger deployment.
 
 > [!TIP]
 >
@@ -270,10 +299,11 @@ features: {
 
 | Service | Free Tier | Paid Tier |
 | --- | --- | --- |
-| Vercel | 100 GB bandwidth / month | Pro $20 / month |
+| Vercel (Primary) | 100 GB bandwidth / month | Pro $20 / month |
+| Cloudflare Pages (Mirror) | 500 builds / month, unlimited bandwidth | $5 / month for higher limits |
 | Supabase | 500 MB DB, 2 GB bandwidth | Pro $25 / month |
 | Cloudflare R2 | 10 GB storage, free egress | $0.015 / GB / month storage |
-| Domain | `.vercel.app` free | Custom domain about $10 / year |
+| Domain | `.vercel.app` / `.pages.dev` free | Custom domain ~$10 / year |
 
 > [!NOTE]
 >
@@ -516,6 +546,56 @@ Enable the variables for **Production**, **Preview**, and **Development**.
 
 </div>
 
+### D. Cloudflare Pages (Mirror Deployment for China)
+
+SeqEdge can be deployed to Cloudflare's global edge network via `opennextjs-cloudflare`. This mirror is optimized for users in mainland China where Vercel access is limited.
+
+> All API routes (`/api/stats`, `/api/promoters`, `/api/variants`) and dynamic routes (`/promoter/[id]`) are automatically recognized as server functions by the OpenNext adapter and will work on Cloudflare's edge infrastructure.
+
+**Step 1 - Build locally and verify**
+
+```bash
+npm run build:cf
+```
+
+This produces deployable assets in `.open-next/assets`.
+
+**Step 2 - Configure Cloudflare Pages**
+
+In the Cloudflare Pages dashboard, go to **Settings → Build & deployments** and set:
+
+| Setting | Value |
+| --- | --- |
+| Framework preset | `None` |
+| Build command | `npm run build:cf` |
+| Build output directory | `.open-next/assets` |
+
+> **Important**: Confirm that all three environment variables are configured under **Settings → Environment variables**:
+> - `NEXT_PUBLIC_SUPABASE_URL`
+> - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+> - `NEXT_PUBLIC_R2_PUBLIC_URL`
+
+**Step 3 - Commit and push**
+
+Push your code to GitHub. Cloudflare Pages will automatically trigger a new deployment. The build log should show `next build` followed by `opennextjs-cloudflare build`, with final output in `.open-next/assets`.
+
+**Files modified for Cloudflare compatibility:**
+
+| File | Change |
+| --- | --- |
+| `.gitignore` | Added `.open-next/` and `.wrangler/` |
+| `package.json` | Replaced with OpenNext scripts and pinned dependency versions |
+| `package-lock.json` | Regenerated lock file after reinstall |
+| `next.config.ts` | Cleaned empty comments |
+| `wrangler.toml` | Added Cloudflare compatibility configuration |
+| `open-next.config.ts` | Added OpenNext full configuration |
+
+<div align="right">
+
+[![][back-to-top]](#readme-top)
+
+</div>
+
 ## Tech Stack
 
 | Category | Technology | Description |
@@ -527,7 +607,8 @@ Enable the variables for **Production**, **Preview**, and **Development**.
 | Data Table | [TanStack Table][tanstack-link] | Sorting, filtering, and scalable table rendering |
 | Charts | [Apache ECharts][echarts-link] | Interactive genomic summary charts |
 | Styling | [Tailwind CSS][tailwind-link] | Utility-first styling |
-| Deployment | [Vercel][vercel-link] | Global CDN and Git-based deployment |
+| Primary Deploy | [Vercel][vercel-link] | Global CDN and Git-based deployment |
+| Mirror Deploy | [Cloudflare Pages](https://pages.cloudflare.com/) | Edge network for China access |
 
 <div align="right">
 
