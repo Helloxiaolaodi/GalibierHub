@@ -1,4 +1,4 @@
-<div align="center"><a name="readme-top"></a>
+﻿<div align="center"><a name="readme-top"></a>
 
 <img src="./public/seqedge-github-img-readme.jpg" alt="SeqEdge Screenshot — Overview" width="100%">
 
@@ -116,6 +116,24 @@ The name combines **Seq** (Sequencing / Sequence) and **Edge** (Edge Computing /
 3. When a user opens a locus or promoter, the genome browser fetches only the required byte ranges from R2.
 4. Large genomic files stay in object storage instead of being copied into the relational database.
 
+**Genomic input data types read by SeqEdge:**
+
+The following table lists the genomic input data formats supported by SeqEdge, along with their storage location and purpose:
+
+| Data Type | File Format | Storage | Purpose |
+|---|---|---|---|
+| Reference genome sequence | FASTA (.fa, .fasta) + .fai index | Cloudflare R2 | JBrowse 2 reference sequence track providing chromosomal coordinate reference |
+| Gene annotations / promoter regions | BED (.bed) | Cloudflare R2 | JBrowse 2 annotation track displaying predicted promoter and gene positions |
+| Alignment reads | BAM (.bam) + .bai index | Cloudflare R2 | JBrowse 2 alignment track showing sequencing read alignments to the reference |
+| Signal coverage | BigWig (.bw, .bigwig) | Cloudflare R2 | JBrowse 2 quantitative track (XYPlot) displaying read depth or signal intensity |
+| Variant data | VCF (.vcf) + .tbi index | Cloudflare R2 | JBrowse 2 variant track showing SNP/InDel and other variant sites |
+| Metadata | PostgreSQL tables | Supabase | Queried via API routes to drive the overview dashboard, promoter table, search and filtering |
+
+In short:
+- **Metadata** (sample info, promoter scores/sequences, variant annotations) is stored in three Supabase PostgreSQL tables (`genome_samples`, `promoters`, `variants`), queried by Next.js API routes and returned as JSON to the frontend.
+- **Large files** (FASTA, BED, BAM, BigWig, VCF with their corresponding index files) are stored on Cloudflare R2 and read directly by the JBrowse 2 genome browser via HTTP Range requests, on demand.
+- In demo mode, all metadata uses hardcoded sample data and the genome browser uses JBrowse built-in example data, allowing the full experience without any external services.
+
 <div align="right">
 
 [![][back-to-top]](#readme-top)
@@ -188,8 +206,19 @@ SeqEdge supports deployment on **Vercel** (recommended) or **Cloudflare Pages** 
    - **Framework preset**: `None`
    - **Build command**: `npm run build:cf`
    - **Build output directory**: `.open-next/assets`
-3. Confirm environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_R2_PUBLIC_URL`) are configured.
-4. Commit, push to GitHub, and trigger deployment.
+3. **Open-source safe setup: inject variables from Cloudflare** (never commit real secrets to the GitHub repo)
+
+   * Confirm `.gitignore` includes `.env*.local` and `.env.production` so no keys leak.
+   * If `wrangler.toml` has a `[vars]` block with `NEXT_PUBLIC_*` values, remove that block, commit, and push to unlock the Cloudflare dashboard.
+   * Open Cloudflare Dashboard → Workers & Pages → seqedge → Settings → Variables and Secrets, delete any old gray/conflicting `NEXT_PUBLIC_*` entries, then add these three as **Plaintext** (enable **"Available at build time"** / select **Build**):
+
+   | Variable name | Value | Type |
+   |---|---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | `https://mqpbkfdtnlrsvxzagpa.supabase.co` | Plaintext |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `<your Supabase anon public key>` | Plaintext |
+   | `NEXT_PUBLIC_R2_PUBLIC_URL` | `https://pub-e730b1fa4454168b689c626bd07881.r2.dev` | Plaintext |
+
+   For the full four-step workflow, see `SeqEdge Developer Notes` chapter "Open-Source Template Standard".
 
 > [!TIP]
 >

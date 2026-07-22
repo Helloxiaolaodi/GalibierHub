@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import ReactECharts from 'echarts-for-react';
+import ExportableChart from '@/components/exportable-chart';
 import type { DashboardStats } from '@/types/genome';
 
 interface StatsChartProps {
@@ -23,7 +23,6 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
   }
 
   const speciesOption = {
-    title: { text: 'Samples by Species', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'item' },
     series: [
       {
@@ -39,7 +38,6 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
   };
 
   const scoreOption = {
-    title: { text: 'Promoter Score Distribution', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
     xAxis: {
       type: 'category',
@@ -81,12 +79,18 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
         ))}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="border rounded-lg p-2">
-          <ReactECharts option={speciesOption} style={{ height: 260 }} />
-        </div>
-        <div className="border rounded-lg p-2">
-          <ReactECharts option={scoreOption} style={{ height: 260 }} />
-        </div>
+        <ExportableChart
+          title="Samples by Species"
+          option={speciesOption}
+          height={260}
+          exportBaseName="species-distribution"
+        />
+        <ExportableChart
+          title="Promoter Score Distribution"
+          option={scoreOption}
+          height={260}
+          exportBaseName="score-distribution"
+        />
       </div>
     </div>
   );

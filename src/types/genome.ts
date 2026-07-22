@@ -41,6 +41,20 @@ export interface VariantIndex {
   created_at: string;
 }
 
+// Sample phenotype card payload returned by /api/samples/[id]
+export interface SampleMetadata {
+  sample_id: string;
+  species: string | null;
+  tissue: string | null;
+  sequencing_platform: string | null;
+  assembly_version: string | null;
+  coverage: number | null;
+  cohort: string | null;
+  bmi: number | null;
+  age: number | null;
+  sex: string | null;
+}
+
 // Stats for dashboard overview
 export interface DashboardStats {
   total_samples: number;

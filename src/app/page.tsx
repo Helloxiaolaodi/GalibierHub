@@ -7,6 +7,7 @@ import StatsChart from '@/components/stats-chart';
 import PromoterTable from '@/components/promoter-table';
 import PromoterDetail from '@/components/promoter-detail';
 import GenomeBrowser from '@/components/genome-browser';
+import UserGuide from '@/components/user-guide';
 
 // Fallback demo data — used only when Supabase is not yet connected
 const DEMO_PROMOTERS: Promoter[] = [
@@ -54,6 +55,7 @@ export default function HomePage() {
   const [browserLocus, setBrowserLocus] = useState('chr17:43,044,295-43,125,483');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome'>('overview');
+  const [guideOpen, setGuideOpen] = useState(false);
 
   // Fetch stats from API on mount — falls back to demo data when Supabase is not configured
   useEffect(() => {
@@ -74,6 +76,10 @@ export default function HomePage() {
     if (filters.start) params.set('start', filters.start);
     if (filters.end_pos) params.set('end_pos', filters.end_pos);
     if (filters.sampleId) params.set('sample_id', filters.sampleId);
+    if (filters.species) params.set('species', filters.species);
+    if (filters.tissue) params.set('tissue', filters.tissue);
+    if (filters.cohort) params.set('cohort', filters.cohort);
+    if (filters.bmiClass) params.set('bmi_class', filters.bmiClass);
 
     fetch(`/api/promoters?${params.toString()}`)
       .then((res) => res.json())
@@ -133,9 +139,24 @@ export default function HomePage() {
                 {tab === 'overview' ? 'Overview' : tab === 'promoters' ? 'Promoters' : 'Genome Browser'}
               </button>
             ))}
+            <div className="w-px h-5 bg-gray-200 mx-1" />
+            <button
+              onClick={() => setGuideOpen((v) => !v)}
+              aria-expanded={guideOpen}
+              aria-controls="seqedge-user-guide"
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                guideOpen ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
+              </svg>
+              User Guide
+            </button>
           </nav>
         </div>
       </header>
+      <UserGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Overview tab */}
