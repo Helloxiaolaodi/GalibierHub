@@ -26,8 +26,14 @@ export const SiteConfig = {
   jbrowse: {
     defaultAssembly: 'volvox',
     defaultLocus: 'ctgA:1-5000',
-    // Change this to your Cloudflare R2 or other object storage URL
-    storageBaseUrl: process.env.NEXT_PUBLIC_R2_PUBLIC_URL || 'https://your-r2-bucket.r2.dev',
+    // Your own object storage (Cloudflare R2, S3, etc). Leave the env var unset
+    // to fall back to the public JBrowse demo data below, so the browser works
+    // out-of-the-box the moment someone forks this template.
+    storageBaseUrl: process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '',
+    // Public JBrowse 2 demo track set (volvox) — reference + alignments + BigBed.
+    // Used automatically whenever storageBaseUrl is empty. Confirmed reachable
+    // with permissive CORS + HTTP range requests, which JBrowse needs.
+    demoBaseUrl: 'https://jbrowse.org/code/jb2/main/test_data/volvox',
     tracks: [
       { name: 'Predicted Promoters', type: 'annotation', format: 'bed' },
       { name: 'Gene Annotations', type: 'annotation', format: 'gff3' },

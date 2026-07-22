@@ -8,12 +8,13 @@ import { SiteConfig } from '@/site-config';
 interface JBrowseViewerProps {
   locus?: string;
   onLocusChange?: (locus: string) => void;
+  // Base URL for the track files (user R2 or the public JBrowse demo bucket).
+  dataBase: string;
 }
 
-export default function JBrowseViewer({ locus }: JBrowseViewerProps) {
-  const r2Base = SiteConfig.jbrowse.storageBaseUrl;
+export default function JBrowseViewer({ locus, dataBase }: JBrowseViewerProps) {
   const assemblyName = SiteConfig.jbrowse.defaultAssembly;
-  const baseUrl = r2Base.endsWith('/') ? r2Base : r2Base;
+  const baseUrl = dataBase.replace(/\/$/, '');
   const lastNavLocus = useRef<string | null>(null);
 
   const viewState = createViewState({
@@ -24,8 +25,8 @@ export default function JBrowseViewer({ locus }: JBrowseViewerProps) {
         trackId: `${assemblyName}-sequence`,
         adapter: {
           type: 'IndexedFastaAdapter',
-          fastaLocation: { uri: `${baseUrl}/test-data/volvox.fa` },
-          faiLocation: { uri: `${baseUrl}/test-data/volvox.fa.fai` },
+          fastaLocation: { uri: `${baseUrl}/volvox.fa` },
+          faiLocation: { uri: `${baseUrl}/volvox.fa.fai` },
         },
       },
     },
@@ -36,26 +37,24 @@ export default function JBrowseViewer({ locus }: JBrowseViewerProps) {
         assemblyNames: [assemblyName],
         type: 'FeatureTrack',
         adapter: {
-          type: 'Gff3Adapter',
-          gffLocation: { uri: `${baseUrl}/test-data/volvox.gff3` },
+          type: 'Gff3TabixAdapter',
+          gffGzLocation: { uri: `${baseUrl}/volvox.sort.gff3.gz` },
+          index: { location: { uri: `${baseUrl}/volvox.sort.gff3.gz.tbi` }, indexType: 'TBI' },
         },
         displays: [
           { displayId: 'volvox-genes-LinearBasicDisplay', type: 'LinearBasicDisplay' },
         ],
       },
       {
-        trackId: 'volvox-beds',
-        name: 'BED Annotations',
+        trackId: 'volvox-variants',
+        name: 'Variants (VCF)',
         assemblyNames: [assemblyName],
-        type: 'FeatureTrack',
+        type: 'VariantTrack',
         adapter: {
-          type: 'BedTabixAdapter',
-          bedGzLocation: { uri: `${baseUrl}/test-data/volvox-bed12.bed.gz` },
-          index: { location: { uri: `${baseUrl}/test-data/volvox-bed12.bed.gz.tbi` }, indexType: 'TBI' },
+          type: 'VcfTabixAdapter',
+          vcfGzLocation: { uri: `${baseUrl}/volvox.filtered.vcf.gz` },
+          index: { location: { uri: `${baseUrl}/volvox.filtered.vcf.gz.tbi` }, indexType: 'TBI' },
         },
-        displays: [
-          { displayId: 'volvox-beds-LinearBasicDisplay', type: 'LinearBasicDisplay' },
-        ],
       },
       {
         trackId: 'volvox-alignments',
@@ -64,8 +63,8 @@ export default function JBrowseViewer({ locus }: JBrowseViewerProps) {
         type: 'AlignmentsTrack',
         adapter: {
           type: 'BamAdapter',
-          bamLocation: { uri: `${baseUrl}/test-data/volvox-sorted.bam` },
-          index: { location: { uri: `${baseUrl}/test-data/volvox-sorted.bam.bai` }, indexType: 'BAI' },
+          bamLocation: { uri: `${baseUrl}/volvox-sorted.bam` },
+          index: { location: { uri: `${baseUrl}/volvox-sorted.bam.bai` }, indexType: 'BAI' },
         },
       },
       {
@@ -75,7 +74,7 @@ export default function JBrowseViewer({ locus }: JBrowseViewerProps) {
         type: 'FeatureTrack',
         adapter: {
           type: 'BigBedAdapter',
-          bigBedLocation: { uri: `${baseUrl}/test-data/volvox.bb` },
+          bigBedLocation: { uri: `${baseUrl}/volvox.bb` },
         },
         displays: [
           { displayId: 'volvox-bigbed-LinearBasicDisplay', type: 'LinearBasicDisplay' },

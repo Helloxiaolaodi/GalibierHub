@@ -50,21 +50,24 @@ const DEMO_STATS: DashboardStats = {
 
 export default function HomePage() {
   const [promoters, setPromoters] = useState<Promoter[]>(DEMO_PROMOTERS);
-  const [stats, setStats] = useState<DashboardStats>(DEMO_STATS);
+  // Start null so the summary cards never flash placeholder numbers before the
+  // real /api/stats response lands — StatsChart renders a skeleton while null.
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [selectedPromoter, setSelectedPromoter] = useState<Promoter | null>(null);
   const [browserLocus, setBrowserLocus] = useState('chr17:43,044,295-43,125,483');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome'>('overview');
   const [guideOpen, setGuideOpen] = useState(false);
 
-  // Fetch stats from API on mount — falls back to demo data when Supabase is not configured
+  // Fetch stats from API on mount. On failure fall back to demo data so the
+  // dashboard still renders something meaningful offline.
   useEffect(() => {
     fetch('/api/stats')
       .then((res) => res.json())
       .then((data) => {
-        if (data && !data.error) setStats(data);
+        setStats(data && !data.error ? data : DEMO_STATS);
       })
-      .catch(() => { /* keep DEMO_STATS */ });
+      .catch(() => setStats(DEMO_STATS));
   }, []);
 
   const handleSearch = useCallback((filters: FiltersType) => {
