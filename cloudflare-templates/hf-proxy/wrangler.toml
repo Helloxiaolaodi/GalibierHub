@@ -1,0 +1,13 @@
+# SeqEdge HF Proxy Worker
+# Deploy: npx wrangler deploy
+name = "seqedge-hf-proxy"
+main = "worker.js"
+compatibility_date = "2025-06-01"
+
+# Replace with your Hugging Face Dataset resolve URL.
+# Example: https://huggingface.co/datasets/username/repo/resolve/main
+[vars]
+HF_REPO_BASE = "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main"
+
+# Optional: set a custom domain pattern if your dataset path differs.
+# HF_REPO_BASE = "https://huggingface.co/datasets/username/repo/resolve/main/subfolder"

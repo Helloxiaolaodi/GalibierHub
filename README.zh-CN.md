@@ -137,14 +137,52 @@ Cloudflare Pages 部署说明：
 
 ### 真实数据接入方式
 
-SeqEdge 目前支持三种存储模式：
+SeqEdge 目前支持四种存储模式：
 
 1. **纯 Cloudflare R2**：环境变量指向 R2，数据库保存相对路径
 2. **纯 Hugging Face Datasets**：环境变量指向 `resolve/main` 前缀，数据库保存相对路径
 3. **混合模式**：环境变量指向常规对象存储，数据库中的超大文件直接保存完整 `https://` 地址
 
+4. **HF 代理模式**：部署 Cloudflare Worker 代理（见 `cloudflare-templates/hf-proxy/`），设置 `NEXT_PUBLIC_HF_PROXY_URL`，数据库中的 HF 绝对地址会自动重写通过代理，解决 5 分钟加载问题
+
 如果你的对象文件实际放在 `test-data/` 之类的子目录下，那么 `NEXT_PUBLIC_STORAGE_BASE_URL` 应直接包含这个前缀，例如 `https://your-bucket.r2.dev/test-data`。
 
+
+### Hugging Face 加速代理（解决 5 分钟加载问题）
+
+纯 Hugging Face Datasets 作为 JBrowse 2 数据源时，由于 HF 的 `resolve/main` 链接会 302 重定向到 Xet CDN 桥接层，加上 CORS 预检与 Range 请求支持不完整，Genome Browser 从 10 秒慢到 5 分钟。详情见 `cloudflare-templates/hf-proxy/README.md`。
+
+SeqEdge 内置了 HF 代理支持，零代码改动：
+
+1. 部署代理 Worker：
+   ```bash
+   cd cloudflare-templates/hf-proxy
+   # 编辑 wrangler.toml 中的 HF_REPO_BASE
+   npx wrangler deploy
+   ```
+
+2. 在 `.env.local` 中配置：
+   ```bash
+   # 方案 A - 纯 HF 模式：直接以 Worker 为存储基址
+   NEXT_PUBLIC_STORAGE_BASE_URL=https://seqedge-hf-proxy.你的用户名.workers.dev
+
+   # 方案 B - 混合模式（推荐）：索引放 R2，大文件自动走代理
+   NEXT_PUBLIC_STORAGE_BASE_URL=https://你的桶.r2.dev
+   NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.你的用户名.workers.dev
+   ```
+
+3. 混合模式下，数据库中的 HF 绝对地址（`https://huggingface.co/datasets/.../resolve/main/...`）会被 `storage.ts` 自动重写为代理地址，无需迁移数据。
+
+4. 验证：打开 Genome Browser 页面，在浏览器 DevTools -> Network 过滤 `workers.dev` 域名，Range GET 请求应直接返回 **206 Partial Content**（不再出现 302），Response Headers 应有 `Access-Control-Expose-Headers: Content-Range`。
+
+性能预期：
+
+| 模式                           | 首屏加载    |
+| ------------------------------ | ----------- |
+| 纯 R2                          | ~10 秒      |
+| 纯 HF（直连 huggingface.co）   | ~5 分钟     |
+| 纯 HF -> Worker 代理            | ~20-30 秒   |
+| 混合（索引 R2 + 数据走代理 HF） | ~10-15 秒   |
 ### JBrowse demo 现在如何配置
 
 默认 demo 装配和轨道文件已经从组件硬编码中抽离到 `src/site-config.ts`。未来使用者主要修改 `jbrowse.defaultAssembly`、`jbrowse.assemblies` 和对象存储基址，而不需要改 `src/components/jbrowse-viewer.tsx`。浏览器现在会按装配与存储基址逐层探测：

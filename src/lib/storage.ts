@@ -6,7 +6,7 @@
 //
 //   "relative paths go through the base URL, absolute URLs are passed through."
 //
-// This gives template users two deployment modes with zero code changes:
+// This gives template users three deployment modes with zero code changes:
 //
 //   1. Single-source hosting (recommended). Store relative paths in Supabase
 //      (e.g. "tracks/sample1.bb") and set ONE env var to your bucket root:
@@ -17,6 +17,12 @@
 //      50 GB+ CRAM on Hugging Face by storing its FULL https:// URL in Supabase.
 //      getStorageUrl() detects the leading scheme and returns it untouched, so
 //      the file loads cross-origin with no extra config.
+//
+//   3. HF proxy mode (fixes 5-min lag). Deploy the proxy Worker from
+//      cloudflare-templates/hf-proxy/, set NEXT_PUBLIC_HF_PROXY_URL to its
+//      workers.dev address, and keep storing HF absolute URLs in Supabase.
+//      getStorageUrl() auto-rewrites huggingface.co URLs to go through the
+//      proxy, giving you the cost efficiency of HF storage with R2-level speed.
 
 // Resolution order: the storage-agnostic name wins; the legacy R2 name is a
 // backward-compatible fallback so existing deployments keep working after they
@@ -26,11 +32,26 @@ export const STORAGE_BASE_URL =
   process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
   '';
 
+/** HF proxy Worker URL (optional). When set, any absolute huggingface.co
+ *  Dataset URLs stored in Supabase are automatically rewritten to pass through
+ *  this proxy Worker.  The proxy handles 302 redirects and CORS on the backend,
+ *  presenting a clean S3-compatible endpoint to JBrowse.  See the deployment
+ *  guide in cloudflare-templates/hf-proxy/README.md. */
+export const HF_PROXY_BASE_URL =
+  process.env.NEXT_PUBLIC_HF_PROXY_URL || '';
+
 /**
  * Resolve a stored file path to a fully-qualified, fetchable URL.
  *
  * @param path    Path stored in the database / config. May be a relative path
  *                ("tracks/chr1.bb") or an absolute URL ("https://…/chr1.cram").
+ *
+ *                When NEXT_PUBLIC_HF_PROXY_URL is configured, any absolute URL
+ *                pointing to huggingface.co/datasets/.../resolve/main is
+ *                automatically rewritten to pass through the proxy Worker that
+ *                fixes HF's 302+Xet CORS chain (reducing load time from ~5 min
+ *                to ~20 sec).
+ *
  * @param baseUrl Optional base override. Defaults to STORAGE_BASE_URL. The
  *                genome browser passes the base it actually resolved (which may
  *                be the public demo dataset after a fallback), so callers stay
@@ -43,12 +64,44 @@ export function getStorageUrl(
 ): string {
   if (!path) return '';
 
-  // Absolute URL — mixed-source hosting. Pass through untouched.
-  if (/^https?:\/\//i.test(path)) return path;
+  // Absolute URL — check for HF proxy rewriting
+  if (/^https?:\/\//i.test(path)) {
+    // When HF proxy is configured, rewrite huggingface.co Dataset URLs to
+    // pass through the proxy Worker (fixes 5-min CORS/Range/302 lag).
+    if (HF_PROXY_BASE_URL && isHuggingFaceUrl(path)) {
+      return rewriteHfUrl(path, HF_PROXY_BASE_URL);
+    }
+    return path;
+  }
 
   // Relative path — join with the base, normalising the slash at the seam so we
   // never emit "…//…" (which some object stores treat as a distinct, missing key).
   const cleanBase = baseUrl.replace(/\/+$/, '');
   const cleanPath = path.replace(/^\/+/, '');
   return cleanBase ? `${cleanBase}/${cleanPath}` : cleanPath;
+}
+
+// ---- HF proxy helpers -----------------------------------------------
+
+/**
+ * Detect Hugging Face Dataset resolve URLs.
+ * Matches: https://huggingface.co/datasets/<user>/<repo>/resolve/main/...
+ */
+function isHuggingFaceUrl(url: string): boolean {
+  return /huggingface\.co\/datasets\/.+\/resolve\/main/i.test(url);
+}
+
+/**
+ * Rewrite a Hugging Face resolve URL to go through the proxy Worker.
+ * Extracts the path after "resolve/main/" and appends it to the proxy base.
+ *
+ * Example:
+ *   in:  https://huggingface.co/datasets/u/r/resolve/main/tracks/sample.bam
+ *   out: https://proxy.workers.dev/tracks/sample.bam
+ */
+function rewriteHfUrl(hfUrl: string, proxyBase: string): string {
+  const match = hfUrl.match(/\/resolve\/main\/(.+)$/i);
+  if (!match) return hfUrl; // safety: pass through unchanged
+  const cleanBase = proxyBase.replace(/\/+$/, '');
+  return `${cleanBase}/${match[1]}`;
 }
