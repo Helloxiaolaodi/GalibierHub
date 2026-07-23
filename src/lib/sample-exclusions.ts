@@ -6,6 +6,12 @@ export const EXCLUDED_SAMPLE_IDS = [
   'SAMPLE-004',
   'SAMPLE-005',
   'SAMPLE-006',
+  'P-SAMPLE-001',
+  'P-SAMPLE-002',
+  'P-SAMPLE-004',
+  'C-SAMPLE-003',
+  'C-SAMPLE-005',
+  'V-SAMPLE-006',
 ] as const;
 
 const quotedIds = EXCLUDED_SAMPLE_IDS.map((id) => `"${id}"`).join(',');
