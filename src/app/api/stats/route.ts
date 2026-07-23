@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
+import { EXCLUDED_SAMPLE_IDS, EXCLUDED_SAMPLE_IDS_FILTER } from '@/lib/sample-exclusions';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
-
-const TEMPLATE_SAMPLE_ID = 'SCOV2-REF-001';
 
 export async function GET() {
   if (!isSupabaseConfigured) {
@@ -18,16 +17,16 @@ export async function GET() {
     { count: totalVariants },
     { data: sampleData },
   ] = await Promise.all([
-    sb.from('genome_samples').select('*', { count: 'exact', head: true }).neq('sample_id', TEMPLATE_SAMPLE_ID),
-    sb.from('predicted_promoters').select('*', { count: 'exact', head: true }).neq('sample_id', TEMPLATE_SAMPLE_ID),
+    sb.from('genome_samples').select('*', { count: 'exact', head: true }).not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER),
+    sb.from('predicted_promoters').select('*', { count: 'exact', head: true }).not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER),
     sb.from('variant_index').select('*', { count: 'exact', head: true }),
-    sb.from('genome_samples').select('species, sample_id').neq('sample_id', TEMPLATE_SAMPLE_ID),
+    sb.from('genome_samples').select('species, sample_id').not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER),
   ]);
 
   const speciesDistribution: Record<string, number> = {};
   if (sampleData) {
     for (const row of sampleData) {
-      if (row.sample_id === TEMPLATE_SAMPLE_ID) {
+      if (EXCLUDED_SAMPLE_IDS.includes(row.sample_id)) {
         continue;
       }
       const sp = row.species || 'Unknown';
@@ -38,7 +37,7 @@ export async function GET() {
   const { data: scoreData } = await getSupabase()
     .from('predicted_promoters')
     .select('score, sample_id')
-    .neq('sample_id', TEMPLATE_SAMPLE_ID);
+    .not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER);
 
   const bins = [
     { range: '0.0-0.1', min: 0, max: 0.1 },

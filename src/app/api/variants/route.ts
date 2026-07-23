@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { EXCLUDED_SAMPLE_IDS_FILTER } from '@/lib/sample-exclusions';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
 export async function GET(request: Request) {
@@ -18,7 +19,10 @@ export async function GET(request: Request) {
     });
   }
 
-  let query = getSupabase().from('variant_index').select('*', { count: 'exact' });
+  let query = getSupabase()
+    .from('variant_index')
+    .select('*', { count: 'exact' })
+    .not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER);
 
   if (chrom) query = query.eq('chrom', chrom);
   if (startPos && endPos) {

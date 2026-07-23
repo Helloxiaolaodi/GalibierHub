@@ -192,7 +192,7 @@ export default function HomePage() {
             />
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
-                Genome Browser - Click a promoter row to navigate
+                Genome Browser - Real-data reference view
               </div>
               <GenomeBrowser
                 locus={browserLocus}
@@ -217,7 +217,7 @@ export default function HomePage() {
               onLocusChange={setBrowserLocus}
             />
             <div className="text-sm text-gray-500">
-              Showing {promoters.length} promoters in current view. Click a row in the table to navigate to that promoter.
+              Showing {promoters.length} promoter records in the current result set. Select a real record to synchronize the browser view.
             </div>
           </>
         )}
