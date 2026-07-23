@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { SiteConfig } from '@/site-config';
+import { getStorageUrl } from '@/lib/storage';
 
 interface GenomeBrowserProps {
   locus?: string;
@@ -50,6 +51,10 @@ async function isReachable(url: string): Promise<boolean> {
   }
 }
 
+function buildStorageUrl(baseUrl: string, path: string): string {
+  return getStorageUrl(path, baseUrl);
+}
+
 function getTrackRequiredUrls(track: DemoTrack): string[] {
   const adapter = track.adapter as AdapterWithFiles;
   return [
@@ -67,7 +72,7 @@ async function getReachableTracks(baseUrl: string, tracks: readonly DemoTrack[])
     tracks.map(async (track) => {
       const requiredUrls = getTrackRequiredUrls(track);
       const results = await Promise.all(
-        requiredUrls.map((relativePath) => isReachable(`${baseUrl}/${relativePath}`)),
+        requiredUrls.map((path) => isReachable(buildStorageUrl(baseUrl, path))),
       );
       return results.every(Boolean) ? track : null;
     }),
@@ -117,7 +122,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
         const assembly = assemblies[name];
 
         for (const base of candidateBases) {
-          const fastaIndexUrl = `${base}/${assembly.fastaIndex}`;
+          const fastaIndexUrl = buildStorageUrl(base, assembly.fastaIndex);
           if (!(await isReachable(fastaIndexUrl))) {
             continue;
           }

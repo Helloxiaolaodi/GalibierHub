@@ -6,7 +6,7 @@
 //
 //   "relative paths go through the base URL, absolute URLs are passed through."
 //
-// This gives template users three deployment modes with zero code changes:
+// This gives template users four deployment modes with zero code changes:
 //
 //   1. Single-source hosting (recommended). Store relative paths in Supabase
 //      (e.g. "tracks/sample1.bb") and set ONE env var to your bucket root:
@@ -64,6 +64,11 @@ export function getStorageUrl(
 ): string {
   if (!path) return '';
 
+  const resolvedBase =
+    HF_PROXY_BASE_URL && isHuggingFaceUrl(baseUrl)
+      ? rewriteHfBaseUrl(baseUrl, HF_PROXY_BASE_URL)
+      : baseUrl;
+
   // Absolute URL — check for HF proxy rewriting
   if (/^https?:\/\//i.test(path)) {
     // When HF proxy is configured, rewrite huggingface.co Dataset URLs to
@@ -76,7 +81,7 @@ export function getStorageUrl(
 
   // Relative path — join with the base, normalising the slash at the seam so we
   // never emit "…//…" (which some object stores treat as a distinct, missing key).
-  const cleanBase = baseUrl.replace(/\/+$/, '');
+  const cleanBase = resolvedBase.replace(/\/+$/, '');
   const cleanPath = path.replace(/^\/+/, '');
   return cleanBase ? `${cleanBase}/${cleanPath}` : cleanPath;
 }
@@ -104,4 +109,12 @@ function rewriteHfUrl(hfUrl: string, proxyBase: string): string {
   if (!match) return hfUrl; // safety: pass through unchanged
   const cleanBase = proxyBase.replace(/\/+$/, '');
   return `${cleanBase}/${match[1]}`;
+}
+
+function rewriteHfBaseUrl(hfBaseUrl: string, proxyBase: string): string {
+  const match = hfBaseUrl.match(/\/resolve\/main(?:\/(.+))?$/i);
+  if (!match) return hfBaseUrl;
+  const cleanBase = proxyBase.replace(/\/+$/, '');
+  const suffix = match[1]?.replace(/^\/+/, '') || '';
+  return suffix ? `${cleanBase}/${suffix}` : cleanBase;
 }

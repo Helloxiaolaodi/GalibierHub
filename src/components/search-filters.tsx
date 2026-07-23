@@ -26,7 +26,7 @@ const CHROMOSOMES = [
   'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX', 'chrY', 'chrMT',
 ];
 
-// Species / tissue lists mirror the seed data in schema.sql â€” extend as your
+// Species / tissue lists mirror the seed data in schema.sql - extend as your
 // genome_samples table grows.
 const SPECIES = ['Homo sapiens', 'Oryza sativa', 'Escherichia coli'];
 const TISSUES = ['liver', 'brain', 'leaf', 'breast', 'root', 'whole_cell'];
@@ -35,17 +35,17 @@ const TISSUES = ['liver', 'brain', 'leaf', 'breast', 'root', 'whole_cell'];
 // paper: P-Cohort is the primary discovery cohort, C-Cohort is the matched
 // control set, V-Validation is the held-out validation cohort.
 const COHORTS = [
-  { value: 'P-Cohort', label: 'P-Cohort â€” Primary' },
-  { value: 'C-Cohort', label: 'C-Cohort â€” Control' },
+  { value: 'P-Cohort', label: 'P-Cohort - Primary' },
+  { value: 'C-Cohort', label: 'C-Cohort - Control' },
   { value: 'V-Validation', label: 'V-Validation' },
 ];
 
-// WHO adult BMI classification (kg/m^2) â€” matches the paper&apos;s inclusion table
+// WHO adult BMI classification (kg/m^2) - matches the paper's inclusion table
 const BMI_CLASSES = [
   { value: 'underweight', label: 'Underweight (<18.5)' },
-  { value: 'normal',      label: 'Normal (18.5â€“24.9)' },
-  { value: 'overweight',  label: 'Overweight (25.0â€“29.9)' },
-  { value: 'obese',       label: 'Obese (â‰¥30.0)' },
+  { value: 'normal',      label: 'Normal (18.5-24.9)' },
+  { value: 'overweight',  label: 'Overweight (25.0-29.9)' },
+  { value: 'obese',       label: 'Obese (>=30.0)' },
 ];
 
 const EMPTY: SearchFilters = {
@@ -69,8 +69,8 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           Search &amp; Cohort Inclusion Filters
         </h2>
         <p className="text-xs text-gray-500 mt-0.5">
-          Reproduce the paper&apos;s inclusion / exclusion criteria â€” cohort prefix,
-          WHO adult BMI bands, species and tissue â€” combined with the
+          Reproduce the paper's inclusion / exclusion criteria - cohort prefix,
+          WHO adult BMI bands, species and tissue - combined with the
           promoter-level coordinate and score filters.
         </p>
       </div>
@@ -144,7 +144,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">
-              Min score <span className="text-gray-400">0 â€“ 1</span>
+              Min score <span className="text-gray-400">0 - 1</span>
             </label>
             <input type="number" step="0.01" min="0" max="1" placeholder="0.75"
               value={filters.minScore} onChange={(e) => set('minScore', e.target.value)}
@@ -161,7 +161,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
               disabled={loading}
               className="flex-1 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
             >
-              {loading ? 'Searchingâ€¦' : 'Apply filters'}
+              {loading ? 'Searching...' : 'Apply filters'}
             </button>
             <button
               onClick={() => setFilters(EMPTY)}

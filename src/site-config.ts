@@ -22,8 +22,8 @@ export const SiteConfig = {
   },
 
   jbrowse: {
-    defaultAssembly: 'volvox',
-    defaultLocus: 'ctgA:1-5000',
+    defaultAssembly: 'NC_045512.2',
+    defaultLocus: 'NC_045512.2:1-5000',
     storageBaseUrl:
       process.env.NEXT_PUBLIC_STORAGE_BASE_URL ||
       process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
