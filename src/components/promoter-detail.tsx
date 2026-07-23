@@ -84,7 +84,7 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
               {promoter.chrom}:{promoter.start.toLocaleString()}-{promoter.end_pos.toLocaleString()} ({promoter.strand})
             </p>
           </div>
-          <button
+          <button type="button" 
             onClick={onClose}
             aria-label="Close"
             className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
@@ -205,20 +205,20 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 pt-1">
-            <button
+            <button type="button" 
               onClick={handleViewInBrowser}
               className="flex-1 min-w-[10rem] px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
             >
               View in Genome Browser
             </button>
-            <button
+            <button type="button" 
               onClick={handleCopyBed}
               className="flex-1 min-w-[10rem] px-4 py-2 border border-gray-300 hover:bg-gray-50 bg-white rounded-lg text-sm font-medium transition-colors"
             >
               Copy as BED
             </button>
             {promoter.sequence && (
-              <button
+              <button type="button" 
                 onClick={handleCopyFasta}
                 className="flex-1 min-w-[10rem] px-4 py-2 border border-gray-300 hover:bg-gray-50 bg-white rounded-lg text-sm font-medium transition-colors"
               >

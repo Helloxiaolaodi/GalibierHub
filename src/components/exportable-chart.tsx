@@ -84,14 +84,14 @@ export default function ExportableChart({
           {title}
         </div>
         <div className="flex gap-1">
-          <button
+          <button type="button" 
             onClick={handlePNG}
             title="Download 2× PNG"
             className="px-2 py-0.5 text-[11px] font-medium border rounded hover:bg-white text-gray-700"
           >
             PNG
           </button>
-          <button
+          <button type="button" 
             onClick={handleSVG}
             title="Download publication-ready SVG"
             className="px-2 py-0.5 text-[11px] font-medium border rounded hover:bg-white text-gray-700"

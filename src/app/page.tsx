@@ -46,12 +46,29 @@ const DEMO_STATS: DashboardStats = {
   ],
 };
 
+const EMPTY_FILTERS: FiltersType = {
+  chrom: '',
+  start: '',
+  end_pos: '',
+  geneSymbol: '',
+  minScore: '',
+  species: '',
+  tissue: '',
+  cohort: '',
+  bmiClass: '',
+  sampleId: '',
+};
+
 export default function HomePage() {
   const [promoters, setPromoters] = useState<Promoter[]>(DEMO_PROMOTERS);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [selectedPromoter, setSelectedPromoter] = useState<Promoter | null>(null);
   const [browserLocus, setBrowserLocus] = useState('NC_045512.2:21,563-25,384');
   const [loading, setLoading] = useState(false);
+  const [totalPromoters, setTotalPromoters] = useState(DEMO_PROMOTERS.length);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(SiteConfig.pageSize);
+  const [currentFilters, setCurrentFilters] = useState<FiltersType>(EMPTY_FILTERS);
   const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome'>('overview');
   const [guideOpen, setGuideOpen] = useState(false);
 
@@ -64,7 +81,7 @@ export default function HomePage() {
       .catch(() => setStats(DEMO_STATS));
   }, []);
 
-  const handleSearch = useCallback((filters: FiltersType) => {
+  const fetchPromoters = useCallback((filters: FiltersType, nextPageIndex: number, nextPageSize: number) => {
     setLoading(true);
     const params = new URLSearchParams();
     if (filters.chrom) params.set('chrom', filters.chrom);
@@ -77,24 +94,47 @@ export default function HomePage() {
     if (filters.tissue) params.set('tissue', filters.tissue);
     if (filters.cohort) params.set('cohort', filters.cohort);
     if (filters.bmiClass) params.set('bmi_class', filters.bmiClass);
+    params.set('limit', String(nextPageSize));
+    params.set('offset', String(nextPageIndex * nextPageSize));
 
     fetch(`/api/promoters?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data?.data) setPromoters(data.data);
+        if (data?.data) {
+          setPromoters(data.data);
+          if (typeof data.total === 'number') {
+            setTotalPromoters(data.total);
+          }
+        }
       })
       .catch(() => {
         let filtered = DEMO_PROMOTERS;
         if (filters.chrom) filtered = filtered.filter((p) => p.chrom === filters.chrom);
         if (filters.geneSymbol) filtered = filtered.filter((p) => p.gene_symbol?.toLowerCase().includes(filters.geneSymbol.toLowerCase()));
-        if (filters.minScore) filtered = filtered.filter((p) => p.score >= parseFloat(filters.minScore));
-        if (filters.start) filtered = filtered.filter((p) => p.start >= parseInt(filters.start));
-        if (filters.end_pos) filtered = filtered.filter((p) => p.end_pos <= parseInt(filters.end_pos));
+        if (filters.minScore) filtered = filtered.filter((p) => p.score >= Number.parseFloat(filters.minScore));
+        if (filters.start) filtered = filtered.filter((p) => p.start >= Number.parseInt(filters.start));
+        if (filters.end_pos) filtered = filtered.filter((p) => p.end_pos <= Number.parseInt(filters.end_pos));
         if (filters.sampleId) filtered = filtered.filter((p) => p.sample_id.toLowerCase().includes(filters.sampleId.toLowerCase()));
-        setPromoters(filtered);
+        const startOffset = nextPageIndex * nextPageSize;
+        setTotalPromoters(filtered.length);
+        setPromoters(filtered.slice(startOffset, startOffset + nextPageSize));
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchPromoters(currentFilters, pageIndex, pageSize);
+  }, [currentFilters, fetchPromoters, pageIndex, pageSize]);
+
+  const handleSearch = useCallback((filters: FiltersType) => {
+    setPageIndex(0);
+    setCurrentFilters(filters);
+  }, []);
+
+  const handlePageChange = useCallback((nextPageIndex: number, nextPageSize: number) => {
+    setPageSize(nextPageSize);
+    setPageIndex(nextPageSize === pageSize ? nextPageIndex : 0);
+  }, [pageSize]);
 
   const handleRowClick = useCallback((promoter: Promoter) => {
     setSelectedPromoter(promoter);
@@ -133,8 +173,7 @@ export default function HomePage() {
           </div>
           <nav className="flex items-center gap-1">
             {(['overview', 'promoters', 'genome'] as const).map((tab) => (
-              <button
-                key={tab}
+              <button type="button" key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === tab
@@ -146,8 +185,7 @@ export default function HomePage() {
               </button>
             ))}
             <div className="w-px h-5 bg-gray-200 mx-1" />
-            <button
-              onClick={() => setGuideOpen((v) => !v)}
+            <button type="button" onClick={() => setGuideOpen((v) => !v)}
               aria-expanded={guideOpen}
               aria-controls="seqedge-user-guide"
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
@@ -169,9 +207,7 @@ export default function HomePage() {
           <>
             <StatsChart stats={stats} />
             <SearchFilters onSearch={handleSearch} loading={loading} />
-            <PromoterTable
-              data={promoters}
-              onRowClick={(p) => {
+            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} onPageChange={handlePageChange} onRowClick={(p) => {
                 setSelectedPromoter(p);
                 const locus = `${p.chrom}:${Math.max(0, p.start - 2000).toLocaleString()}-${(p.end_pos + 2000).toLocaleString()}`;
                 setBrowserLocus(locus);
@@ -192,7 +228,7 @@ export default function HomePage() {
         {activeTab === 'promoters' && (
           <>
             <SearchFilters onSearch={handleSearch} loading={loading} />
-            <PromoterTable data={promoters} onRowClick={handleRowClick} />
+            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} onPageChange={handlePageChange} onRowClick={handleRowClick} />
           </>
         )}
 

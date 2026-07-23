@@ -93,7 +93,7 @@ export function getStorageUrl(
  * Matches: https://huggingface.co/datasets/<user>/<repo>/resolve/main/...
  */
 function isHuggingFaceUrl(url: string): boolean {
-  return /huggingface\.co\/datasets\/.+\/resolve\/main/i.test(url);
+  return /huggingface\.co\/datasets\/[^/]+\/[^/]+\/resolve\/main/i.test(url);
 }
 
 /**
@@ -105,7 +105,7 @@ function isHuggingFaceUrl(url: string): boolean {
  *   out: https://proxy.workers.dev/tracks/sample.bam
  */
 function rewriteHfUrl(hfUrl: string, proxyBase: string): string {
-  const match = hfUrl.match(/\/resolve\/main\/(.+)$/i);
+  const match = hfUrl.match(/\/resolve\/main\/([^?#]+)$/i);
   if (!match) return hfUrl; // safety: pass through unchanged
   const cleanBase = proxyBase.replace(/\/+$/, '');
   return `${cleanBase}/${match[1]}`;

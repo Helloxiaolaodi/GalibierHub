@@ -75,7 +75,7 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
         </div>
         <div className="flex gap-3">
           <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">View in Genome Browser</Link>
-          <button onClick={() => navigator.clipboard.writeText([promoter.chrom, promoter.start, promoter.end_pos, promoter.gene_symbol || 'NA', promoter.score, promoter.strand].join('\t'))} className="px-4 py-2 border rounded-lg text-sm">Copy as BED</button>
+          <button type="button" onClick={() => navigator.clipboard.writeText([promoter.chrom, promoter.start, promoter.end_pos, promoter.gene_symbol || 'NA', promoter.score, promoter.strand].join('\t'))} className="px-4 py-2 border rounded-lg text-sm">Copy as BED</button>
         </div>
       </main>
     </div>

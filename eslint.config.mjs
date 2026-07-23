@@ -1,4 +1,4 @@
-﻿import { FlatCompat } from '@eslint/eslintrc';
+import { FlatCompat } from '@eslint/eslintrc';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 

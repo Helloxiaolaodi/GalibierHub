@@ -1,12 +1,10 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
   getSortedRowModel,
-  getPaginationRowModel,
   flexRender,
   type ColumnDef,
   type SortingState,
@@ -15,12 +13,16 @@ import type { Promoter } from '@/types/genome';
 
 interface PromoterTableProps {
   data: Promoter[];
+  totalCount: number;
+  pageIndex: number;
+  pageSize: number;
   onRowClick?: (promoter: Promoter) => void;
+  onPageChange: (pageIndex: number, pageSize: number) => void;
 }
 
-export default function PromoterTable({ data, onRowClick }: PromoterTableProps) {
+export default function PromoterTable({ data, totalCount, pageIndex, pageSize, onRowClick, onPageChange }: PromoterTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
+  const currentPagination = { pageIndex, pageSize };
 
   const columns = useMemo<ColumnDef<Promoter>[]>(
     () => [
@@ -89,29 +91,23 @@ export default function PromoterTable({ data, onRowClick }: PromoterTableProps) 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, globalFilter },
+    pageCount: Math.ceil(totalCount / pageSize) || 1,
+    state: { sorting, pagination: currentPagination },
+    manualPagination: true,
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 20 } },
   });
+
+  const canPreviousPage = pageIndex > 0;
+  const canNextPage = (pageIndex + 1) * pageSize < totalCount;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800">
-          Promoter Predictions ({data.length})
+          Promoter Predictions ({totalCount} total)
         </h2>
-        <input
-          type="text"
-          value={globalFilter ?? ''}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          placeholder="Search gene, chr, sample..."
-          className="px-3 py-1.5 border rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
       </div>
 
       <div className="overflow-x-auto border rounded-lg">
@@ -153,18 +149,20 @@ export default function PromoterTable({ data, onRowClick }: PromoterTableProps) 
 
       <div className="flex items-center justify-between text-sm text-gray-600">
         <button
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
+          type="button"
+          onClick={() => onPageChange(Math.max(0, pageIndex - 1), pageSize)}
+          disabled={!canPreviousPage}
           className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Previous
         </button>
         <span>
-          Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          Page {pageIndex + 1} of {Math.ceil(totalCount / pageSize) || 1}
         </span>
         <button
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
+          type="button"
+          onClick={() => onPageChange(pageIndex + 1, pageSize)}
+          disabled={!canNextPage}
           className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Next

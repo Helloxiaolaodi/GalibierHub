@@ -1,14 +1,6 @@
 import { NextResponse } from 'next/server';
+import { SiteConfig } from '@/site-config';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
-
-// WHO adult BMI classification (kg/m^2)
-// Underweight <18.5 | Normal 18.5-24.9 | Overweight 25.0-29.9 | Obese >=30.0
-const BMI_BANDS: Record<string, [number, number]> = {
-  underweight: [0, 18.5],
-  normal: [18.5, 25],
-  overweight: [25, 30],
-  obese: [30, 100],
-};
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -22,8 +14,8 @@ export async function GET(request: Request) {
   const tissue = searchParams.get('tissue');
   const cohort = searchParams.get('cohort');
   const bmiClass = searchParams.get('bmi_class');
-  const limit = parseInt(searchParams.get('limit') || '100');
-  const offset = parseInt(searchParams.get('offset') || '0');
+  const limit = Number.parseInt(searchParams.get('limit') || '100');
+  const offset = Number.parseInt(searchParams.get('offset') || '0');
 
   if (!isSupabaseConfigured) {
     return NextResponse.json({
@@ -46,8 +38,8 @@ export async function GET(request: Request) {
     if (species) sq = sq.eq('species', species);
     if (tissue) sq = sq.eq('tissue', tissue);
     if (cohort) sq = sq.eq('cohort', cohort);
-    if (bmiClass && BMI_BANDS[bmiClass]) {
-      const [lo, hi] = BMI_BANDS[bmiClass];
+    if (bmiClass && bmiClass in SiteConfig.bmiBands) {
+      const [lo, hi] = SiteConfig.bmiBands[bmiClass as keyof typeof SiteConfig.bmiBands];
       sq = sq.gte('bmi', lo).lt('bmi', hi);
     }
     const { data: samples, error: sErr } = await sq;
@@ -62,9 +54,9 @@ export async function GET(request: Request) {
   let query = sb.from('predicted_promoters').select('*', { count: 'exact' });
   if (chrom) query = query.eq('chrom', chrom);
   if (geneSymbol) query = query.ilike('gene_symbol', `%${geneSymbol}%`);
-  if (minScore) query = query.gte('score', parseFloat(minScore));
-  if (start) query = query.gte('start', parseInt(start));
-  if (endPos) query = query.lte('end_pos', parseInt(endPos));
+  if (minScore) query = query.gte('score', Number.parseFloat(minScore));
+  if (start) query = query.gte('start', Number.parseInt(start));
+  if (endPos) query = query.lte('end_pos', Number.parseInt(endPos));
   if (sampleId) query = query.eq('sample_id', sampleId);
   if (allowedSampleIds) query = query.in('sample_id', allowedSampleIds);
 

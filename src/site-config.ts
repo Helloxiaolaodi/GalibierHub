@@ -101,6 +101,15 @@ export const SiteConfig = {
     },
   },
 
+
+  // Chinese adult BMI classification (kg/m^2)
+  // 偏瘦 (<18.5) | 正常 (18.5-24.0) | 超重 (24.0-28.0) | 肥胖 (>=28.0)
+  bmiBands: {
+    underweight: [0, 18.5],
+    normal: [18.5, 24.0],
+    overweight: [24.0, 28.0],
+    obese: [28.0, 100],
+  },
   chromosomes: ['NC_045512.2', 'ctgA'],
 
   pageSize: 20,

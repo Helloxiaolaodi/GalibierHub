@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const startPos = searchParams.get('start');
   const endPos = searchParams.get('end');
   const geneSymbol = searchParams.get('gene_symbol');
-  const limit = parseInt(searchParams.get('limit') || '1000');
+  const limit = Number.parseInt(searchParams.get('limit') || '1000');
 
   // Return empty when Supabase is not configured
   if (!isSupabaseConfigured) {
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
   if (chrom) query = query.eq('chrom', chrom);
   if (startPos && endPos) {
-    query = query.gte('pos', parseInt(startPos)).lte('pos', parseInt(endPos));
+    query = query.gte('pos', Number.parseInt(startPos)).lte('pos', Number.parseInt(endPos));
   }
   if (geneSymbol) query = query.ilike('gene_symbol', `%${geneSymbol}%`);
 

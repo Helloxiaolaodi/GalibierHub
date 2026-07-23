@@ -11,7 +11,7 @@
 const INDEX_FILE_PATTERN = /\.(bai|tbi|csi|fai|crai|gzi)$/i;
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env, _ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
     const hfBase = env.HF_REPO_BASE;
