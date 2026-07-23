@@ -48,3 +48,4 @@ next-env.d.ts
 _*.txt
 tsc-out*.txt
 commit-out.txt
+build-cf.log

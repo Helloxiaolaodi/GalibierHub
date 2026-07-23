@@ -1,4 +1,4 @@
-﻿# SeqEdge
+# SeqEdge
 
 ![SeqEdge 截图](./seqedge-github-img-readme.jpg)
 
@@ -241,7 +241,7 @@ SeqEdge 支持四种存储模式，无需改业务代码：
 | [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) | `^2.110.7` | Supabase JavaScript 客户端官方文档 |
 | [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) | `^4.3.0` | JBrowse 2 官方文档 |
 | [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) | `^3.1.0` | npm 包说明 |
-| [JBrowse 2](https://www.nature.com/articles/s41587-023-01780-9) | 集成运行时 | Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023 |
+| [JBrowse 2](https://jbrowse.org/jb2/) | 集成运行时 | Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023 |
 | [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) | `^8.21.3` | 官方文档 |
 | [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | 官方入门手册 |
 | [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) | `^1.20.2` | OpenNext Cloudflare 官方文档 |

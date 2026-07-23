@@ -1,4 +1,4 @@
-﻿# SeqEdge
+# SeqEdge
 
 ![SeqEdge Screenshot](./seqedge-github-img-readme.jpg)
 
@@ -241,7 +241,7 @@ If Cloudflare Pages returns `404`, verify:
 | [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) | `^2.110.7` | Official JavaScript client documentation |
 | [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) | `^4.3.0` | JBrowse 2 official documentation |
 | [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) | `^3.1.0` | Package documentation |
-| [JBrowse 2](https://www.nature.com/articles/s41587-023-01780-9) | integrated runtime | Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023 |
+| [JBrowse 2](https://jbrowse.org/jb2/) | integrated runtime | Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023 |
 | [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) | `^8.21.3` | Official documentation |
 | [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | Official handbook |
 | [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) | `^1.20.2` | OpenNext Cloudflare documentation |

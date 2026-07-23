@@ -67,7 +67,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [totalPromoters, setTotalPromoters] = useState(DEMO_PROMOTERS.length);
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(SiteConfig.pageSize);
+  const [pageSize, setPageSize] = useState<number>(SiteConfig.pageSize);
   const [currentFilters, setCurrentFilters] = useState<FiltersType>(EMPTY_FILTERS);
   const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome'>('overview');
   const [guideOpen, setGuideOpen] = useState(false);
