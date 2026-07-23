@@ -8,6 +8,9 @@
 export const SiteConfig = {
   title: 'SeqEdge',
   subtitle: 'A Modern Edge-Native Portal for Genomic Databases',
+  creatorCreditPrefix: 'A GitHub open-source project deployed by',
+  creatorCreditLabel: '@Helloxiaolaodi',
+  creatorCreditUrl: 'https://github.com/Helloxiaolaodi',
   description:
     'Interactive database for browsing predicted promoters, whole genome annotations, and genomic data - powered by serverless edge infrastructure.',
   keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation', 'seqedge'],

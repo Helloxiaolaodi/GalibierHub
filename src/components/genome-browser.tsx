@@ -11,6 +11,7 @@ interface GenomeBrowserProps {
 }
 
 type Probe = 'idle' | 'checking' | 'ready' | 'missing-data';
+type DataSource = 'configured' | 'packaged-demo' | 'public-demo';
 type AssemblyName = keyof typeof SiteConfig.jbrowse.assemblies;
 type DemoTrack = (typeof SiteConfig.jbrowse.assemblies)[AssemblyName]['tracks'][number];
 
@@ -95,7 +96,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
 
   const [probe, setProbe] = useState<Probe>('idle');
   const [dataBase, setDataBase] = useState(configuredBase || demoBase);
-  const [usingDemo, setUsingDemo] = useState(!configuredBase);
+  const [dataSource, setDataSource] = useState<DataSource>(configuredBase ? 'configured' : 'packaged-demo');
   const [resolvedAssembly, setResolvedAssembly] = useState<AssemblyName>(defaultAssembly);
   const [availableTracks, setAvailableTracks] = useState<DemoTrack[]>([]);
 
@@ -114,14 +115,19 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
     setProbe('checking');
 
     (async () => {
-      const candidateBases = [configuredBase, demoBase, PUBLIC_JBROWSE_DEMO_BASE].filter(
-        (value, index, array): value is string => Boolean(value) && array.indexOf(value) === index,
+      const candidateBases = [
+        { base: configuredBase, source: 'configured' as const },
+        { base: demoBase, source: 'packaged-demo' as const },
+        { base: PUBLIC_JBROWSE_DEMO_BASE, source: 'public-demo' as const },
+      ].filter(
+        (candidate, index, array) =>
+          Boolean(candidate.base) && array.findIndex((entry) => entry.base === candidate.base) === index,
       );
 
       for (const name of assemblyNames) {
         const assembly = assemblies[name];
 
-        for (const base of candidateBases) {
+        for (const { base, source } of candidateBases) {
           const fastaIndexUrl = buildStorageUrl(base, assembly.fastaIndex);
           if (!(await isReachable(fastaIndexUrl))) {
             continue;
@@ -133,7 +139,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
           }
 
           setDataBase(base);
-          setUsingDemo(base !== configuredBase);
+          setDataSource(source);
           setResolvedAssembly(name);
           setAvailableTracks(tracks);
           setProbe('ready');
@@ -143,7 +149,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
 
       if (!cancelled) {
         setDataBase(configuredBase || demoBase);
-        setUsingDemo(!configuredBase);
+        setDataSource(configuredBase ? 'configured' : 'packaged-demo');
         setResolvedAssembly(defaultAssembly);
         setAvailableTracks([]);
         setProbe('missing-data');
@@ -181,7 +187,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
             <code className="bg-gray-100 px-1 rounded break-all">{dataBase}/{firstFai}</code>.
           </p>
           <p className="text-sm text-gray-500">
-            Both your configured storage and the public JBrowse demo dataset failed to respond.
+            Your configured storage, the packaged same-origin dataset, and the public JBrowse demo dataset all failed to respond.
             This is usually a network block or a missing CORS header rather than a missing file.
             Try reloading, or point NEXT_PUBLIC_STORAGE_BASE_URL at a CORS-enabled object store
             (Cloudflare R2, Hugging Face Datasets, S3, ...).
@@ -196,7 +202,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
 
   return (
     <div className="space-y-2">
-      {usingDemo && (
+      {dataSource === 'public-demo' && (
         <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5">
           Showing{' '}
           {resolvedAssembly !== defaultAssembly ? (
@@ -210,7 +216,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
           )}
           .
           {configuredBase
-            ? ' Your configured storage was unavailable or incomplete, so a fallback data source is shown.'
+            ? ' Your configured storage and the packaged local dataset were not sufficient, so the public fallback data source is shown.'
             : ' Set NEXT_PUBLIC_STORAGE_BASE_URL to your own object storage to load your genome tracks.'}
         </div>
       )}

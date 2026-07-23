@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Promoter, DashboardStats } from '@/types/genome';
+import { SiteConfig } from '@/site-config';
 import SearchFilters, { type SearchFilters as FiltersType } from '@/components/search-filters';
 import StatsChart from '@/components/stats-chart';
 import PromoterTable from '@/components/promoter-table';
@@ -112,10 +113,21 @@ export default function HomePage() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900 leading-tight">
-                SeqEdge
+                {SiteConfig.title}
               </h1>
               <p className="text-xs text-gray-500">
-                A Modern Edge-Native Portal for Genomic Databases
+                {SiteConfig.subtitle}
+              </p>
+              <p className="text-xs text-gray-400">
+                {SiteConfig.creatorCreditPrefix}{' '}
+                <a
+                  href={SiteConfig.creatorCreditUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-gray-500 hover:text-gray-700 underline underline-offset-2"
+                >
+                  [{SiteConfig.creatorCreditLabel}]
+                </a>
               </p>
             </div>
           </div>
