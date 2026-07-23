@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { SiteConfig } from '@/site-config';
 import type { Promoter, SampleMetadata } from '@/types/genome';
 
 interface PromoterDetailProps {
   promoter: Promoter | null;
+  onViewInBrowser?: (promoter: Promoter) => void;
   onClose: () => void;
 }
 
@@ -54,8 +55,11 @@ function displayValue(value: string | number | null | undefined): string {
   return String(value);
 }
 
-export default function PromoterDetail({ promoter, onClose }: PromoterDetailProps) {
+export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: PromoterDetailProps) {
   const [sample, setSample] = useState<SampleState>(undefined);
+  const [position, setPosition] = useState({ x: 0, y: 88 });
+  const [dragging, setDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!promoter) return;
@@ -65,6 +69,15 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => setSample(data && !data.error ? data : null))
       .catch(() => setSample(null));
+  }, [promoter]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const width = window.innerWidth;
+    setPosition({
+      x: 16,
+      y: width >= 1024 ? 88 : 16,
+    });
   }, [promoter]);
 
   if (!promoter) return null;
@@ -85,18 +98,62 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
   };
 
   const handleViewInBrowser = () => {
-    const locus = `${promoter.chrom}:${Math.max(0, promoter.start - 2000).toLocaleString()}-${(promoter.end_pos + 2000).toLocaleString()}`;
-    window.location.hash = `locus=${encodeURIComponent(locus)}`;
+    onViewInBrowser?.(promoter);
+  };
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (window.innerWidth < 1024) return;
+    setDragging(true);
+    setDragOffset({
+      x: event.clientX - position.x,
+      y: event.clientY - position.y,
+    });
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragging || window.innerWidth < 1024) return;
+    const panelWidth = 448;
+    const panelHeight = Math.min(window.innerHeight - 32, 720);
+    const nextX = Math.min(
+      Math.max(16, event.clientX - dragOffset.x),
+      Math.max(16, window.innerWidth - panelWidth - 16),
+    );
+    const nextY = Math.min(
+      Math.max(16, event.clientY - dragOffset.y),
+      Math.max(16, window.innerHeight - panelHeight - 16),
+    );
+    setPosition({ x: nextX, y: nextY });
+  };
+
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragging) return;
+    setDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-gray-50 shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
+    <div
+      className="fixed z-50 w-[calc(100vw-2rem)] max-w-[28rem] overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-2xl lg:w-[28rem]"
+      style={{ left: `${position.x}px`, top: `${position.y}px`, maxHeight: 'min(720px, calc(100vh - 2rem))' }}
+    >
+      <div className="flex max-h-[inherit] flex-col overflow-hidden">
+        <div
+          className={`sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4 ${dragging ? 'cursor-grabbing' : 'cursor-default lg:cursor-grab'}`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+        >
           <div>
             <h2 className="text-lg font-bold text-gray-900">Promoter | {promoter.gene_symbol || 'unnamed'}</h2>
             <p className="mt-0.5 font-mono text-xs text-gray-500">
               {promoter.chrom}:{promoter.start.toLocaleString()}-{promoter.end_pos.toLocaleString()} ({promoter.strand})
+            </p>
+            <p className="mt-1 hidden text-[11px] text-gray-400 lg:block">
+              Drag this header to reposition the detail panel.
             </p>
           </div>
           <button
@@ -111,7 +168,7 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
           </button>
         </div>
 
-        <div className="space-y-4 p-5">
+        <div className="space-y-4 overflow-y-auto p-5">
           {/* Card 1 - Genomic coordinates */}
           <Card title="Genomic coordinates">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

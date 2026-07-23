@@ -108,6 +108,26 @@ Creating the schema alone does not populate the dashboard. The downloadable test
 npm run dev
 ```
 
+Local development requires real environment values. The placeholder values shown in `.env.local` examples are intentionally treated as unconfigured, so `/api/stats`, `/api/promoters`, and related server routes will return explicit errors until `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are replaced with working project values.
+
+If `NEXT_PUBLIC_STORAGE_BASE_URL` or `NEXT_PUBLIC_R2_PUBLIC_URL` still points to a placeholder object-storage address, the Genome Browser now fails fast and shows a direct configuration hint instead of appearing to hang while probing an unreachable host.
+
+In practice, local startup issues usually fall into two categories:
+
+- Missing Supabase credentials: the dashboard and promoter APIs return explicit `Supabase is not configured` errors.
+- Missing genome storage base: the Genome Browser shows `Reference data unreachable` or `No real genome storage base is configured` with the expected storage variables called out.
+
+When verifying a production-style local build, do not mix `npm run dev` and `npm run start` against the same `.next` directory. A clean sequence is:
+
+```bash
+Remove-Item -Recurse -Force .next
+npm run build
+$env:PORT=3000
+npm run start
+```
+
+`npm run start` now maps to the standard `next start` flow. This is the most stable local production check for the current repository layout and avoids the path ambiguity that can appear when a linked working directory is forced through a custom standalone server path.
+
 ### 3.6 Deploy
 
 Recommended production layout:
@@ -129,9 +149,9 @@ Cloudflare Pages settings:
 
 SeqEdge uses end-to-end server-side pagination for promoter queries. The page sends `limit` and `offset` to `/api/promoters`, the API applies `range()` in Supabase, and the table runs in controlled manual pagination mode.
 
-The current table UX is designed for larger result sets rather than toy demos. Operators can switch page size between `20`, `50`, and `100`, jump directly to a target page, see the current visible range, and use first / previous / next / last navigation without losing the active filter context.
+The current table UX is designed for larger result sets rather than toy demos. Operators can switch server-side sort order between `score_desc`, `score_asc`, `chrom_start`, and `sample_id`, change page size between `20`, `50`, and `100`, jump directly to a target page, see the current visible range, and use first / previous / next / last navigation without losing the active filter context.
 
-To make long result sets easier to review, the table also exposes an active-filter summary plus a current-page summary of the most frequent chromosomes and sample IDs on the visible page.
+To make long result sets easier to review, the table also exposes an active-filter summary plus a current-page summary of the most frequent chromosomes and sample IDs on the visible page. A quick-view switch lets the operator stay in an overview mode or regroup the visible page by sample or chromosome without leaving the main table workflow.
 
 ### 4.2 Metadata filtering
 
@@ -160,6 +180,8 @@ Its final section lists the open-source components used by SeqEdge as references
 ### 4.4 Genome Browser synchronization
 
 Selecting a promoter row updates the browser locus in place and keeps the existing JBrowse view state alive instead of recreating the viewer from the default locus on every click. This makes repeated promoter-to-browser comparison much faster when reviewing many records in sequence.
+
+The promoter detail view also moved away from a full-screen blocking modal. It now opens as a floating left-side panel, can be repositioned on desktop, and leaves the browser area visible during record inspection.
 
 ## 5. Customization
 

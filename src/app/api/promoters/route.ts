@@ -16,6 +16,7 @@ export async function GET(request: Request) {
   const tissue = searchParams.get('tissue');
   const cohort = searchParams.get('cohort');
   const bmiClass = searchParams.get('bmi_class');
+  const sortBy = searchParams.get('sort_by') || 'score_desc';
   const limit = Number.parseInt(searchParams.get('limit') || '100');
   const offset = Number.parseInt(searchParams.get('offset') || '0');
 
@@ -66,6 +67,32 @@ export async function GET(request: Request) {
     query = query.eq('sample_id', sampleId);
   }
   if (allowedSampleIds) query = query.in('sample_id', allowedSampleIds);
+
+  switch (sortBy) {
+    case 'score_asc':
+      query = query.order('score', { ascending: true, nullsFirst: false })
+        .order('chrom', { ascending: true, nullsFirst: false })
+        .order('start', { ascending: true, nullsFirst: false });
+      break;
+    case 'chrom_start':
+      query = query.order('chrom', { ascending: true, nullsFirst: false })
+        .order('start', { ascending: true, nullsFirst: false })
+        .order('end_pos', { ascending: true, nullsFirst: false })
+        .order('score', { ascending: false, nullsFirst: false });
+      break;
+    case 'sample_id':
+      query = query.order('sample_id', { ascending: true, nullsFirst: false })
+        .order('score', { ascending: false, nullsFirst: false })
+        .order('chrom', { ascending: true, nullsFirst: false })
+        .order('start', { ascending: true, nullsFirst: false });
+      break;
+    case 'score_desc':
+    default:
+      query = query.order('score', { ascending: false, nullsFirst: false })
+        .order('chrom', { ascending: true, nullsFirst: false })
+        .order('start', { ascending: true, nullsFirst: false });
+      break;
+  }
 
   const { data, error, count } = await query.range(offset, offset + limit - 1);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -4,12 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
-  getSortedRowModel,
   flexRender,
   type ColumnDef,
-  type SortingState,
 } from '@tanstack/react-table';
 import type { Promoter } from '@/types/genome';
+
+type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
+type SummaryMode = 'overview' | 'sample' | 'chromosome';
 
 interface PromoterTableProps {
   data: Promoter[];
@@ -18,9 +19,14 @@ interface PromoterTableProps {
   pageSize: number;
   loading?: boolean;
   filterSummary?: Array<{ label: string; value: string }>;
+  visibleCount?: number;
+  sortMode: PromoterSortMode;
+  summaryMode: SummaryMode;
   topChromosomes?: Array<{ label: string; count: number }>;
   topSamples?: Array<{ label: string; count: number }>;
   onRowClick?: (promoter: Promoter) => void;
+  onSortModeChange: (mode: PromoterSortMode) => void;
+  onSummaryModeChange: (mode: SummaryMode) => void;
   onPageChange: (pageIndex: number, pageSize: number) => void;
 }
 
@@ -31,17 +37,22 @@ export default function PromoterTable({
   pageSize,
   loading,
   filterSummary = [],
+  visibleCount = 0,
+  sortMode,
+  summaryMode,
   topChromosomes = [],
   topSamples = [],
   onRowClick,
+  onSortModeChange,
+  onSummaryModeChange,
   onPageChange,
 }: PromoterTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
   const [pageInput, setPageInput] = useState(String(pageIndex + 1));
   const currentPagination = { pageIndex, pageSize };
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
   const rangeStart = totalCount === 0 ? 0 : pageIndex * pageSize + 1;
   const rangeEnd = totalCount === 0 ? 0 : Math.min(totalCount, (pageIndex + 1) * pageSize);
+  const groupedItems = summaryMode === 'chromosome' ? topChromosomes : topSamples;
 
   useEffect(() => {
     setPageInput(String(pageIndex + 1));
@@ -115,11 +126,9 @@ export default function PromoterTable({
     data,
     columns,
     pageCount,
-    state: { sorting, pagination: currentPagination },
+    state: { pagination: currentPagination },
     manualPagination: true,
-    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   const canPreviousPage = pageIndex > 0;
@@ -141,9 +150,24 @@ export default function PromoterTable({
         <h2 className="text-lg font-semibold text-gray-800">
           Promoter Predictions ({totalCount} total)
         </h2>
-        {loading ? (
-          <span className="text-xs text-gray-500">Loading page...</span>
-        ) : null}
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-gray-500">
+            <span>Sort</span>
+            <select
+              value={sortMode}
+              onChange={(e) => onSortModeChange(e.target.value as PromoterSortMode)}
+              className="rounded border px-2 py-1 text-sm text-gray-700 bg-white"
+            >
+              <option value="score_desc">Score high to low</option>
+              <option value="score_asc">Score low to high</option>
+              <option value="chrom_start">Chromosome + start</option>
+              <option value="sample_id">Sample ID</option>
+            </select>
+          </label>
+          {loading ? (
+            <span className="text-xs text-gray-500">Loading page...</span>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
@@ -166,13 +190,56 @@ export default function PromoterTable({
 
         <div className="rounded-lg border bg-white px-4 py-3">
           <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-            Current page summary
+            Quick view
           </div>
-          <div className="mt-2 grid gap-3 sm:grid-cols-2">
-            <div>
-              <div className="text-xs font-medium text-gray-500">Top chromosomes</div>
-              <div className="mt-1 space-y-1 text-sm text-gray-700">
-                {topChromosomes.length > 0 ? topChromosomes.map((item) => (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {([
+              { key: 'overview', label: 'Overview' },
+              { key: 'sample', label: 'Group by sample' },
+              { key: 'chromosome', label: 'Group by chromosome' },
+            ] as const).map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => onSummaryModeChange(option.key)}
+                className={`rounded-md border px-2.5 py-1 text-xs font-medium ${summaryMode === option.key ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {summaryMode === 'overview' ? (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <div className="text-xs font-medium text-gray-500">Top chromosomes on this page</div>
+                <div className="mt-1 space-y-1 text-sm text-gray-700">
+                  {topChromosomes.length > 0 ? topChromosomes.map((item) => (
+                    <div key={item.label} className="flex items-center justify-between gap-2">
+                      <span className="truncate">{item.label}</span>
+                      <span className="tabular-nums text-gray-500">{item.count}</span>
+                    </div>
+                  )) : <div className="text-gray-500">No rows on this page.</div>}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-gray-500">Top samples on this page</div>
+                <div className="mt-1 space-y-1 text-sm text-gray-700">
+                  {topSamples.length > 0 ? topSamples.map((item) => (
+                    <div key={item.label} className="flex items-center justify-between gap-2">
+                      <span className="truncate">{item.label}</span>
+                      <span className="tabular-nums text-gray-500">{item.count}</span>
+                    </div>
+                  )) : <div className="text-gray-500">No rows on this page.</div>}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3">
+              <div className="text-xs font-medium text-gray-500">
+                {summaryMode === 'sample' ? 'Sample groups on this page' : 'Chromosome groups on this page'} ({visibleCount} visible rows)
+              </div>
+              <div className="mt-2 space-y-1 text-sm text-gray-700">
+                {groupedItems.length > 0 ? groupedItems.map((item) => (
                   <div key={item.label} className="flex items-center justify-between gap-2">
                     <span className="truncate">{item.label}</span>
                     <span className="tabular-nums text-gray-500">{item.count}</span>
@@ -180,18 +247,7 @@ export default function PromoterTable({
                 )) : <div className="text-gray-500">No rows on this page.</div>}
               </div>
             </div>
-            <div>
-              <div className="text-xs font-medium text-gray-500">Top samples</div>
-              <div className="mt-1 space-y-1 text-sm text-gray-700">
-                {topSamples.length > 0 ? topSamples.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between gap-2">
-                    <span className="truncate">{item.label}</span>
-                    <span className="tabular-nums text-gray-500">{item.count}</span>
-                  </div>
-                )) : <div className="text-gray-500">No rows on this page.</div>}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -203,12 +259,10 @@ export default function PromoterTable({
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-3 py-2 text-left font-medium text-gray-600 cursor-pointer select-none hover:bg-gray-100"
+                    className="px-3 py-2 text-left font-medium text-gray-600"
                     style={{ width: header.getSize() }}
-                    onClick={header.column.getToggleSortingHandler()}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
-                    {{ asc: ' \u2191', desc: ' \u2193' }[header.column.getIsSorted() as string] ?? ''}
                   </th>
                 ))}
               </tr>

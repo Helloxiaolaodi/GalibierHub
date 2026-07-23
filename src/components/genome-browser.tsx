@@ -29,12 +29,21 @@ const JBrowseViewer = dynamic(() => import('./jbrowse-viewer'), {
   ),
 });
 
+const REACHABILITY_TIMEOUT_MS = 3000;
+
 async function isReachable(url: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REACHABILITY_TIMEOUT_MS);
   try {
-    const response = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+    const response = await fetch(url, {
+      headers: { Range: 'bytes=0-0' },
+      signal: controller.signal,
+    });
     return response.ok;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -97,7 +106,24 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
   }, [allConfiguredTracks, availableTracks]);
 
   useEffect(() => {
+    if (!effectiveBase) {
+      setDataBase('');
+      setResolvedAssembly(defaultAssembly);
+      setAvailableTracks([]);
+      setProbe('missing-data');
+    }
+  }, [defaultAssembly, effectiveBase]);
+
+  useEffect(() => {
     let cancelled = false;
+
+    if (!effectiveBase) {
+      setProbe('missing-data');
+      return () => {
+        cancelled = true;
+      };
+    }
+
     setProbe('checking');
 
     (async () => {
@@ -155,7 +181,9 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
     const firstFai = assemblies[defaultAssembly].fastaIndex;
     const probeUrl = getStorageUrl(firstFai, effectiveBase || configuredBase);
     const accessHint =
-      storageMode === 'hf-proxy'
+      storageMode === 'unset'
+        ? 'No real genome storage base is configured. Replace the placeholder NEXT_PUBLIC_STORAGE_BASE_URL or NEXT_PUBLIC_R2_PUBLIC_URL value with a reachable public object-storage or HF proxy URL.'
+        : storageMode === 'hf-proxy'
         ? 'SeqEdge is using Hugging Face as the data source through your Cloudflare Worker proxy. Confirm that NEXT_PUBLIC_HF_PROXY_URL is deployed and that the configured reference files exist in the target dataset path.'
         : storageMode === 'hf-direct'
           ? 'SeqEdge is reading directly from Hugging Face. This is valid for storage, but browser-range access is more reliable through NEXT_PUBLIC_HF_PROXY_URL.'

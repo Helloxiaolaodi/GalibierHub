@@ -10,6 +10,13 @@ import PromoterDetail from '@/components/promoter-detail';
 import GenomeBrowser from '@/components/genome-browser';
 import UserGuide from '@/components/user-guide';
 
+type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
+type SummaryMode = 'overview' | 'sample' | 'chromosome';
+
+function buildPromoterLocus(promoter: Promoter) {
+  return `${promoter.chrom}:${Math.max(0, promoter.start - 2000)}-${promoter.end_pos + 2000}`;
+}
+
 const EMPTY_FILTERS: FiltersType = {
   chrom: '',
   start: '',
@@ -33,9 +40,24 @@ export default function HomePage() {
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState<number>(SiteConfig.pageSize);
   const [currentFilters, setCurrentFilters] = useState<FiltersType>(EMPTY_FILTERS);
+  const [sortMode, setSortMode] = useState<PromoterSortMode>('score_desc');
+  const [summaryMode, setSummaryMode] = useState<SummaryMode>('overview');
   const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome'>('overview');
   const [guideOpen, setGuideOpen] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
+
+  const configurationHints = useMemo(() => {
+    if (!dataError) return [] as string[];
+
+    const hints: string[] = [];
+    if (dataError.includes('Supabase is not configured')) {
+      hints.push('Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to real values in .env.local or your deployment environment.');
+    }
+    if (dataError.includes('Promoter queries require a real data source')) {
+      hints.push('Import real rows into genome_samples and predicted_promoters after running schema.sql.');
+    }
+    return hints;
+  }, [dataError]);
 
   useEffect(() => {
     fetch('/api/stats')
@@ -68,6 +90,7 @@ export default function HomePage() {
     if (filters.tissue) params.set('tissue', filters.tissue);
     if (filters.cohort) params.set('cohort', filters.cohort);
     if (filters.bmiClass) params.set('bmi_class', filters.bmiClass);
+    params.set('sort_by', sortMode);
     params.set('limit', String(nextPageSize));
     params.set('offset', String(nextPageIndex * nextPageSize));
 
@@ -92,7 +115,7 @@ export default function HomePage() {
         setDataError('Failed to load promoter records from the configured data source.');
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [sortMode]);
 
   useEffect(() => {
     fetchPromoters(currentFilters, pageIndex, pageSize);
@@ -110,8 +133,7 @@ export default function HomePage() {
 
   const handleRowClick = useCallback((promoter: Promoter) => {
     setSelectedPromoter(promoter);
-    const locus = `${promoter.chrom}:${Math.max(0, promoter.start - 2000).toLocaleString()}-${(promoter.end_pos + 2000).toLocaleString()}`;
-    setBrowserLocus(locus);
+    setBrowserLocus(buildPromoterLocus(promoter));
     setActiveTab('genome');
   }, []);
 
@@ -131,8 +153,18 @@ export default function HomePage() {
     if (currentFilters.tissue) items.push({ label: 'Tissue', value: currentFilters.tissue });
     if (currentFilters.cohort) items.push({ label: 'Cohort', value: currentFilters.cohort });
     if (currentFilters.bmiClass) items.push({ label: 'BMI class', value: currentFilters.bmiClass });
+    items.push({
+      label: 'Sort',
+      value: sortMode === 'score_desc'
+        ? 'Score high to low'
+        : sortMode === 'score_asc'
+          ? 'Score low to high'
+          : sortMode === 'chrom_start'
+            ? 'Chromosome + start'
+            : 'Sample ID',
+    });
     return items;
-  }, [currentFilters]);
+  }, [currentFilters, sortMode]);
 
   const pageSummary = useMemo(() => {
     const countTop = (values: string[]) => Object.entries(
@@ -146,6 +178,7 @@ export default function HomePage() {
       .map(([label, count]) => ({ label, count }));
 
     return {
+      visibleCount: promoters.length,
       topChromosomes: countTop(promoters.map((promoter) => promoter.chrom || 'Unknown')),
       topSamples: countTop(promoters.map((promoter) => promoter.sample_id || 'Unknown')),
     };
@@ -212,18 +245,27 @@ export default function HomePage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {dataError && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            {dataError}
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-2">
+            <div>{dataError}</div>
+            {configurationHints.length > 0 && (
+              <ul className="list-disc pl-5 text-xs text-amber-900 space-y-1">
+                {configurationHints.map((hint) => (
+                  <li key={hint}>{hint}</li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
         {activeTab === 'overview' && (
           <>
             <StatsChart stats={stats} />
             <SearchFilters onSearch={handleSearch} loading={loading} />
-            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} onPageChange={handlePageChange} onRowClick={(p) => {
+            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} visibleCount={pageSummary.visibleCount} sortMode={sortMode} summaryMode={summaryMode} onSortModeChange={(nextMode) => {
+                setSortMode(nextMode);
+                setPageIndex(0);
+              }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={(p) => {
                 setSelectedPromoter(p);
-                const locus = `${p.chrom}:${Math.max(0, p.start - 2000).toLocaleString()}-${(p.end_pos + 2000).toLocaleString()}`;
-                setBrowserLocus(locus);
+                setBrowserLocus(buildPromoterLocus(p));
               }}
             />
             <div className="border rounded-lg overflow-hidden">
@@ -241,7 +283,10 @@ export default function HomePage() {
         {activeTab === 'promoters' && (
           <>
             <SearchFilters onSearch={handleSearch} loading={loading} />
-            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} onPageChange={handlePageChange} onRowClick={handleRowClick} />
+            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} visibleCount={pageSummary.visibleCount} sortMode={sortMode} summaryMode={summaryMode} onSortModeChange={(nextMode) => {
+                setSortMode(nextMode);
+                setPageIndex(0);
+              }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick} />
           </>
         )}
 
@@ -262,6 +307,10 @@ export default function HomePage() {
       {selectedPromoter && (
         <PromoterDetail
           promoter={selectedPromoter}
+          onViewInBrowser={(promoter) => {
+            setBrowserLocus(buildPromoterLocus(promoter));
+            setActiveTab('genome');
+          }}
           onClose={() => setSelectedPromoter(null)}
         />
       )}

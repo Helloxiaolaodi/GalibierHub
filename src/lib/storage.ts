@@ -39,8 +39,12 @@ export const STORAGE_BASE_URL =
  *  guide in cloudflare-templates/hf-proxy/README.md. */
 export const HF_PROXY_BASE_URL = process.env.NEXT_PUBLIC_HF_PROXY_URL || '';
 
+function isPlaceholderStorageValue(value: string): boolean {
+  return !value || /your-(bucket|r2-bucket)|example\.com|<user>|<repo>/i.test(value);
+}
+
 export function getEffectiveStorageBaseUrl(baseUrl: string = STORAGE_BASE_URL): string {
-  if (!baseUrl) return '';
+  if (isPlaceholderStorageValue(baseUrl)) return '';
   return HF_PROXY_BASE_URL && isHuggingFaceUrl(baseUrl)
     ? rewriteHfBaseUrl(baseUrl, HF_PROXY_BASE_URL)
     : baseUrl;
@@ -51,7 +55,7 @@ export function getStorageAccessMode(baseUrl: string = STORAGE_BASE_URL):
   | 'hf-proxy'
   | 'hf-direct'
   | 'object-storage' {
-  if (!baseUrl) return 'unset';
+  if (isPlaceholderStorageValue(baseUrl)) return 'unset';
   if (HF_PROXY_BASE_URL && isHuggingFaceUrl(baseUrl)) return 'hf-proxy';
   if (isHuggingFaceUrl(baseUrl)) return 'hf-direct';
   return 'object-storage';
