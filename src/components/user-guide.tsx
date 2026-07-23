@@ -117,8 +117,9 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
           <section>
             <h3 className="mb-2 font-semibold text-gray-900">2. Promoters &amp; Features</h3>
             <ul className="space-y-2">
-              <li><span className="font-medium text-gray-900">Advanced Filtering:</span> Slice records by chromosome, coordinate range, gene symbol, minimum score, species, or sample ID.</li>
+              <li><span className="font-medium text-gray-900">Advanced Filtering:</span> Slice records by chromosome, coordinate range, gene symbol, minimum score, sample ID, species, tissue, cohort, or BMI class.</li>
               <li><span className="font-medium text-gray-900">Interactive Inspection:</span> Click any row to inspect sequence details, color-coded domains, and quick-copy utilities (FASTA / BED).</li>
+              <li><span className="font-medium text-gray-900">Large Result Navigation:</span> Switch between 20 / 50 / 100 rows per page, jump directly to a target page, and review active filters plus page-level chromosome and sample summaries.</li>
             </ul>
           </section>
 

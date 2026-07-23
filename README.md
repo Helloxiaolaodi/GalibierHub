@@ -129,6 +129,10 @@ Cloudflare Pages settings:
 
 SeqEdge uses end-to-end server-side pagination for promoter queries. The page sends `limit` and `offset` to `/api/promoters`, the API applies `range()` in Supabase, and the table runs in controlled manual pagination mode.
 
+The current table UX is designed for larger result sets rather than toy demos. Operators can switch page size between `20`, `50`, and `100`, jump directly to a target page, see the current visible range, and use first / previous / next / last navigation without losing the active filter context.
+
+To make long result sets easier to review, the table also exposes an active-filter summary plus a current-page summary of the most frequent chromosomes and sample IDs on the visible page.
+
 ### 4.2 Metadata filtering
 
 Sample-level filters such as species, tissue, cohort, and BMI are resolved through a two-step query path. The API first narrows `genome_samples`, then applies the matching `sample_id` list to `predicted_promoters`.
@@ -149,7 +153,13 @@ The in-app User Guide currently focuses on four sections:
 3. Genome Browser
 4. Data & Storage
 
+The Promoters & Features section now documents the full live filter surface: chromosome, coordinate range, gene symbol, minimum score, sample ID, species, tissue, cohort, and BMI class, together with large-result navigation guidance.
+
 Its final section lists the open-source components used by SeqEdge as references and acknowledgements.
+
+### 4.4 Genome Browser synchronization
+
+Selecting a promoter row updates the browser locus in place and keeps the existing JBrowse view state alive instead of recreating the viewer from the default locus on every click. This makes repeated promoter-to-browser comparison much faster when reviewing many records in sequence.
 
 ## 5. Customization
 
@@ -287,6 +297,7 @@ For local deployment, onboarding, or browser validation, publish a packaged test
   - `volvox-advanced` | GMOD / JBrowse public example-data ecosystem | [JBrowse 2 documentation](https://jbrowse.org/jb2/) and Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023.
 - Important boundary: this archive does not populate Supabase metadata tables. Uploading the files to object storage will not create records in `genome_samples`, `predicted_promoters`, or `variant_index`, so homepage statistics remain empty until real metadata is imported.
 - Setup: extract the archive, upload the contents to your preferred object storage, set `NEXT_PUBLIC_STORAGE_BASE_URL` to that public base, configure `NEXT_PUBLIC_REFERENCE_*` variables to the uploaded filenames, and import real metadata rows into Supabase if you want dashboard counts and searchable tables.
+- Companion metadata bundle: the same release workflow should also publish the CSV import bundle under `deploy-notes/test-data-final/test-csv/`, because object-storage files alone validate JBrowse but do not populate homepage or table content.
 
 For the metadata layer, SeqEdge now also ships a separate real public CSV bundle built from FANTOM5. This bundle is intended for direct import into Supabase so that the homepage metrics, promoter table, and sample detail views show real content rather than an empty state.
 
@@ -312,6 +323,7 @@ For the metadata layer, SeqEdge now also ships a separate real public CSV bundle
   - `genome_samples_count = 200`
   - `predicted_promoters_count = 24000`
   - `variant_index_count = 0`
+  - `/api/stats` score-distribution bins should sum to `24000`
 
 FANTOM5 reference:
 

@@ -45,6 +45,7 @@ interface JBrowseViewerProps {
 export default function JBrowseViewer({ locus, dataBase, assemblyName, assemblyData, tracks }: JBrowseViewerProps) {
   const buildUrl = useMemo(() => (path: string) => getStorageUrl(path, dataBase), [dataBase]);
   const lastNavLocus = useRef<string | null>(null);
+  const initialLocusRef = useRef(locus || assemblyData.defaultLocus || SiteConfig.jbrowse.defaultLocus);
 
   const viewState = useMemo(
     () =>
@@ -96,10 +97,10 @@ export default function JBrowseViewer({ locus, dataBase, assemblyName, assemblyD
             ...('displays' in track && track.displays ? { displays: [...track.displays] } : {}),
           };
         }),
-        location: locus || assemblyData.defaultLocus || SiteConfig.jbrowse.defaultLocus,
+        location: initialLocusRef.current,
         plugins: [PluginLinearGenomeView],
       }),
-    [assemblyData, assemblyName, buildUrl, locus, tracks],
+    [assemblyData, assemblyName, buildUrl, tracks],
   );
 
   useEffect(() => {

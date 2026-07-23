@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Promoter, DashboardStats } from '@/types/genome';
 import { SiteConfig } from '@/site-config';
 import SearchFilters, { type SearchFilters as FiltersType } from '@/components/search-filters';
@@ -115,6 +115,42 @@ export default function HomePage() {
     setActiveTab('genome');
   }, []);
 
+  const filterSummary = useMemo(() => {
+    const items: Array<{ label: string; value: string }> = [];
+    if (currentFilters.chrom) items.push({ label: 'Chromosome', value: currentFilters.chrom });
+    if (currentFilters.start || currentFilters.end_pos) {
+      items.push({
+        label: 'Coordinates',
+        value: `${currentFilters.start || '?'}-${currentFilters.end_pos || '?'}`,
+      });
+    }
+    if (currentFilters.geneSymbol) items.push({ label: 'Gene', value: currentFilters.geneSymbol });
+    if (currentFilters.minScore) items.push({ label: 'Min score', value: currentFilters.minScore });
+    if (currentFilters.sampleId) items.push({ label: 'Sample ID', value: currentFilters.sampleId });
+    if (currentFilters.species) items.push({ label: 'Species', value: currentFilters.species });
+    if (currentFilters.tissue) items.push({ label: 'Tissue', value: currentFilters.tissue });
+    if (currentFilters.cohort) items.push({ label: 'Cohort', value: currentFilters.cohort });
+    if (currentFilters.bmiClass) items.push({ label: 'BMI class', value: currentFilters.bmiClass });
+    return items;
+  }, [currentFilters]);
+
+  const pageSummary = useMemo(() => {
+    const countTop = (values: string[]) => Object.entries(
+      values.reduce<Record<string, number>>((acc, value) => {
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+      }, {}),
+    )
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, 5)
+      .map(([label, count]) => ({ label, count }));
+
+    return {
+      topChromosomes: countTop(promoters.map((promoter) => promoter.chrom || 'Unknown')),
+      topSamples: countTop(promoters.map((promoter) => promoter.sample_id || 'Unknown')),
+    };
+  }, [promoters]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-40">
@@ -184,7 +220,7 @@ export default function HomePage() {
           <>
             <StatsChart stats={stats} />
             <SearchFilters onSearch={handleSearch} loading={loading} />
-            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} onPageChange={handlePageChange} onRowClick={(p) => {
+            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} onPageChange={handlePageChange} onRowClick={(p) => {
                 setSelectedPromoter(p);
                 const locus = `${p.chrom}:${Math.max(0, p.start - 2000).toLocaleString()}-${(p.end_pos + 2000).toLocaleString()}`;
                 setBrowserLocus(locus);
@@ -205,7 +241,7 @@ export default function HomePage() {
         {activeTab === 'promoters' && (
           <>
             <SearchFilters onSearch={handleSearch} loading={loading} />
-            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} onPageChange={handlePageChange} onRowClick={handleRowClick} />
+            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} onPageChange={handlePageChange} onRowClick={handleRowClick} />
           </>
         )}
 

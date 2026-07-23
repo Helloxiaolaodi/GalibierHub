@@ -129,6 +129,10 @@ Cloudflare Pages 建议配置：
 
 SeqEdge 当前使用前后端打通的服务端分页。页面层将 `limit` 与 `offset` 传递给 `/api/promoters`，API 在 Supabase 中通过 `range()` 执行真实分页，表格组件使用受控分页模式展示结果。
 
+当前表格已经按“大结果集检索”场景优化，而不是只适用于少量演示记录。用户可以在 `20`、`50`、`100` 行之间切换 page size，直接跳转到指定页，同时查看当前可见区间，并通过 first / previous / next / last 完成连续翻页而不丢失当前筛选条件。
+
+为了让上万条记录更容易核对，表格区还会显示 Active filters 摘要，以及当前页中最常见 chromosome 和 sample ID 的统计摘要。
+
 ### 4.2 元数据筛选
 
 像 species、tissue、cohort、BMI 这类样本层条件，会先筛选 `genome_samples`，再把匹配到的 `sample_id` 列表应用到 `predicted_promoters`。
@@ -149,7 +153,13 @@ SeqEdge 当前使用前后端打通的服务端分页。页面层将 `limit` 与
 3. Genome Browser
 4. Data & Storage
 
+Promoters & Features 小节现在已经覆盖当前实际可用的筛选维度：chromosome、coordinate range、gene symbol、minimum score、sample ID、species、tissue、cohort 和 BMI class，同时补充了大结果集导航说明。
+
 末尾还列出了 SeqEdge 使用的开源组件出处与致谢信息。
+
+### 4.4 Genome Browser 联动
+
+现在从 Promoter 表格中连续点击不同记录时，浏览器会在现有 JBrowse 视图状态中直接跳转到新的 locus，而不会每次都重新回到默认初始位置再重建浏览器。这更适合连续核对多个 promoter 的真实使用场景。
 
 ## 5. 自定义配置
 
@@ -287,6 +297,7 @@ SeqEdge 当前只使用真实配置的数据源。如果对象存储或元数据
   - `volvox-advanced` | GMOD / JBrowse 公开示例数据生态 | [JBrowse 2 官方文档](https://jbrowse.org/jb2/) 以及 Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023.
 - 重要边界：该压缩包不会自动填充 Supabase 的元数据表。即使你已经把文件上传到对象存储，`genome_samples`、`predicted_promoters`、`variant_index` 仍然需要单独导入真实记录，否则首页统计和检索结果会保持为空。
 - 使用方式：解压后上传到你自己的对象存储，将 `NEXT_PUBLIC_STORAGE_BASE_URL` 设为对应公开基地址，更新相关 `NEXT_PUBLIC_REFERENCE_*` 环境变量，并在需要首页统计与检索结果时把真实元数据导入 Supabase。
+- 配套元数据包：同一套发布流程还应同时提供 `deploy-notes/test-data-final/test-csv/` 下的 CSV 导入包，因为对象存储文件只能验证 JBrowse 链路，不能自动填充首页统计和 Promoter 表格。
 
 对于元数据层，SeqEdge 现在还提供了一套基于 FANTOM5 公开数据整理的真实 CSV 导入包。这个数据包用于直接导入 Supabase，让首页统计卡片、Promoter 表格和 Sample 详情页显示真实内容，而不是空状态。
 
@@ -312,6 +323,7 @@ SeqEdge 当前只使用真实配置的数据源。如果对象存储或元数据
   - `genome_samples_count = 200`
   - `predicted_promoters_count = 24000`
   - `variant_index_count = 0`
+  - `/api/stats` 中 score distribution 各分箱的总和应为 `24000`
 
 FANTOM5 出处：
 
