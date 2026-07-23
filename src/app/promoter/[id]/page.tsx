@@ -4,21 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Promoter } from '@/types/genome';
 
-const DEMO_PROMOTERS: Record<string, Promoter> = {
-  'NC_045512.2_266_21555': {
-    id: '1', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 266, end_pos: 21555,
-    score: 0.98, strand: '+', gene_symbol: 'ORF1ab',
-    sequence: null,
-    created_at: '2025-01-15',
-  },
-  'NC_045512.2_21563_25384': {
-    id: '2', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 21563, end_pos: 25384,
-    score: 0.97, strand: '+', gene_symbol: 'S',
-    sequence: null,
-    created_at: '2025-01-16',
-  },
-};
-
 export default function PromoterDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState<string>('');
   const [promoter, setPromoter] = useState<Promoter | null>(null);
@@ -27,8 +12,14 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
   useEffect(() => {
     params.then((p) => {
       setId(p.id);
-      setPromoter(DEMO_PROMOTERS[p.id] || null);
-      setLoading(false);
+      fetch(`/api/promoters?limit=1&id=${encodeURIComponent(p.id)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          const match = data?.data?.find((item: Promoter) => item.id === p.id) ?? null;
+          setPromoter(match);
+        })
+        .catch(() => setPromoter(null))
+        .finally(() => setLoading(false));
     });
   }, [params]);
 

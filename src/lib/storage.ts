@@ -1,5 +1,5 @@
 // ============================================================
-// Storage URL resolver — storage-agnostic (R2 / Hugging Face / S3 / …)
+// Storage URL resolver - storage-agnostic (R2 / Hugging Face / S3)
 // ============================================================
 // SeqEdge never hard-codes a storage provider. Every genome file is addressed
 // by a URL that this helper resolves, following one simple rule:
@@ -14,15 +14,15 @@
 //        NEXT_PUBLIC_STORAGE_BASE_URL = "https://huggingface.co/datasets/<user>/<repo>/resolve/main"
 //
 //   2. Mixed-source hosting (advanced). Keep small files on R2 but park a
-//      50 GB+ CRAM on Hugging Face by storing its FULL https:// URL in Supabase.
+//      50 GB+ CRAM on Hugging Face by storing its full HTTPS URL in Supabase.
 //      getStorageUrl() detects the leading scheme and returns it untouched, so
 //      the file loads cross-origin with no extra config.
 //
-//   3. HF proxy mode (fixes 5-min lag). Deploy the proxy Worker from
+//   3. HF proxy mode (fixes slow remote loading). Deploy the proxy Worker from
 //      cloudflare-templates/hf-proxy/, set NEXT_PUBLIC_HF_PROXY_URL to its
 //      workers.dev address, and keep storing HF absolute URLs in Supabase.
 //      getStorageUrl() auto-rewrites huggingface.co URLs to go through the
-//      proxy, giving you the cost efficiency of HF storage with R2-level speed.
+//      proxy, giving you the cost efficiency of HF storage with much faster access.
 
 // Resolution order: the storage-agnostic name wins; the legacy R2 name is a
 // backward-compatible fallback so existing deployments keep working after they
@@ -34,28 +34,24 @@ export const STORAGE_BASE_URL =
 
 /** HF proxy Worker URL (optional). When set, any absolute huggingface.co
  *  Dataset URLs stored in Supabase are automatically rewritten to pass through
- *  this proxy Worker.  The proxy handles 302 redirects and CORS on the backend,
- *  presenting a clean S3-compatible endpoint to JBrowse.  See the deployment
+ *  this proxy Worker. The proxy handles redirects and CORS on the backend,
+ *  presenting a clean S3-compatible endpoint to JBrowse. See the deployment
  *  guide in cloudflare-templates/hf-proxy/README.md. */
-export const HF_PROXY_BASE_URL =
-  process.env.NEXT_PUBLIC_HF_PROXY_URL || '';
+export const HF_PROXY_BASE_URL = process.env.NEXT_PUBLIC_HF_PROXY_URL || '';
 
 /**
- * Resolve a stored file path to a fully-qualified, fetchable URL.
+ * Resolve a stored file path to a fully qualified, fetchable URL.
  *
- * @param path    Path stored in the database / config. May be a relative path
- *                ("tracks/chr1.bb") or an absolute URL ("https://…/chr1.cram").
+ * @param path    Path stored in the database or config. May be a relative path
+ *                ("tracks/chr1.bb") or an absolute URL ("https://host/chr1.cram").
  *
  *                When NEXT_PUBLIC_HF_PROXY_URL is configured, any absolute URL
  *                pointing to huggingface.co/datasets/.../resolve/main is
- *                automatically rewritten to pass through the proxy Worker that
- *                fixes HF's 302+Xet CORS chain (reducing load time from ~5 min
- *                to ~20 sec).
+ *                automatically rewritten to pass through the proxy Worker.
  *
  * @param baseUrl Optional base override. Defaults to STORAGE_BASE_URL. The
- *                genome browser passes the base it actually resolved (which may
- *                be the public demo dataset after a fallback), so callers stay
- *                consistent with what the reachability probe verified.
+ *                genome browser passes the base it actually resolved, so callers
+ *                stay consistent with what the reachability probe verified.
  * @returns The absolute URL, or '' when there is nothing to resolve.
  */
 export function getStorageUrl(
@@ -69,18 +65,16 @@ export function getStorageUrl(
       ? rewriteHfBaseUrl(baseUrl, HF_PROXY_BASE_URL)
       : baseUrl;
 
-  // Absolute URL — check for HF proxy rewriting
+  // Absolute URL - check for HF proxy rewriting.
   if (/^https?:\/\//i.test(path)) {
-    // When HF proxy is configured, rewrite huggingface.co Dataset URLs to
-    // pass through the proxy Worker (fixes 5-min CORS/Range/302 lag).
     if (HF_PROXY_BASE_URL && isHuggingFaceUrl(path)) {
       return rewriteHfUrl(path, HF_PROXY_BASE_URL);
     }
     return path;
   }
 
-  // Relative path — join with the base, normalising the slash at the seam so we
-  // never emit "…//…" (which some object stores treat as a distinct, missing key).
+  // Relative path - join with the base and normalize slashes so object storage
+  // keys remain stable.
   const cleanBase = resolvedBase.replace(/\/+$/, '');
   const cleanPath = path.replace(/^\/+/, '');
   return cleanBase ? `${cleanBase}/${cleanPath}` : cleanPath;
@@ -106,7 +100,7 @@ function isHuggingFaceUrl(url: string): boolean {
  */
 function rewriteHfUrl(hfUrl: string, proxyBase: string): string {
   const match = hfUrl.match(/\/resolve\/main\/([^?#]+)$/i);
-  if (!match) return hfUrl; // safety: pass through unchanged
+  if (!match) return hfUrl;
   const cleanBase = proxyBase.replace(/\/+$/, '');
   return `${cleanBase}/${match[1]}`;
 }

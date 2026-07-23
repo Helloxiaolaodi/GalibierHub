@@ -1,7 +1,7 @@
 // ============================================================
 // Site Configuration - Edit this file to customize your database
 // ============================================================
-// This is the SINGLE source of truth for all site-wide settings.
+// This is the single source of truth for all site-wide settings.
 // Other users who fork this template only need to edit this file
 // (plus .env.local and schema.sql) to create their own database site.
 
@@ -31,46 +31,7 @@ export const SiteConfig = {
       process.env.NEXT_PUBLIC_STORAGE_BASE_URL ||
       process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
       '',
-    demoBaseUrl: '/demo-data',
     assemblies: {
-      volvox: {
-        defaultLocus: 'ctgA:1-5000',
-        fasta: 'volvox.fa',
-        fastaIndex: 'volvox.fa.fai',
-        tracks: [
-          {
-            trackId: 'demo-genes',
-            name: 'Gene Annotations (GFF3)',
-            type: 'FeatureTrack',
-            adapter: {
-              type: 'Gff3TabixAdapter',
-              gffGzLocation: 'volvox.sort.gff3.gz',
-              index: { location: 'volvox.sort.gff3.gz.tbi', indexType: 'TBI' },
-            },
-            displays: [{ displayId: 'demo-genes-LinearBasicDisplay', type: 'LinearBasicDisplay' }],
-          },
-          {
-            trackId: 'demo-alignments',
-            name: 'Read Alignments (BAM)',
-            type: 'AlignmentsTrack',
-            adapter: {
-              type: 'BamAdapter',
-              bamLocation: 'volvox-sorted.bam',
-              index: { location: 'volvox-sorted.bam.bai', indexType: 'BAI' },
-            },
-          },
-          {
-            trackId: 'demo-bigbed',
-            name: 'BigBed Annotations',
-            type: 'FeatureTrack',
-            adapter: {
-              type: 'BigBedAdapter',
-              bigBedLocation: 'volvox.bb',
-            },
-            displays: [{ displayId: 'demo-bigbed-LinearBasicDisplay', type: 'LinearBasicDisplay' }],
-          },
-        ],
-      },
       'NC_045512.2': {
         defaultLocus: 'NC_045512.2:1-5000',
         fasta: 'scov2.fa',
@@ -101,16 +62,15 @@ export const SiteConfig = {
     },
   },
 
-
   // Chinese adult BMI classification (kg/m^2)
-  // 偏瘦 (<18.5) | 正常 (18.5-24.0) | 超重 (24.0-28.0) | 肥胖 (>=28.0)
+  // Underweight (<18.5) | Normal (18.5-24.0) | Overweight (24.0-28.0) | Obese (>=28.0)
   bmiBands: {
     underweight: [0, 18.5],
     normal: [18.5, 24.0],
     overweight: [24.0, 28.0],
     obese: [28.0, 100],
   },
-  chromosomes: ['NC_045512.2', 'ctgA'],
+  chromosomes: ['NC_045512.2'],
 
   pageSize: 20,
 

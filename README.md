@@ -74,7 +74,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 NEXT_PUBLIC_STORAGE_BASE_URL=https://your-bucket.your-account.r2.dev/test-data
 ```
 
-Legacy fallback remains supported:
+Legacy environment variable compatibility remains supported:
 
 ```bash
 NEXT_PUBLIC_R2_PUBLIC_URL=https://your-bucket.your-account.r2.dev/test-data
@@ -111,7 +111,7 @@ Cloudflare Pages settings:
 - preview command: `npm run preview:cf`
 - deploy command: `npm run deploy:cf`
 - output directory: `.open-next`
-- keep `public/demo-data` in the repository so the same-origin fallback remains available
+- configure a reachable real-data storage base for all genome assets
 
 ## 4. Current Application Behavior
 
@@ -197,27 +197,28 @@ Deployment procedure:
 - Open `/api/stats` and confirm it returns `200`.
 - Confirm the browser console is free of repeated storage or reference-data errors.
 
-### 7.2 Same-origin demo fallback checks
+### 7.2 Real genome storage checks
 
-These URLs must work from the deployed domain:
+The configured storage targets must be reachable for the deployed site:
 
-- `/demo-data/volvox.fa`
-- `/demo-data/volvox.fa.fai`
-- `/demo-data/scov2.fa`
-- `/demo-data/scov2.fa.fai`
+- the FASTA file declared in `src/site-config.ts`
+- the corresponding FASTA index (`.fai`)
+- any BAM / VCF / GFF3 track files configured for JBrowse
+- each corresponding index file (`.bai`, `.tbi`, `.csi`, `.fai`)
 
-If Cloudflare Pages returns `404`, verify:
+If Cloudflare Pages or Vercel shows an empty browser panel, verify:
 
 - build command is `npm run build:cf`
 - output directory is `.open-next`
-- `.open-next/_routes.json` excludes `/demo-data/*`
-- `.open-next/demo-data` contains the expected files
+- `NEXT_PUBLIC_STORAGE_BASE_URL` points to a public CORS-enabled origin
+- the configured paths in Supabase and `src/site-config.ts` match the deployed object keys exactly
 
 ### 7.3 Object storage checks
 
 - Confirm `NEXT_PUBLIC_STORAGE_BASE_URL` points to a CORS-enabled host.
 - If files live under a subfolder, include that subpath in the base URL.
 - For Hugging Face, confirm all public links use `resolve/main`.
+- If `NEXT_PUBLIC_HF_PROXY_URL` is enabled, confirm the Worker is deployed and reachable.
 - Validate range requests against at least one reference index and one alignment index.
 
 ## 8. Tech Stack
@@ -251,7 +252,7 @@ If Cloudflare Pages returns `404`, verify:
 
 ### 9.1 Default template demo data
 
-The repository ships a same-origin fallback demo bundle in `public/demo-data` so the browser remains usable even when external storage is temporarily unavailable or misconfigured.
+SeqEdge now uses only real configured data sources. If storage or metadata backends are unreachable, the UI shows an explicit empty or error state instead of rendering fallback records.
 
 ### 9.2 SARS-CoV-2 validation data
 

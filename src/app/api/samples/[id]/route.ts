@@ -1,21 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
-const DEMO_SAMPLES: Record<string, Record<string, unknown>> = {
-  'SCOV2-REF-001': {
-    sample_id: 'SCOV2-REF-001',
-    species: 'Severe acute respiratory syndrome coronavirus 2',
-    tissue: 'nasopharyngeal swab',
-    sequencing_platform: 'Illumina',
-    assembly_version: 'NC_045512.2',
-    coverage: 100.0,
-    cohort: 'Reference genome',
-    bmi: null,
-    age: null,
-    sex: null,
-  },
-};
-
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
@@ -23,9 +8,10 @@ export async function GET(
   const { id } = await context.params;
 
   if (!isSupabaseConfigured) {
-    const demo = DEMO_SAMPLES[id];
-    if (!demo) return NextResponse.json({ error: 'Sample not found' }, { status: 404 });
-    return NextResponse.json({ ...demo, _demo: true });
+    return NextResponse.json(
+      { error: 'Supabase is not configured. Sample metadata requires a real data source.' },
+      { status: 503 },
+    );
   }
 
   const sb = getSupabase();

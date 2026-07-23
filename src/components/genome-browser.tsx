@@ -11,7 +11,6 @@ interface GenomeBrowserProps {
 }
 
 type Probe = 'idle' | 'checking' | 'ready' | 'missing-data';
-type DataSource = 'configured' | 'packaged-demo' | 'public-demo';
 type AssemblyName = keyof typeof SiteConfig.jbrowse.assemblies;
 type DemoTrack = (typeof SiteConfig.jbrowse.assemblies)[AssemblyName]['tracks'][number];
 
@@ -26,8 +25,6 @@ interface AdapterWithFiles {
     indexType: string;
   };
 }
-
-const PUBLIC_JBROWSE_DEMO_BASE = 'https://jbrowse.org/code/jb2/main/demos/volvox';
 
 const JBrowseViewer = dynamic(() => import('./jbrowse-viewer'), {
   ssr: false,
@@ -84,7 +81,6 @@ async function getReachableTracks(baseUrl: string, tracks: readonly DemoTrack[])
 
 export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
   const configuredBase = SiteConfig.jbrowse.storageBaseUrl;
-  const demoBase = SiteConfig.jbrowse.demoBaseUrl;
   const assemblies = SiteConfig.jbrowse.assemblies;
   const defaultAssembly = SiteConfig.jbrowse.defaultAssembly;
 
@@ -95,8 +91,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
   }, [assemblies, defaultAssembly]);
 
   const [probe, setProbe] = useState<Probe>('idle');
-  const [dataBase, setDataBase] = useState(configuredBase || demoBase);
-  const [dataSource, setDataSource] = useState<DataSource>(configuredBase ? 'configured' : 'packaged-demo');
+  const [dataBase, setDataBase] = useState(configuredBase);
   const [resolvedAssembly, setResolvedAssembly] = useState<AssemblyName>(defaultAssembly);
   const [availableTracks, setAvailableTracks] = useState<DemoTrack[]>([]);
 
@@ -115,19 +110,12 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
     setProbe('checking');
 
     (async () => {
-      const candidateBases = [
-        { base: configuredBase, source: 'configured' as const },
-        { base: demoBase, source: 'packaged-demo' as const },
-        { base: PUBLIC_JBROWSE_DEMO_BASE, source: 'public-demo' as const },
-      ].filter(
-        (candidate, index, array) =>
-          Boolean(candidate.base) && array.findIndex((entry) => entry.base === candidate.base) === index,
-      );
+      const candidateBases = configuredBase ? [configuredBase] : [];
 
       for (const name of assemblyNames) {
         const assembly = assemblies[name];
 
-        for (const { base, source } of candidateBases) {
+        for (const base of candidateBases) {
           const fastaIndexUrl = buildStorageUrl(base, assembly.fastaIndex);
           if (!(await isReachable(fastaIndexUrl))) {
             continue;
@@ -139,7 +127,6 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
           }
 
           setDataBase(base);
-          setDataSource(source);
           setResolvedAssembly(name);
           setAvailableTracks(tracks);
           setProbe('ready');
@@ -148,8 +135,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
       }
 
       if (!cancelled) {
-        setDataBase(configuredBase || demoBase);
-        setDataSource(configuredBase ? 'configured' : 'packaged-demo');
+        setDataBase(configuredBase);
         setResolvedAssembly(defaultAssembly);
         setAvailableTracks([]);
         setProbe('missing-data');
@@ -159,7 +145,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
     return () => {
       cancelled = true;
     };
-  }, [assemblies, assemblyNames, configuredBase, defaultAssembly, demoBase]);
+  }, [assemblies, assemblyNames, configuredBase, defaultAssembly]);
 
   if (probe === 'checking' || probe === 'idle') {
     return (
@@ -184,13 +170,11 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
         <div className="p-6 text-center space-y-3">
           <p className="text-gray-600">
             The reference sequence index could not be reached at{' '}
-            <code className="bg-gray-100 px-1 rounded break-all">{dataBase}/{firstFai}</code>.
+            <code className="bg-gray-100 px-1 rounded break-all">{configuredBase || '[unset storage base]'}/{firstFai}</code>.
           </p>
           <p className="text-sm text-gray-500">
-            Your configured storage, the packaged same-origin dataset, and the public JBrowse demo dataset all failed to respond.
-            This is usually a network block or a missing CORS header rather than a missing file.
-            Try reloading, or point NEXT_PUBLIC_STORAGE_BASE_URL at a CORS-enabled object store
-            (Cloudflare R2, Hugging Face Datasets, S3, ...).
+            SeqEdge is configured to use only your real genome storage.
+            Set NEXT_PUBLIC_STORAGE_BASE_URL to a CORS-enabled object store and make sure the SARS-CoV-2 reference files are reachable.
           </p>
           <p className="text-xs text-gray-400">
             See <code className="bg-gray-100 px-1 rounded">docs/data-compression-guide.md</code> for the recommended formats.
@@ -202,24 +186,6 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
 
   return (
     <div className="space-y-2">
-      {dataSource === 'public-demo' && (
-        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5">
-          Showing{' '}
-          {resolvedAssembly !== defaultAssembly ? (
-            <span>
-              assembly <span className="font-semibold">{resolvedAssembly}</span> from the fallback dataset
-            </span>
-          ) : (
-            <span>
-              the public JBrowse <span className="font-semibold">demo</span> dataset
-            </span>
-          )}
-          .
-          {configuredBase
-            ? ' Your configured storage and the packaged local dataset were not sufficient, so the public fallback data source is shown.'
-            : ' Set NEXT_PUBLIC_STORAGE_BASE_URL to your own object storage to load your genome tracks.'}
-        </div>
-      )}
       {missingTrackNames.length > 0 && (
         <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-1.5">
           Optional tracks hidden because required files were not reachable: {missingTrackNames.join(', ')}.

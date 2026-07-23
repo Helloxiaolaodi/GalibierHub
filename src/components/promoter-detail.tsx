@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { SiteConfig } from '@/site-config';
 import type { Promoter, SampleMetadata } from '@/types/genome';
 
 interface PromoterDetailProps {
@@ -8,20 +9,30 @@ interface PromoterDetailProps {
   onClose: () => void;
 }
 
-// WHO adult BMI reference bands
-// Underweight <18.5 | Normal 18.5–24.9 | Overweight 25.0–29.9 | Obese >=30.0
+type SampleState = SampleMetadata | null | undefined;
+
 function bmiClass(bmi: number | null): { label: string; color: string } | null {
   if (bmi == null) return null;
-  if (bmi < 18.5) return { label: `Underweight · ${bmi.toFixed(1)}`, color: 'text-sky-700 bg-sky-50' };
-  if (bmi < 25)   return { label: `Normal · ${bmi.toFixed(1)}`,       color: 'text-emerald-700 bg-emerald-50' };
-  if (bmi < 30)   return { label: `Overweight · ${bmi.toFixed(1)}`,   color: 'text-amber-700 bg-amber-50' };
-  return           { label: `Obese · ${bmi.toFixed(1)}`,              color: 'text-rose-700 bg-rose-50' };
+
+  const { underweight, normal, overweight } = SiteConfig.bmiBands;
+
+  if (bmi < underweight[1]) {
+    return { label: `Underweight | ${bmi.toFixed(1)}`, color: 'text-sky-700 bg-sky-50' };
+  }
+  if (bmi < normal[1]) {
+    return { label: `Normal | ${bmi.toFixed(1)}`, color: 'text-emerald-700 bg-emerald-50' };
+  }
+  if (bmi < overweight[1]) {
+    return { label: `Overweight | ${bmi.toFixed(1)}`, color: 'text-amber-700 bg-amber-50' };
+  }
+
+  return { label: `Obese | ${bmi.toFixed(1)}`, color: 'text-rose-700 bg-rose-50' };
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border rounded-lg bg-white overflow-hidden">
-      <header className="bg-gray-50 border-b px-4 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+    <section className="overflow-hidden rounded-lg border bg-white">
+      <header className="border-b bg-gray-50 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-600">
         {title}
       </header>
       <div className="p-4">{children}</div>
@@ -29,23 +40,29 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-function KV({ label, children }: { label: string; children: React.ReactNode }) {
+function KV({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <div className="text-[11px] text-gray-500 uppercase tracking-wider">{label}</div>
-      <div className="font-mono text-sm text-gray-900 mt-0.5">{children}</div>
+      <div className="text-[11px] uppercase tracking-wider text-gray-500">{label}</div>
+      <div className="mt-0.5 font-mono text-sm text-gray-900">{children}</div>
     </div>
   );
 }
 
+function displayValue(value: string | number | null | undefined): string {
+  if (value == null || value === '') return 'N/A';
+  return String(value);
+}
+
 export default function PromoterDetail({ promoter, onClose }: PromoterDetailProps) {
-  const [sample, setSample] = useState<SampleMetadata | null>(null);
+  const [sample, setSample] = useState<SampleState>(undefined);
 
   useEffect(() => {
     if (!promoter) return;
-    setSample(null);
+
+    setSample(undefined);
     fetch(`/api/samples/${encodeURIComponent(promoter.sample_id)}`)
-      .then((r) => (r.ok ? r.json() : null))
+      .then((response) => (response.ok ? response.json() : null))
       .then((data) => setSample(data && !data.error ? data : null))
       .catch(() => setSample(null));
   }, [promoter]);
@@ -54,7 +71,7 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
 
   const strandColor = promoter.strand === '+' ? 'text-blue-600' : 'text-red-600';
   const length = promoter.end_pos - promoter.start;
-  const bmi = sample ? bmiClass(sample.bmi) : null;
+  const bmi = sample && sample !== null ? bmiClass(sample.bmi) : null;
 
   const handleCopyBed = () => {
     const bed = `${promoter.chrom}\t${promoter.start}\t${promoter.end_pos}\t${promoter.gene_symbol || 'NA'}\t${promoter.score}\t${promoter.strand}`;
@@ -74,31 +91,30 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-gray-50 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex items-center justify-between">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-gray-50 shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">
-              Promoter · {promoter.gene_symbol || 'unnamed'}
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5 font-mono">
+            <h2 className="text-lg font-bold text-gray-900">Promoter | {promoter.gene_symbol || 'unnamed'}</h2>
+            <p className="mt-0.5 font-mono text-xs text-gray-500">
               {promoter.chrom}:{promoter.start.toLocaleString()}-{promoter.end_pos.toLocaleString()} ({promoter.strand})
             </p>
           </div>
-          <button type="button" 
+          <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+            className="rounded-lg p-1.5 transition-colors hover:bg-gray-100"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
-          {/* Card 1 — Genomic coordinates */}
+        <div className="space-y-4 p-5">
+          {/* Card 1 - Genomic coordinates */}
           <Card title="Genomic coordinates">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <KV label="Chromosome">{promoter.chrom}</KV>
               <KV label="Start">{promoter.start.toLocaleString()}</KV>
               <KV label="End">{promoter.end_pos.toLocaleString()}</KV>
@@ -106,18 +122,17 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
               <KV label="Strand">
                 <span className={`font-bold ${strandColor}`}>{promoter.strand}</span>
               </KV>
-              <KV label="Gene">{promoter.gene_symbol || '—'}</KV>
+              <KV label="Gene">{displayValue(promoter.gene_symbol)}</KV>
               <div className="col-span-2">
-                <div className="text-[11px] text-gray-500 uppercase tracking-wider">Prediction score</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                <div className="text-[11px] uppercase tracking-wider text-gray-500">Prediction score</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-200">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
                         width: `${promoter.score * 100}%`,
                         backgroundColor:
-                          promoter.score > 0.85 ? '#22c55e' :
-                          promoter.score > 0.7  ? '#eab308' : '#ef4444',
+                          promoter.score > 0.85 ? '#22c55e' : promoter.score > 0.7 ? '#eab308' : '#ef4444',
                       }}
                     />
                   </div>
@@ -127,26 +142,27 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
             </div>
           </Card>
 
-          {/* Card 2 — Sequence & motif */}
+          {/* Card 2 - Sequence and motif */}
           <Card title="Sequence & motif">
             {promoter.sequence ? (
               <div>
-                <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1.5">
+                <div className="mb-1.5 text-[11px] uppercase tracking-wider text-gray-500">
                   Promoter sequence ({promoter.sequence.length} nt)
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 font-mono text-xs overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg bg-gray-50 p-3 font-mono text-xs">
                   <div className="flex flex-wrap gap-0">
-                    {promoter.sequence.split('').map((base, i) => {
+                    {promoter.sequence.split('').map((base, index) => {
                       const colors: Record<string, string> = {
                         A: 'bg-green-100 text-green-700',
                         T: 'bg-red-100 text-red-700',
                         G: 'bg-yellow-100 text-yellow-700',
                         C: 'bg-blue-100 text-blue-700',
                       };
+
                       return (
                         <span
-                          key={i}
-                          className={`inline-flex w-3.5 h-5 items-center justify-center rounded-sm ${colors[base.toUpperCase()] || 'bg-gray-100 text-gray-700'}`}
+                          key={index}
+                          className={`inline-flex h-5 w-3.5 items-center justify-center rounded-sm ${colors[base.toUpperCase()] || 'bg-gray-100 text-gray-700'}`}
                         >
                           {base.toUpperCase()}
                         </span>
@@ -156,71 +172,73 @@ export default function PromoterDetail({ promoter, onClose }: PromoterDetailProp
                 </div>
               </div>
             ) : (
-              <div className="text-sm text-gray-500 italic">
-                Sequence not stored for this promoter. Fetch on demand from the FASTA in R2.
+              <div className="text-sm italic text-gray-500">
+                Sequence not stored for this promoter. Retrieve it from the configured FASTA source when needed.
               </div>
             )}
           </Card>
 
-          {/* Card 3 — Sample phenotype */}
+          {/* Card 3 - Sample phenotype */}
           <Card title="Sample phenotype">
-            {sample === null ? (
-              <div className="text-sm text-gray-400">Loading sample metadata…</div>
+            {sample === undefined ? (
+              <div className="text-sm text-gray-400">Loading sample metadata...</div>
+            ) : sample === null ? (
+              <div className="text-sm text-gray-500">No sample metadata is available for this promoter.</div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <KV label="Sample ID">{sample.sample_id}</KV>
                 <KV label="Cohort">
                   {sample.cohort ? (
-                    <span className="inline-block px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-xs font-semibold">
+                    <span className="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
                       {sample.cohort}
                     </span>
                   ) : (
-                    '—'
+                    'N/A'
                   )}
                 </KV>
-                <KV label="Species">{sample.species || '—'}</KV>
-                <KV label="Tissue">{sample.tissue || '—'}</KV>
-                <KV label="Sequencing">{sample.sequencing_platform || '—'}</KV>
-                <KV label="Assembly">{sample.assembly_version || '—'}</KV>
-                <KV label="Coverage">
-                  {sample.coverage != null ? `${sample.coverage.toFixed(1)}×` : '—'}
-                </KV>
+                <KV label="Species">{displayValue(sample.species)}</KV>
+                <KV label="Tissue">{displayValue(sample.tissue)}</KV>
+                <KV label="Sequencing">{displayValue(sample.sequencing_platform)}</KV>
+                <KV label="Assembly">{displayValue(sample.assembly_version)}</KV>
+                <KV label="Coverage">{sample.coverage != null ? `${sample.coverage.toFixed(1)}x` : 'N/A'}</KV>
                 <KV label="Age / Sex">
-                  {sample.age != null ? `${sample.age} y` : '—'}
-                  {sample.sex ? ` · ${sample.sex}` : ''}
+                  {sample.age != null ? `${sample.age} y` : 'N/A'}
+                  {sample.sex ? ` | ${sample.sex}` : ''}
                 </KV>
                 <div>
-                  <div className="text-[11px] text-gray-500 uppercase tracking-wider">BMI class</div>
+                  <div className="text-[11px] uppercase tracking-wider text-gray-500">BMI class</div>
                   {bmi ? (
-                    <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-xs font-semibold ${bmi.color}`}>
+                    <span className={`mt-0.5 inline-block rounded px-2 py-0.5 text-xs font-semibold ${bmi.color}`}>
                       {bmi.label}
                     </span>
                   ) : (
-                    <span className="text-sm text-gray-400">—</span>
+                    <span className="text-sm text-gray-400">N/A</span>
                   )}
                 </div>
               </div>
             )}
           </Card>
 
-          {/* Action buttons */}
           <div className="flex flex-wrap gap-2 pt-1">
-            <button type="button" 
+            <button
+              type="button"
               onClick={handleViewInBrowser}
-              className="flex-1 min-w-[10rem] px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+              className="min-w-[10rem] flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             >
               View in Genome Browser
             </button>
-            <button type="button" 
+            <button
+              type="button"
               onClick={handleCopyBed}
-              className="flex-1 min-w-[10rem] px-4 py-2 border border-gray-300 hover:bg-gray-50 bg-white rounded-lg text-sm font-medium transition-colors"
+              className="min-w-[10rem] flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-50"
             >
               Copy as BED
             </button>
             {promoter.sequence && (
-              <button type="button" 
+              <button
+                type="button"
                 onClick={handleCopyFasta}
-                className="flex-1 min-w-[10rem] px-4 py-2 border border-gray-300 hover:bg-gray-50 bg-white rounded-lg text-sm font-medium transition-colors"
+                className="min-w-[10rem] flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-50"
               >
                 Copy FASTA
               </button>

@@ -111,7 +111,7 @@ Cloudflare Pages 建议配置：
 - 预览命令: `npm run preview:cf`
 - 部署命令: `npm run deploy:cf`
 - 输出目录: `.open-next`
-- 保留 `public/demo-data`，确保同源演示回退在生产环境中可用
+- 为全部基因组文件配置可访问的真实数据存储地址
 
 ## 4. 当前实现状态
 
@@ -197,27 +197,28 @@ SeqEdge 支持四种存储模式，无需改业务代码：
 - 打开 `/api/stats`，确认返回 `200`。
 - 确认浏览器控制台没有反复出现对象存储或参考数据错误。
 
-### 7.2 同源 demo 回退检查
+### 7.2 真实基因组存储检查
 
-以下路径必须能在部署域名下直接访问：
+已配置的真实数据存储目标必须可被部署站点访问：
 
-- `/demo-data/volvox.fa`
-- `/demo-data/volvox.fa.fai`
-- `/demo-data/scov2.fa`
-- `/demo-data/scov2.fa.fai`
+- `src/site-config.ts` 中声明的 FASTA 文件
+- 对应的 FASTA 索引文件（`.fai`）
+- JBrowse 配置中引用的 BAM / VCF / GFF3 等轨道文件
+- 上述轨道对应的索引文件（`.bai`、`.tbi`、`.csi`、`.fai`）
 
-若 Cloudflare Pages 返回 `404`，重点检查：
+若 Cloudflare Pages 或 Vercel 中的浏览器面板为空，重点检查：
 
 - 构建命令是否为 `npm run build:cf`
 - 输出目录是否为 `.open-next`
-- `.open-next/_routes.json` 是否排除了 `/demo-data/*`
-- `.open-next/demo-data` 是否包含预期文件
+- `NEXT_PUBLIC_STORAGE_BASE_URL` 是否指向支持 CORS 的公开地址
+- Supabase 与 `src/site-config.ts` 中配置的路径是否与真实对象键完全一致
 
 ### 7.3 对象存储检查
 
 - 确认 `NEXT_PUBLIC_STORAGE_BASE_URL` 指向支持 CORS 的地址。
 - 如果文件位于子目录下，确认基址已包含该子路径。
 - 若使用 Hugging Face，确认公开链接全部为 `resolve/main`。
+- 若启用了 `NEXT_PUBLIC_HF_PROXY_URL`，确认对应 Worker 已部署且可访问。
 - 至少验证一个参考序列索引和一个比对索引的 Range 请求。
 
 ## 8. 技术栈
@@ -251,7 +252,7 @@ SeqEdge 支持四种存储模式，无需改业务代码：
 
 ### 9.1 模板默认演示数据
 
-仓库内置了 `public/demo-data` 这一套同源回退演示数据，使模板在外部对象存储暂时不可用或配置错误时仍可继续展示浏览器。
+SeqEdge 当前只使用真实配置的数据源。若对象存储或元数据后端不可达，界面会明确显示空状态或错误提示，而不会再展示回退记录。
 
 ### 9.2 SARS-CoV-2 验证数据
 

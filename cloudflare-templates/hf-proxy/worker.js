@@ -1,11 +1,11 @@
 // SeqEdge HF Proxy Worker
 // ============================================================
 // Bridges Hugging Face Datasets to JBrowse 2 by fixing CORS,
-// Range headers, and 302 redirect chains that make HF-backed
-// genome browsers take 5 minutes to load instead of 10 seconds.
+// Range headers, and redirect chains that make HF-backed
+// genome browsers load slowly.
 //
 // Deploy as a standalone Cloudflare Worker, then point
-// NEXT_PUBLIC_STORAGE_BASE_URL (or NEXT_PUBLIC_HF_PROXY_URL)
+// NEXT_PUBLIC_STORAGE_BASE_URL or NEXT_PUBLIC_HF_PROXY_URL
 // at the resulting *.workers.dev address.
 
 const INDEX_FILE_PATTERN = /\.(bai|tbi|csi|fai|crai|gzi)$/i;
@@ -26,7 +26,7 @@ export default {
 
     // ---- CORS preflight (OPTIONS) ---------------------------------
     // JBrowse 2 sends OPTIONS before cross-origin Range GET.
-    // HF's 302→Xet chain often fails preflight.  We answer it here
+    // HF redirect chains often fail preflight. We answer it here
     // so the browser never sees a cross-origin redirect.
     if (request.method === 'OPTIONS') {
       return new Response(null, {
@@ -52,7 +52,6 @@ export default {
         method: request.method,
         headers: fetchHeaders,
         redirect: 'follow',
-        // ^^^ handles huggingface.co→xethub.hf.co 302 internally
       });
     } catch (err) {
       return new Response(`Upstream fetch failed: ${err.message}`, {
@@ -64,20 +63,20 @@ export default {
     // ---- Build corrected response ---------------------------------
     const responseHeaders = new Headers(upstreamResponse.headers);
 
-    // CORS: allow any SeqEdge frontend to read these files
+    // CORS: allow any SeqEdge frontend to read these files.
     responseHeaders.set('Access-Control-Allow-Origin', '*');
     responseHeaders.set(
       'Access-Control-Expose-Headers',
       'Content-Range, Accept-Ranges, Content-Length, Content-Type, Content-Encoding, ETag, Last-Modified',
     );
 
-    // Signal Range support (required by JBrowse for partial reads)
+    // Signal Range support required by JBrowse for partial reads.
     if (!responseHeaders.has('Accept-Ranges')) {
       responseHeaders.set('Accept-Ranges', 'bytes');
     }
 
     // Edge caching: index files get 24 h, data files 1 h.
-    // Only apply to full (200) responses — caching 206 Partial
+    // Only apply to full (200) responses because caching 206 Partial
     // Content responses can confuse the CDN for Range requests.
     if (upstreamResponse.status === 200) {
       const filename = cleanPath.split('/').pop() || '';

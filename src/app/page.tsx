@@ -10,42 +10,6 @@ import PromoterDetail from '@/components/promoter-detail';
 import GenomeBrowser from '@/components/genome-browser';
 import UserGuide from '@/components/user-guide';
 
-// Fallback demo data - used only when Supabase is not yet connected
-const DEMO_PROMOTERS: Promoter[] = [
-  { id: '1', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 266, end_pos: 21555, score: 0.98, strand: '+', gene_symbol: 'ORF1ab', sequence: null, created_at: '2025-01-15' },
-  { id: '2', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 21563, end_pos: 25384, score: 0.97, strand: '+', gene_symbol: 'S', sequence: null, created_at: '2025-01-15' },
-  { id: '3', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 25393, end_pos: 26220, score: 0.9, strand: '+', gene_symbol: 'ORF3a', sequence: null, created_at: '2025-01-16' },
-  { id: '4', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 26245, end_pos: 26472, score: 0.84, strand: '+', gene_symbol: 'E', sequence: null, created_at: '2025-01-16' },
-  { id: '5', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 26523, end_pos: 27191, score: 0.92, strand: '+', gene_symbol: 'M', sequence: null, created_at: '2025-01-17' },
-  { id: '6', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27202, end_pos: 27387, score: 0.76, strand: '+', gene_symbol: 'ORF6', sequence: null, created_at: '2025-01-17' },
-  { id: '7', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27394, end_pos: 27759, score: 0.82, strand: '+', gene_symbol: 'ORF7a', sequence: null, created_at: '2025-01-18' },
-  { id: '8', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27756, end_pos: 27887, score: 0.71, strand: '+', gene_symbol: 'ORF7b', sequence: null, created_at: '2025-01-18' },
-  { id: '9', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27894, end_pos: 28259, score: 0.8, strand: '+', gene_symbol: 'ORF8', sequence: null, created_at: '2025-01-19' },
-  { id: '10', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 28274, end_pos: 29533, score: 0.95, strand: '+', gene_symbol: 'N', sequence: null, created_at: '2025-01-19' },
-  { id: '11', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 29558, end_pos: 29674, score: 0.68, strand: '+', gene_symbol: 'ORF10', sequence: null, created_at: '2025-01-20' },
-];
-
-const DEMO_STATS: DashboardStats = {
-  total_samples: 1,
-  total_promoters: 11,
-  total_variants: 0,
-  species_distribution: {
-    'Severe acute respiratory syndrome coronavirus 2': 1,
-  },
-  score_distribution: [
-    { range: '0.0-0.1', count: 0 },
-    { range: '0.1-0.2', count: 0 },
-    { range: '0.2-0.3', count: 0 },
-    { range: '0.3-0.4', count: 0 },
-    { range: '0.4-0.5', count: 0 },
-    { range: '0.5-0.6', count: 0 },
-    { range: '0.6-0.7', count: 1 },
-    { range: '0.7-0.8', count: 3 },
-    { range: '0.8-0.9', count: 3 },
-    { range: '0.9-1.0', count: 4 },
-  ],
-};
-
 const EMPTY_FILTERS: FiltersType = {
   chrom: '',
   start: '',
@@ -60,25 +24,35 @@ const EMPTY_FILTERS: FiltersType = {
 };
 
 export default function HomePage() {
-  const [promoters, setPromoters] = useState<Promoter[]>(DEMO_PROMOTERS);
+  const [promoters, setPromoters] = useState<Promoter[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [selectedPromoter, setSelectedPromoter] = useState<Promoter | null>(null);
-  const [browserLocus, setBrowserLocus] = useState('NC_045512.2:21,563-25,384');
+  const [browserLocus, setBrowserLocus] = useState<string>(SiteConfig.jbrowse.defaultLocus);
   const [loading, setLoading] = useState(false);
-  const [totalPromoters, setTotalPromoters] = useState(DEMO_PROMOTERS.length);
+  const [totalPromoters, setTotalPromoters] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState<number>(SiteConfig.pageSize);
   const [currentFilters, setCurrentFilters] = useState<FiltersType>(EMPTY_FILTERS);
   const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome'>('overview');
   const [guideOpen, setGuideOpen] = useState(false);
+  const [dataError, setDataError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/stats')
       .then((res) => res.json())
       .then((data) => {
-        setStats(data && !data.error ? data : DEMO_STATS);
+        if (data && !data.error) {
+          setStats(data);
+          setDataError(null);
+          return;
+        }
+        setStats(null);
+        setDataError(data?.error || 'Failed to load dashboard statistics from the configured data source.');
       })
-      .catch(() => setStats(DEMO_STATS));
+      .catch(() => {
+        setStats(null);
+        setDataError('Failed to load dashboard statistics from the configured data source.');
+      });
   }, []);
 
   const fetchPromoters = useCallback((filters: FiltersType, nextPageIndex: number, nextPageSize: number) => {
@@ -105,19 +79,17 @@ export default function HomePage() {
           if (typeof data.total === 'number') {
             setTotalPromoters(data.total);
           }
+          setDataError(null);
+          return;
         }
+        setPromoters([]);
+        setTotalPromoters(0);
+        setDataError(data?.error || 'Failed to load promoter records from the configured data source.');
       })
       .catch(() => {
-        let filtered = DEMO_PROMOTERS;
-        if (filters.chrom) filtered = filtered.filter((p) => p.chrom === filters.chrom);
-        if (filters.geneSymbol) filtered = filtered.filter((p) => p.gene_symbol?.toLowerCase().includes(filters.geneSymbol.toLowerCase()));
-        if (filters.minScore) filtered = filtered.filter((p) => p.score >= Number.parseFloat(filters.minScore));
-        if (filters.start) filtered = filtered.filter((p) => p.start >= Number.parseInt(filters.start));
-        if (filters.end_pos) filtered = filtered.filter((p) => p.end_pos <= Number.parseInt(filters.end_pos));
-        if (filters.sampleId) filtered = filtered.filter((p) => p.sample_id.toLowerCase().includes(filters.sampleId.toLowerCase()));
-        const startOffset = nextPageIndex * nextPageSize;
-        setTotalPromoters(filtered.length);
-        setPromoters(filtered.slice(startOffset, startOffset + nextPageSize));
+        setPromoters([]);
+        setTotalPromoters(0);
+        setDataError('Failed to load promoter records from the configured data source.');
       })
       .finally(() => setLoading(false));
   }, []);
@@ -203,6 +175,11 @@ export default function HomePage() {
       <UserGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {dataError && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {dataError}
+          </div>
+        )}
         {activeTab === 'overview' && (
           <>
             <StatsChart stats={stats} />

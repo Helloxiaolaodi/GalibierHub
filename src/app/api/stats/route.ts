@@ -3,7 +3,10 @@ import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
 export async function GET() {
   if (!isSupabaseConfigured) {
-    return NextResponse.json(DEMO_STATS);
+    return NextResponse.json(
+      { error: 'Supabase is not configured. Dashboard statistics require a real data source.' },
+      { status: 503 },
+    );
   }
 
   const sb = getSupabase();
@@ -59,24 +62,3 @@ export async function GET() {
     score_distribution: scoreDistribution,
   });
 }
-
-const DEMO_STATS = {
-  total_samples: 1,
-  total_promoters: 11,
-  total_variants: 0,
-  species_distribution: {
-    'Severe acute respiratory syndrome coronavirus 2': 1,
-  } as Record<string, number>,
-  score_distribution: [
-    { range: '0.0-0.1', count: 0 },
-    { range: '0.1-0.2', count: 0 },
-    { range: '0.2-0.3', count: 0 },
-    { range: '0.3-0.4', count: 0 },
-    { range: '0.4-0.5', count: 0 },
-    { range: '0.5-0.6', count: 0 },
-    { range: '0.6-0.7', count: 1 },
-    { range: '0.7-0.8', count: 3 },
-    { range: '0.8-0.9', count: 3 },
-    { range: '0.9-1.0', count: 4 },
-  ],
-};

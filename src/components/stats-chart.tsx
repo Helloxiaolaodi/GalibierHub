@@ -9,7 +9,7 @@ interface StatsChartProps {
 }
 
 export default function StatsChart({ stats, loading }: StatsChartProps) {
-  if (loading || !stats) {
+  if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="border rounded-lg p-4 h-72 flex items-center justify-center text-gray-400">
@@ -17,6 +17,19 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
         </div>
         <div className="border rounded-lg p-4 h-72 flex items-center justify-center text-gray-400">
           Loading distribution...
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="border rounded-lg p-4 h-72 flex items-center justify-center text-center text-gray-500">
+          No summary statistics are available from the configured data source.
+        </div>
+        <div className="border rounded-lg p-4 h-72 flex items-center justify-center text-center text-gray-500">
+          Connect a reachable real dataset to render species and score distributions.
         </div>
       </div>
     );
