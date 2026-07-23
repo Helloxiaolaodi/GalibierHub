@@ -288,6 +288,55 @@ SeqEdge 当前只使用真实配置的数据源。如果对象存储或元数据
 - 重要边界：该压缩包不会自动填充 Supabase 的元数据表。即使你已经把文件上传到对象存储，`genome_samples`、`predicted_promoters`、`variant_index` 仍然需要单独导入真实记录，否则首页统计和检索结果会保持为空。
 - 使用方式：解压后上传到你自己的对象存储，将 `NEXT_PUBLIC_STORAGE_BASE_URL` 设为对应公开基地址，更新相关 `NEXT_PUBLIC_REFERENCE_*` 环境变量，并在需要首页统计与检索结果时把真实元数据导入 Supabase。
 
+对于元数据层，SeqEdge 现在还提供了一套基于 FANTOM5 公开数据整理的真实 CSV 导入包。这个数据包用于直接导入 Supabase，让首页统计卡片、Promoter 表格和 Sample 详情页显示真实内容，而不是空状态。
+
+- 建议存放位置：可将这些 CSV 与发布附件一起整理，例如放在 `deploy-notes/test-data-final/test-csv/`，必要时与主测试压缩包一并提供。
+- 直接导入文件：
+  - `genome_samples.csv`：`200` 个真实的人类 primary cell 样本，字段已对齐当前 `genome_samples` 表结构。
+  - `predicted_promoters.csv`：`24000` 条真实 promoter 记录，字段已对齐当前 `predicted_promoters` 表结构。
+- 仅用于溯源的文件：
+  - `predicted_promoters_with_source.csv`：与上述 promoter 子集相同，但额外保留 `raw_count` 和 `source_peak_id`。该文件适合做溯源审计或后续扩展，不应直接导入当前生产用的 `predicted_promoters` 表，除非先扩展对应字段。
+- 数据来源网址：
+  - 样本元数据：`https://fantom.gsc.riken.jp/5/datafiles/latest/basic/human.primary_cell.hCAGE/00_human.primary_cell.hCAGE.hg19.assay_sdrf.txt`
+  - promoter 矩阵：`https://fantom.gsc.riken.jp/5/datafiles/latest/extra/CAGE_peaks/hg19.cage_peak_phase1and2combined_counts_ann.osc.txt.gz`
+- 真实数据整理说明：
+  - 当前子集保留了 `200` 个真实样本，并为每个样本保留评分最高的 `120` 条 promoter；
+  - `score` 由原始 FANTOM5 计数经过对数归一化后映射到 SeqEdge 需要的 `0-1` 区间；
+  - `total_variants` 固定为 `0`，因为这套最小公开数据包不包含变异元数据；
+  - `sequence` 与 `motif_sequence` 为空，因为源文件本身不提供这些字段。
+- 建议导入顺序：
+  1. 先清空 `predicted_promoters`、`genome_samples`、`variant_index` 中的旧记录；
+  2. 将 `genome_samples.csv` 导入 `genome_samples`；
+  3. 将 `predicted_promoters.csv` 导入 `predicted_promoters`。
+- 导入后的基线结果：
+  - `genome_samples_count = 200`
+  - `predicted_promoters_count = 24000`
+  - `variant_index_count = 0`
+
+FANTOM5 出处：
+
+- Lizio M, Harshbarger J, Shimoji H, et al. *Gateways to the FANTOM5 promoter level mammalian expression atlas*. Genome Biology. 2015;16:22.
+- FANTOM5 数据门户：`https://fantom.gsc.riken.jp/5/`
+
+本次真实元数据包的发布说明可写成：
+
+- 建议压缩包名称：`seqedge-test-data-20260724.zip`
+- 元数据 CSV 位置：`deploy-notes/test-data-final/test-csv/`
+- 本次附带的导入文件：
+  - `genome_samples.csv`
+  - `predicted_promoters.csv`
+  - `predicted_promoters_with_source.csv`，仅用于溯源保留
+- 面向维护者的导入步骤：
+  1. 执行 `truncate table predicted_promoters restart identity cascade;`
+  2. 执行 `truncate table genome_samples restart identity cascade;`
+  3. 执行 `truncate table variant_index restart identity cascade;`
+  4. 将 `genome_samples.csv` 导入 `public.genome_samples`
+  5. 将 `predicted_promoters.csv` 导入 `public.predicted_promoters`
+  6. 不要把 `predicted_promoters_with_source.csv` 直接导入当前生产表，除非先扩展表结构
+- 导入后的验证目标：
+  - `/api/stats` 应返回 `total_samples = 200`、`total_promoters = 24000`、`total_variants = 0`
+  - 首页 score distribution 图表的各分箱总和应与 promoter 总数一致，而不是只反映被截断的子集
+
 GitHub Releases 适合提供整包测试数据下载；正式站点的在线浏览仍应继续使用支持 CORS 和 Range 请求的公开对象存储。更稳妥的优先级是 `HF 主存储 -> Worker 主访问 -> 可选 R2 镜像`。
 
 ## 10. 许可证

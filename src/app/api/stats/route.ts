@@ -2,6 +2,19 @@ import { NextResponse } from 'next/server';
 import { EXCLUDED_SAMPLE_IDS, EXCLUDED_SAMPLE_IDS_FILTER } from '@/lib/sample-exclusions';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
+const SCORE_BINS = [
+  { range: '0.0-0.1', min: 0, max: 0.1 },
+  { range: '0.1-0.2', min: 0.1, max: 0.2 },
+  { range: '0.2-0.3', min: 0.2, max: 0.3 },
+  { range: '0.3-0.4', min: 0.3, max: 0.4 },
+  { range: '0.4-0.5', min: 0.4, max: 0.5 },
+  { range: '0.5-0.6', min: 0.5, max: 0.6 },
+  { range: '0.6-0.7', min: 0.6, max: 0.7 },
+  { range: '0.7-0.8', min: 0.7, max: 0.8 },
+  { range: '0.8-0.9', min: 0.8, max: 0.9 },
+  { range: '0.9-1.0', min: 0.9, max: 1.0 },
+] as const;
+
 export async function GET() {
   if (!isSupabaseConfigured) {
     return NextResponse.json(
@@ -47,10 +60,26 @@ export async function GET() {
     }
   }
 
-  const { data: scoreData, error: scoreDataError } = await getSupabase()
-    .from('predicted_promoters')
-    .select('score, sample_id')
-    .not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER);
+  const scoreDistributionResults = await Promise.all(
+    SCORE_BINS.map(async (bin, index) => {
+      let query = sb
+        .from('predicted_promoters')
+        .select('*', { count: 'exact', head: true })
+        .not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER)
+        .gte('score', bin.min);
+
+      query = index === SCORE_BINS.length - 1 ? query.lte('score', bin.max) : query.lt('score', bin.max);
+
+      const { count, error } = await query;
+      return {
+        range: bin.range,
+        count: count ?? 0,
+        error,
+      };
+    }),
+  );
+
+  const scoreDataError = scoreDistributionResults.find((result) => result.error)?.error;
 
   if (scoreDataError) {
     return NextResponse.json(
@@ -61,25 +90,7 @@ export async function GET() {
     );
   }
 
-  const bins = [
-    { range: '0.0-0.1', min: 0, max: 0.1 },
-    { range: '0.1-0.2', min: 0.1, max: 0.2 },
-    { range: '0.2-0.3', min: 0.2, max: 0.3 },
-    { range: '0.3-0.4', min: 0.3, max: 0.4 },
-    { range: '0.4-0.5', min: 0.4, max: 0.5 },
-    { range: '0.5-0.6', min: 0.5, max: 0.6 },
-    { range: '0.6-0.7', min: 0.6, max: 0.7 },
-    { range: '0.7-0.8', min: 0.7, max: 0.8 },
-    { range: '0.8-0.9', min: 0.8, max: 0.9 },
-    { range: '0.9-1.0', min: 0.9, max: 1.01 },
-  ];
-
-  const scoreDistribution = bins.map((bin) => ({
-    range: bin.range,
-    count: scoreData
-      ? scoreData.filter((row: { score: number; sample_id: string }) => row.score >= bin.min && row.score < bin.max).length
-      : 0,
-  }));
+  const scoreDistribution = scoreDistributionResults.map(({ range, count }) => ({ range, count }));
 
   return NextResponse.json({
     total_samples: totalSamples ?? 0,

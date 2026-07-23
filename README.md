@@ -288,6 +288,55 @@ For local deployment, onboarding, or browser validation, publish a packaged test
 - Important boundary: this archive does not populate Supabase metadata tables. Uploading the files to object storage will not create records in `genome_samples`, `predicted_promoters`, or `variant_index`, so homepage statistics remain empty until real metadata is imported.
 - Setup: extract the archive, upload the contents to your preferred object storage, set `NEXT_PUBLIC_STORAGE_BASE_URL` to that public base, configure `NEXT_PUBLIC_REFERENCE_*` variables to the uploaded filenames, and import real metadata rows into Supabase if you want dashboard counts and searchable tables.
 
+For the metadata layer, SeqEdge now also ships a separate real public CSV bundle built from FANTOM5. This bundle is intended for direct import into Supabase so that the homepage metrics, promoter table, and sample detail views show real content rather than an empty state.
+
+- Recommended location: keep the generated CSVs together with the release materials, for example under `deploy-notes/test-data-final/test-csv/`, and publish them alongside the main downloadable package when needed.
+- Direct-import files:
+  - `genome_samples.csv`: `200` real human primary-cell samples aligned to the current `genome_samples` schema.
+  - `predicted_promoters.csv`: `24000` real promoter rows aligned to the current `predicted_promoters` schema.
+- Provenance-only file:
+  - `predicted_promoters_with_source.csv`: the same promoter subset plus `raw_count` and `source_peak_id`. This file is for audit, traceability, or later schema extension, and should not be imported into the current production `predicted_promoters` table unless matching columns are added first.
+- Data source URLs:
+  - sample metadata: `https://fantom.gsc.riken.jp/5/datafiles/latest/basic/human.primary_cell.hCAGE/00_human.primary_cell.hCAGE.hg19.assay_sdrf.txt`
+  - promoter matrix: `https://fantom.gsc.riken.jp/5/datafiles/latest/extra/CAGE_peaks/hg19.cage_peak_phase1and2combined_counts_ann.osc.txt.gz`
+- Real-data transformation notes:
+  - the selected subset keeps `200` real samples and the top `120` promoters per sample;
+  - `score` is log-normalized from the original FANTOM5 count matrix into SeqEdge's required `0-1` interval;
+  - `total_variants` stays `0` because this minimal public bundle does not contain variant metadata;
+  - `sequence` and `motif_sequence` remain empty because those fields are not provided by the source files.
+- Recommended import order:
+  1. truncate old rows in `predicted_promoters`, `genome_samples`, and `variant_index`;
+  2. import `genome_samples.csv` into `genome_samples`;
+  3. import `predicted_promoters.csv` into `predicted_promoters`.
+- Expected post-import baseline:
+  - `genome_samples_count = 200`
+  - `predicted_promoters_count = 24000`
+  - `variant_index_count = 0`
+
+FANTOM5 reference:
+
+- Lizio M, Harshbarger J, Shimoji H, et al. *Gateways to the FANTOM5 promoter level mammalian expression atlas*. Genome Biology. 2015;16:22.
+- FANTOM5 data portal: `https://fantom.gsc.riken.jp/5/`
+
+Release-note summary for the current real metadata bundle:
+
+- Bundle name suggestion: `seqedge-test-data-20260724.zip`
+- Metadata CSV location: `deploy-notes/test-data-final/test-csv/`
+- Included import files:
+  - `genome_samples.csv`
+  - `predicted_promoters.csv`
+  - `predicted_promoters_with_source.csv` for provenance only
+- Import steps for operators:
+  1. run `truncate table predicted_promoters restart identity cascade;`
+  2. run `truncate table genome_samples restart identity cascade;`
+  3. run `truncate table variant_index restart identity cascade;`
+  4. import `genome_samples.csv` into `public.genome_samples`
+  5. import `predicted_promoters.csv` into `public.predicted_promoters`
+  6. do not import `predicted_promoters_with_source.csv` into the current production table unless the schema is extended first
+- Validation target after import:
+  - `/api/stats` should report `total_samples = 200`, `total_promoters = 24000`, `total_variants = 0`
+  - the dashboard score-distribution chart should sum to the same promoter total rather than a truncated subset
+
 GitHub Releases are suitable for downloadable test bundles. Production browser streaming should still use a public CORS-enabled object store with range-request support, with the practical priority `HF storage -> Worker delivery -> optional R2 mirror`.
 
 ## 10. License
