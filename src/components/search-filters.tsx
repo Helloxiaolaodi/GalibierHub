@@ -69,7 +69,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           Search &amp; Cohort Inclusion Filters
         </h2>
         <p className="text-xs text-gray-500 mt-0.5">
-          Reproduce the paper's inclusion / exclusion criteria - cohort prefix,
+          Reproduce the paper&apos;s inclusion / exclusion criteria - cohort prefix,
           WHO adult BMI bands, species and tissue - combined with the
           promoter-level coordinate and score filters.
         </p>
