@@ -69,6 +69,7 @@ npm install
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
 NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 NEXT_PUBLIC_REFERENCE_ASSEMBLY=NC_045512.2
@@ -78,6 +79,8 @@ NEXT_PUBLIC_REFERENCE_FASTA_INDEX=scov2.fa.fai
 NEXT_PUBLIC_REFERENCE_BED=scov2.genes.bed
 NEXT_PUBLIC_REFERENCE_GFF3=scov2.genes.gff3
 ```
+
+正式部署时强烈建议同时配置 `SUPABASE_SERVICE_ROLE_KEY`。SeqEdge 的统计、promoter 查询、variant 查询和样本详情读取都走服务端 API 路由；有了 service role key，即使 anon 的 RLS 策略暂时没有完全配置好，也能稳定读取真实数据。
 
 同时兼容旧变量名:
 
@@ -96,6 +99,8 @@ NEXT_PUBLIC_R2_PUBLIC_URL=https://your-bucket.your-account.r2.dev/test-data
 ### 3.4 初始化数据库
 
 在 Supabase 中执行 `schema.sql`，然后只导入你自己的真实元数据和注释记录。
+
+仅创建表结构并不会自动生成首页统计。下载得到的测试数据包主要用于浏览器与对象存储链路验证，它不会自动填充 `genome_samples`、`predicted_promoters` 或 `variant_index`。如果希望首页显示非零统计值，仍然需要额外把真实元数据导入这三张表。
 
 ### 3.5 本地运行
 
@@ -263,17 +268,27 @@ NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 
 SeqEdge 当前只使用真实配置的数据源。如果对象存储或元数据后端不可达，界面会明确显示空状态或错误提示，而不会回退显示模板记录。
 
+当前运行时还会在 API 层统一排除已知的历史模板样本 ID。这用于保护那些曾经导入过旧版演示种子的部署环境，例如 `SCOV2-REF-001`、`SAMPLE-001` 到 `SAMPLE-006`，以及带有 `P-SAMPLE-*`、`C-SAMPLE-*`、`V-SAMPLE-*` 前缀的历史样本。对正式站点来说，最稳妥的做法仍然是在 Supabase 中直接删除这些旧记录，而不是只依赖应用层过滤。
+
 ### 9.2 Test Data
 
-为了保证在线站点的响应速度，更推荐把 Hugging Face Datasets 作为主存储，把 HF 代理 Worker 作为浏览器在线访问入口；Cloudflare R2 更适合作为镜像或备用对象存储，而不是默认主链路。
+为了保证在线站点的响应速度，当前更推荐的正式链路是：把 Hugging Face Datasets 作为主文件仓库，把 `NEXT_PUBLIC_HF_PROXY_URL` 指向的 Cloudflare Worker 作为浏览器访问主入口，再把 Cloudflare R2 作为镜像或备用入口，而不是默认主链路。
 
 如果你要做本地部署、测试验证或给其他使用者提供可重复试跑的数据，建议把测试数据整理为 GitHub Releases 附件。
 
 - 下载方式：从仓库 Releases 页面下载最新的 `seqedge-test-data.zip`。
-- 包含内容：数据包应包含参考序列文件，如 `.fa`、`.fai`，注释文件，如 `.gff3`、`.bed`，以及用于浏览器验证的小型变异或辅助轨道文件。
-- 使用方式：解压后上传到你自己的对象存储，然后更新 `NEXT_PUBLIC_STORAGE_BASE_URL` 以及相关 `NEXT_PUBLIC_REFERENCE_*` 环境变量，让部署站点指向这些真实文件。
+- 命名建议：发布 Releases 附件时，建议使用带日期的版本化名称，例如 `seqedge-test-data-20260724.zip`，并可额外保留 `seqedge-test-data.zip` 作为“最新版本”下载别名。
+- 包含内容：这个数据包主要用于参考序列与浏览器链路验证。当前最终数据包已经整理为两套真实数据。
+- `sars-cov-2-lite`：包含 `scov2.fa`、`scov2.fa.fai`、`scov2.gb`、`scov2.genes.bed`、`scov2.genes.gff3`，用于 SeqEdge 默认轻量参考链路验证。
+- `volvox-advanced`：包含 `volvox.fa`、`volvox.fa.fai`、`volvox.gff3`、`volvox.sort.gff3.gz`、`volvox-bed12.bed.gz`、`volvox-bed12.bed.gz.tbi`、`volvox.bb`、`volvox-sorted.bam`、`volvox-sorted.bam.bai`，用于验证更完整的 JBrowse 能力，包括索引注释轨道、BigBed 和 BAM 比对轨道。
+- 当前用途：这套数据既适合验证最新部署流程中的 SARS-CoV-2 参考文件读取，也适合验证更丰富的 JBrowse 轨道栈。
+- 公开出处：
+  - `sars-cov-2-lite` | SeqEdge 当前部署所用的 SARS-CoV-2 浏览器验证数据 | Wu F, Zhao S, Yu B, et al. *A new coronavirus associated with human respiratory disease in China*. Nature. 2020;579(7798):265-269. DOI: `10.1038/s41586-020-2008-3`
+  - `volvox-advanced` | GMOD / JBrowse 公开示例数据生态 | [JBrowse 2 官方文档](https://jbrowse.org/jb2/) 以及 Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023.
+- 重要边界：该压缩包不会自动填充 Supabase 的元数据表。即使你已经把文件上传到对象存储，`genome_samples`、`predicted_promoters`、`variant_index` 仍然需要单独导入真实记录，否则首页统计和检索结果会保持为空。
+- 使用方式：解压后上传到你自己的对象存储，将 `NEXT_PUBLIC_STORAGE_BASE_URL` 设为对应公开基地址，更新相关 `NEXT_PUBLIC_REFERENCE_*` 环境变量，并在需要首页统计与检索结果时把真实元数据导入 Supabase。
 
-GitHub Releases 适合提供整包测试数据下载；正式站点的在线浏览仍应继续使用支持 CORS 和 Range 请求的公开对象存储。
+GitHub Releases 适合提供整包测试数据下载；正式站点的在线浏览仍应继续使用支持 CORS 和 Range 请求的公开对象存储。更稳妥的优先级是 `HF 主存储 -> Worker 主访问 -> 可选 R2 镜像`。
 
 ## 10. 许可证
 

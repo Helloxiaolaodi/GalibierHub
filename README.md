@@ -69,6 +69,7 @@ Create `.env.local`:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
 NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 NEXT_PUBLIC_REFERENCE_ASSEMBLY=NC_045512.2
@@ -78,6 +79,8 @@ NEXT_PUBLIC_REFERENCE_FASTA_INDEX=scov2.fa.fai
 NEXT_PUBLIC_REFERENCE_BED=scov2.genes.bed
 NEXT_PUBLIC_REFERENCE_GFF3=scov2.genes.gff3
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` is strongly recommended for production deployments. SeqEdge serves dashboard, promoter, variant, and sample-detail reads through server-side API routes, and the service-role key keeps those queries reliable even when anon RLS policies are incomplete or temporarily misconfigured.
 
 Legacy compatibility remains supported:
 
@@ -96,6 +99,8 @@ If your files live under a bucket prefix such as `test-data/`, include that pref
 ### 3.4 Initialize the database
 
 Run `schema.sql` in Supabase, then import only your real metadata and genomic annotation records.
+
+Creating the schema alone does not populate the dashboard. The downloadable test archive is intended for browser and storage validation; it does not automatically fill `genome_samples`, `predicted_promoters`, or `variant_index`. If you want non-zero counts on the homepage, import real rows into those tables separately.
 
 ### 3.5 Run locally
 
@@ -263,17 +268,27 @@ If Cloudflare Pages or Vercel shows an empty browser panel, verify:
 
 SeqEdge now uses only real configured data sources. If storage or metadata backends are unreachable, the UI shows an explicit empty or error state instead of rendering fallback records.
 
+The current runtime also excludes known legacy template sample IDs at the API layer. This protects live deployments that were initialized from earlier demo seeds such as `SCOV2-REF-001`, `SAMPLE-001` to `SAMPLE-006`, and prefixed historical variants like `P-SAMPLE-*`, `C-SAMPLE-*`, and `V-SAMPLE-*`. For production use, those rows should still be deleted from Supabase rather than relying only on application-side filtering.
+
 ### 9.2 Test Data
 
-To keep the live site responsive, SeqEdge streams large genomic assets through an object-storage-style delivery path such as Cloudflare R2, Hugging Face Datasets, or an HF proxy Worker.
+To keep the live site responsive, SeqEdge streams large genomic assets through an object-storage delivery path. The current production recommendation is explicit: keep Hugging Face Datasets as the main file repository, expose browser traffic through the Cloudflare Worker configured by `NEXT_PUBLIC_HF_PROXY_URL`, and treat Cloudflare R2 as an optional mirror or fallback rather than the primary online path.
 
-For local deployment, testing, or reproducible onboarding, publish a packaged test dataset through GitHub Releases.
+For local deployment, onboarding, or browser validation, publish a packaged test dataset through GitHub Releases.
 
 - Download: fetch the latest `seqedge-test-data.zip` asset from the repository Releases page.
-- Included files: the package should contain reference sequences such as `.fa` and `.fai`, annotation files such as `.gff3`, `.bed`, or indexed variants, and any small companion tracks used for browser validation.
-- Setup: extract the archive, upload the contents to your preferred object storage, then update `NEXT_PUBLIC_STORAGE_BASE_URL` and the related `NEXT_PUBLIC_REFERENCE_*` variables so the deployed site points to those real files.
+- Release naming suggestion: publish versioned assets such as `seqedge-test-data-20260724.zip` and optionally keep `seqedge-test-data.zip` as a stable latest-download alias.
+- Included files: the package is intended for reference and browser checks. The current final bundle is organized into two real datasets.
+- `sars-cov-2-lite`: `scov2.fa`, `scov2.fa.fai`, `scov2.gb`, `scov2.genes.bed`, `scov2.genes.gff3` for SeqEdge's lightweight default reference validation.
+- `volvox-advanced`: `volvox.fa`, `volvox.fa.fai`, `volvox.gff3`, `volvox.sort.gff3.gz`, `volvox-bed12.bed.gz`, `volvox-bed12.bed.gz.tbi`, `volvox.bb`, `volvox-sorted.bam`, `volvox-sorted.bam.bai` for broader JBrowse checks including indexed annotations, BigBed, and BAM alignments.
+- Current use: the bundle is suitable for validating both the deployed SARS-CoV-2 reference workflow and a richer JBrowse track stack.
+- Public provenance:
+  - `sars-cov-2-lite` | SeqEdge deployment validation set for SARS-CoV-2 browser checks | Wu F, Zhao S, Yu B, et al. *A new coronavirus associated with human respiratory disease in China*. Nature. 2020;579(7798):265-269. DOI: `10.1038/s41586-020-2008-3`
+  - `volvox-advanced` | GMOD / JBrowse public example-data ecosystem | [JBrowse 2 documentation](https://jbrowse.org/jb2/) and Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023.
+- Important boundary: this archive does not populate Supabase metadata tables. Uploading the files to object storage will not create records in `genome_samples`, `predicted_promoters`, or `variant_index`, so homepage statistics remain empty until real metadata is imported.
+- Setup: extract the archive, upload the contents to your preferred object storage, set `NEXT_PUBLIC_STORAGE_BASE_URL` to that public base, configure `NEXT_PUBLIC_REFERENCE_*` variables to the uploaded filenames, and import real metadata rows into Supabase if you want dashboard counts and searchable tables.
 
-GitHub Releases are suitable for downloadable test bundles. Production browser streaming should still use a public CORS-enabled object store with range-request support.
+GitHub Releases are suitable for downloadable test bundles. Production browser streaming should still use a public CORS-enabled object store with range-request support, with the practical priority `HF storage -> Worker delivery -> optional R2 mirror`.
 
 ## 10. License
 

@@ -12,16 +12,29 @@ export async function GET() {
 
   const sb = getSupabase();
   const [
-    { count: totalSamples },
-    { count: totalPromoters },
-    { count: totalVariants },
-    { data: sampleData },
+    { count: totalSamples, error: samplesError },
+    { count: totalPromoters, error: promotersError },
+    { count: totalVariants, error: variantsError },
+    { data: sampleData, error: sampleDataError },
   ] = await Promise.all([
     sb.from('genome_samples').select('*', { count: 'exact', head: true }).not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER),
     sb.from('predicted_promoters').select('*', { count: 'exact', head: true }).not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER),
     sb.from('variant_index').select('*', { count: 'exact', head: true }),
     sb.from('genome_samples').select('species, sample_id').not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER),
   ]);
+
+  const statsQueryErrors = [samplesError, promotersError, variantsError, sampleDataError]
+    .filter((error) => Boolean(error))
+    .map((error) => error!.message);
+
+  if (statsQueryErrors.length > 0) {
+    return NextResponse.json(
+      {
+        error: `Failed to load dashboard statistics from Supabase: ${statsQueryErrors.join(' | ')}`,
+      },
+      { status: 500 },
+    );
+  }
 
   const speciesDistribution: Record<string, number> = {};
   if (sampleData) {
@@ -34,10 +47,19 @@ export async function GET() {
     }
   }
 
-  const { data: scoreData } = await getSupabase()
+  const { data: scoreData, error: scoreDataError } = await getSupabase()
     .from('predicted_promoters')
     .select('score, sample_id')
     .not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER);
+
+  if (scoreDataError) {
+    return NextResponse.json(
+      {
+        error: `Failed to load promoter score distribution from Supabase: ${scoreDataError.message}`,
+      },
+      { status: 500 },
+    );
+  }
 
   const bins = [
     { range: '0.0-0.1', min: 0, max: 0.1 },
