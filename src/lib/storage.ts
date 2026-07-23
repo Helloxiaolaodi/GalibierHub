@@ -39,6 +39,24 @@ export const STORAGE_BASE_URL =
  *  guide in cloudflare-templates/hf-proxy/README.md. */
 export const HF_PROXY_BASE_URL = process.env.NEXT_PUBLIC_HF_PROXY_URL || '';
 
+export function getEffectiveStorageBaseUrl(baseUrl: string = STORAGE_BASE_URL): string {
+  if (!baseUrl) return '';
+  return HF_PROXY_BASE_URL && isHuggingFaceUrl(baseUrl)
+    ? rewriteHfBaseUrl(baseUrl, HF_PROXY_BASE_URL)
+    : baseUrl;
+}
+
+export function getStorageAccessMode(baseUrl: string = STORAGE_BASE_URL):
+  | 'unset'
+  | 'hf-proxy'
+  | 'hf-direct'
+  | 'object-storage' {
+  if (!baseUrl) return 'unset';
+  if (HF_PROXY_BASE_URL && isHuggingFaceUrl(baseUrl)) return 'hf-proxy';
+  if (isHuggingFaceUrl(baseUrl)) return 'hf-direct';
+  return 'object-storage';
+}
+
 /**
  * Resolve a stored file path to a fully qualified, fetchable URL.
  *
@@ -60,10 +78,7 @@ export function getStorageUrl(
 ): string {
   if (!path) return '';
 
-  const resolvedBase =
-    HF_PROXY_BASE_URL && isHuggingFaceUrl(baseUrl)
-      ? rewriteHfBaseUrl(baseUrl, HF_PROXY_BASE_URL)
-      : baseUrl;
+  const resolvedBase = getEffectiveStorageBaseUrl(baseUrl);
 
   // Absolute URL - check for HF proxy rewriting.
   if (/^https?:\/\//i.test(path)) {

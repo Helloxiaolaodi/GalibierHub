@@ -69,7 +69,8 @@ Create `.env.local`:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
-NEXT_PUBLIC_STORAGE_BASE_URL=https://your-bucket.your-account.r2.dev/test-data
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
+NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 NEXT_PUBLIC_REFERENCE_ASSEMBLY=NC_045512.2
 NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS=NC_045512.2:1-5000
 NEXT_PUBLIC_REFERENCE_FASTA=scov2.fa
@@ -84,12 +85,11 @@ Legacy compatibility remains supported:
 NEXT_PUBLIC_R2_PUBLIC_URL=https://your-bucket.your-account.r2.dev/test-data
 ```
 
-If you use the Hugging Face proxy Worker in mixed mode:
+Recommended production strategy:
 
-```bash
-NEXT_PUBLIC_STORAGE_BASE_URL=https://your-bucket.your-account.r2.dev/test-data
-NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
-```
+- store large genomic files in Hugging Face Datasets;
+- expose browser traffic through `NEXT_PUBLIC_HF_PROXY_URL`;
+- keep Cloudflare R2 as a mirror or fallback for selected files when needed.
 
 If your files live under a bucket prefix such as `test-data/`, include that prefix directly in `NEXT_PUBLIC_STORAGE_BASE_URL`.
 
@@ -186,7 +186,7 @@ npx wrangler deploy
 4. Configure SeqEdge:
 
 ```bash
-NEXT_PUBLIC_STORAGE_BASE_URL=https://your-bucket.your-account.r2.dev/test-data
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
 NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 ```
 

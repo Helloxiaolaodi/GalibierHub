@@ -69,7 +69,8 @@ npm install
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
-NEXT_PUBLIC_STORAGE_BASE_URL=https://your-bucket.your-account.r2.dev/test-data
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
+NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 NEXT_PUBLIC_REFERENCE_ASSEMBLY=NC_045512.2
 NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS=NC_045512.2:1-5000
 NEXT_PUBLIC_REFERENCE_FASTA=scov2.fa
@@ -84,12 +85,11 @@ NEXT_PUBLIC_REFERENCE_GFF3=scov2.genes.gff3
 NEXT_PUBLIC_R2_PUBLIC_URL=https://your-bucket.your-account.r2.dev/test-data
 ```
 
-如果启用 Hugging Face 代理 Worker:
+推荐的正式部署策略:
 
-```bash
-NEXT_PUBLIC_STORAGE_BASE_URL=https://your-bucket.your-account.r2.dev/test-data
-NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
-```
+- 将大体积基因组文件存放在 Hugging Face Datasets；
+- 让浏览器访问通过 `NEXT_PUBLIC_HF_PROXY_URL` 指向的 Cloudflare Worker；
+- 将 Cloudflare R2 作为镜像或备用入口，而不是默认主链路。
 
 如果文件位于 `test-data/` 等子目录下，请把这个前缀直接写进 `NEXT_PUBLIC_STORAGE_BASE_URL`。
 
@@ -186,7 +186,7 @@ npx wrangler deploy
 4. 在 SeqEdge 中配置:
 
 ```bash
-NEXT_PUBLIC_STORAGE_BASE_URL=https://your-bucket.your-account.r2.dev/test-data
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
 NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 ```
 
@@ -265,7 +265,7 @@ SeqEdge 当前只使用真实配置的数据源。如果对象存储或元数据
 
 ### 9.2 Test Data
 
-为了保证在线站点的响应速度，SeqEdge 会通过 Cloudflare R2、Hugging Face Datasets 或 HF 代理 Worker 这类对象存储链路来流式读取大体积基因组文件。
+为了保证在线站点的响应速度，更推荐把 Hugging Face Datasets 作为主存储，把 HF 代理 Worker 作为浏览器在线访问入口；Cloudflare R2 更适合作为镜像或备用对象存储，而不是默认主链路。
 
 如果你要做本地部署、测试验证或给其他使用者提供可重复试跑的数据，建议把测试数据整理为 GitHub Releases 附件。
 

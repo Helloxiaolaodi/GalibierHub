@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { SiteConfig } from '@/site-config';
-import { getStorageUrl } from '@/lib/storage';
+import { getEffectiveStorageBaseUrl, getStorageAccessMode, getStorageUrl } from '@/lib/storage';
 import type { AssemblyData, DemoTrack, DemoTrackAdapter } from './jbrowse-viewer';
 
 interface GenomeBrowserProps {
@@ -70,6 +70,8 @@ async function getReachableTracks(baseUrl: string, tracks: readonly DemoTrack[])
 
 export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
   const configuredBase = SiteConfig.jbrowse.storageBaseUrl;
+  const effectiveBase = useMemo(() => getEffectiveStorageBaseUrl(configuredBase), [configuredBase]);
+  const storageMode = useMemo(() => getStorageAccessMode(configuredBase), [configuredBase]);
   const assemblies = SiteConfig.jbrowse.assemblies as Record<string, AssemblyConfig>;
   const defaultAssembly = SiteConfig.jbrowse.defaultAssembly;
 
@@ -99,7 +101,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
     setProbe('checking');
 
     (async () => {
-      const candidateBases = configuredBase ? [configuredBase] : [];
+      const candidateBases = effectiveBase ? [effectiveBase] : [];
 
       for (const name of assemblyNames) {
         const assembly = assemblies[name];
@@ -124,7 +126,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
       }
 
       if (!cancelled) {
-        setDataBase(configuredBase);
+        setDataBase(effectiveBase);
         setResolvedAssembly(defaultAssembly);
         setAvailableTracks([]);
         setProbe('missing-data');
@@ -134,7 +136,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
     return () => {
       cancelled = true;
     };
-  }, [assemblies, assemblyNames, configuredBase, defaultAssembly]);
+  }, [assemblies, assemblyNames, configuredBase, defaultAssembly, effectiveBase]);
 
   if (probe === 'checking' || probe === 'idle') {
     return (
@@ -151,6 +153,13 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
 
   if (probe === 'missing-data') {
     const firstFai = assemblies[defaultAssembly].fastaIndex;
+    const probeUrl = getStorageUrl(firstFai, effectiveBase || configuredBase);
+    const accessHint =
+      storageMode === 'hf-proxy'
+        ? 'SeqEdge is using Hugging Face as the data source through your Cloudflare Worker proxy. Confirm that NEXT_PUBLIC_HF_PROXY_URL is deployed and that the configured reference files exist in the target dataset path.'
+        : storageMode === 'hf-direct'
+          ? 'SeqEdge is reading directly from Hugging Face. This is valid for storage, but browser-range access is more reliable through NEXT_PUBLIC_HF_PROXY_URL.'
+          : 'SeqEdge is configured to use only your real genome storage. Set NEXT_PUBLIC_STORAGE_BASE_URL to a public CORS-enabled object store and make sure the configured reference files are reachable.';
     return (
       <div className="border rounded-lg overflow-hidden bg-white">
         <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
@@ -159,11 +168,10 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
         <div className="p-6 text-center space-y-3">
           <p className="text-gray-600">
             The reference sequence index could not be reached at{' '}
-            <code className="bg-gray-100 px-1 rounded break-all">{configuredBase || '[unset storage base]'}/{firstFai}</code>.
+            <code className="bg-gray-100 px-1 rounded break-all">{probeUrl || '[unset storage base]'}</code>.
           </p>
           <p className="text-sm text-gray-500">
-            SeqEdge is configured to use only your real genome storage.
-            Set NEXT_PUBLIC_STORAGE_BASE_URL to a CORS-enabled object store and make sure the configured reference files are reachable.
+            {accessHint}
           </p>
           <p className="text-xs text-gray-400">
             See <code className="bg-gray-100 px-1 rounded">docs/data-compression-guide.md</code> for the recommended formats.
