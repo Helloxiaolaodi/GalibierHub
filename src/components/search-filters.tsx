@@ -20,24 +20,15 @@ interface SearchFiltersProps {
   loading?: boolean;
 }
 
-const CHROMOSOMES = [
-  'chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8',
-  'chr9', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16',
-  'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX', 'chrY', 'chrMT',
-];
+const CHROMOSOMES = ['NC_045512.2'];
 
-// Species / tissue lists mirror the seed data in schema.sql - extend as your
-// genome_samples table grows.
-const SPECIES = ['Homo sapiens', 'Oryza sativa', 'Escherichia coli'];
-const TISSUES = ['liver', 'brain', 'leaf', 'breast', 'root', 'whole_cell'];
+// Species / tissue lists mirror the public seed data in schema.sql.
+const SPECIES = ['Severe acute respiratory syndrome coronavirus 2'];
+const TISSUES = ['nasopharyngeal swab'];
 
-// Cohort tokens follow the P- / C- / V- prefix convention documented in the
-// paper: P-Cohort is the primary discovery cohort, C-Cohort is the matched
-// control set, V-Validation is the held-out validation cohort.
+// Cohort tokens should stay aligned with the public demo seed rows.
 const COHORTS = [
-  { value: 'P-Cohort', label: 'P-Cohort - Primary' },
-  { value: 'C-Cohort', label: 'C-Cohort - Control' },
-  { value: 'V-Validation', label: 'V-Validation' },
+  { value: 'Reference genome', label: 'Reference genome' },
 ];
 
 // WHO adult BMI classification (kg/m^2) - matches the paper's inclusion table
@@ -66,16 +57,15 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
     <div className="bg-white border rounded-lg">
       <div className="px-4 pt-4 pb-2">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-          Search &amp; Cohort Inclusion Filters
+          Search Filters
         </h2>
         <p className="text-xs text-gray-500 mt-0.5">
-          Reproduce the paper&apos;s inclusion / exclusion criteria - cohort prefix,
-          WHO adult BMI bands, species and tissue - combined with the
-          promoter-level coordinate and score filters.
+          Filter public SARS-CoV-2 reference annotations by locus, feature name,
+          sample identifier, and score.
         </p>
       </div>
 
-      {/* Sample-level metadata (drives the genome_samples pre-filter) */}
+      {/* Sample-level metadata */}
       <div className="px-4 pb-2">
         <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1">
           Sample metadata
@@ -104,7 +94,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">
-              BMI class <span className="text-gray-400">(WHO adult)</span>
+              BMI class <span className="text-gray-400">(optional)</span>
             </label>
             <select value={filters.bmiClass} onChange={(e) => set('bmiClass', e.target.value)} className={cellCls}>
               <option value="">All</option>
@@ -114,7 +104,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
         </div>
       </div>
 
-      {/* Promoter-level filters (coordinate / score / free-text) */}
+      {/* Promoter-level filters */}
       <div className="px-4 pt-2 pb-4">
         <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1">
           Promoter locus
@@ -129,17 +119,17 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Start position</label>
-            <input type="number" placeholder="e.g. 1000000" value={filters.start}
+            <input type="number" placeholder="e.g. 21563" value={filters.start}
               onChange={(e) => set('start', e.target.value)} className={cellCls} />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">End position</label>
-            <input type="number" placeholder="e.g. 2000000" value={filters.end_pos}
+            <input type="number" placeholder="e.g. 25384" value={filters.end_pos}
               onChange={(e) => set('end_pos', e.target.value)} className={cellCls} />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Gene symbol</label>
-            <input type="text" placeholder="e.g. BRCA1" value={filters.geneSymbol}
+            <input type="text" placeholder="e.g. S or ORF1ab" value={filters.geneSymbol}
               onChange={(e) => set('geneSymbol', e.target.value)} className={cellCls} />
           </div>
           <div>
@@ -152,7 +142,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Sample ID</label>
-            <input type="text" placeholder="e.g. P-SAMPLE-001" value={filters.sampleId}
+            <input type="text" placeholder="e.g. SCOV2-REF-001" value={filters.sampleId}
               onChange={(e) => set('sampleId', e.target.value)} className={cellCls} />
           </div>
           <div className="lg:col-span-2 flex items-end gap-2">

@@ -11,12 +11,12 @@ CREATE TABLE IF NOT EXISTS genome_samples (
   species TEXT NOT NULL,
   tissue TEXT,
   sequencing_platform TEXT,
-  assembly_version TEXT NOT NULL DEFAULT 'hg38',
+  assembly_version TEXT NOT NULL DEFAULT 'NC_045512.2',
   total_variants INTEGER DEFAULT 0,
   coverage NUMERIC DEFAULT 0,
   -- Phenotype / cohort metadata — optional, drives the metadata filter panel
-  cohort TEXT,                -- e.g. 'P-Cohort' (primary), 'C-Cohort' (control), 'V-Validation'
-  bmi NUMERIC,                -- WHO adult BMI reference: <18.5 underweight, 18.5-24.9 normal, 25-29.9 overweight, >=30 obese
+  cohort TEXT,
+  bmi NUMERIC,
   age INTEGER,
   sex TEXT CHECK (sex IN ('male', 'female', 'unknown') OR sex IS NULL),
   vcf_download_url TEXT,
@@ -103,16 +103,10 @@ CREATE POLICY "Public read variant_index"       ON variant_index       FOR SELEC
 -- ============================================================
 -- Sample data (remove in production)
 -- ============================================================
--- Idempotent seed for the samples table — ON CONFLICT lets you re-run this
--- schema on a database that already has SAMPLE-001…SAMPLE-006 rows without
--- BMI / cohort metadata, and get the phenotype columns back-filled.
+-- Idempotent seed for the samples table using the bundled public SARS-CoV-2
+-- reference assembly and annotations.
 INSERT INTO genome_samples (sample_id, species, tissue, sequencing_platform, assembly_version, total_variants, coverage, cohort, bmi, age, sex) VALUES
-  ('P-SAMPLE-001', 'Homo sapiens',     'liver',      'Illumina NovaSeq', 'hg38',      4523000, 30.5,  'P-Cohort',     22.4, 41,   'female'),
-  ('P-SAMPLE-002', 'Homo sapiens',     'brain',      'Illumina NovaSeq', 'hg38',      3890000, 42.1,  'P-Cohort',     27.9, 58,   'male'),
-  ('C-SAMPLE-003', 'Oryza sativa',     'leaf',       'PacBio HiFi',      'IRGSP-1.0', 2100000, 25.0,  'C-Cohort',     NULL, NULL, NULL),
-  ('P-SAMPLE-004', 'Homo sapiens',     'breast',     'Illumina NovaSeq', 'hg38',      5100000, 35.8,  'P-Cohort',     31.5, 63,   'female'),
-  ('C-SAMPLE-005', 'Oryza sativa',     'root',       'Nanopore',         'IRGSP-1.0', 1780000, 28.3,  'C-Cohort',     NULL, NULL, NULL),
-  ('V-SAMPLE-006', 'Escherichia coli', 'whole_cell', 'Illumina MiSeq',   'ASM584v2',  892000,  100.0, 'V-Validation', NULL, NULL, NULL)
+  ('SCOV2-REF-001', 'Severe acute respiratory syndrome coronavirus 2', 'nasopharyngeal swab', 'Illumina', 'NC_045512.2', 0, 100.0, 'Reference genome', NULL, NULL, NULL)
 ON CONFLICT (sample_id) DO UPDATE SET
   species             = EXCLUDED.species,
   tissue              = EXCLUDED.tissue,
@@ -128,15 +122,14 @@ ON CONFLICT (sample_id) DO UPDATE SET
 -- Promoter seed rows — safe on a fresh database. Skip this block if
 -- predicted_promoters already contains data you want to keep.
 INSERT INTO predicted_promoters (sample_id, chrom, start, end_pos, score, strand, gene_symbol, sequence) VALUES
-  ('P-SAMPLE-001', 'chr17', 43044295, 43045800, 0.95, '+', 'BRCA1', 'ATGCGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCATCGATCG'),
-  ('P-SAMPLE-001', 'chr17', 43050000, 43051500, 0.88, '-', 'BRCA1', 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG'),
-  ('P-SAMPLE-002', 'chr7', 55000000, 55002000, 0.91, '+', 'EGFR', 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC'),
-  ('P-SAMPLE-002', 'chr7', 55010000, 55011500, 0.73, '-', 'EGFR', 'TTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC'),
-  ('C-SAMPLE-003', 'chr12', 25000000, 25001800, 0.82, '+', 'KRAS', 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG'),
-  ('C-SAMPLE-003', 'chr12', 25005000, 25006000, 0.67, '+', 'KRAS', 'AACGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG'),
-  ('P-SAMPLE-004', 'chr1', 150000000, 150002000, 0.89, '-', 'TP53', 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG'),
-  ('P-SAMPLE-004', 'chr1', 150010000, 150011500, 0.94, '+', 'TP53', 'GCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG'),
-  ('C-SAMPLE-005', 'chr2', 47000000, 47002500, 0.78, '+', 'MYCN', 'TTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG'),
-  ('C-SAMPLE-005', 'chr2', 47008000, 47009500, 0.86, '-', 'ALK', 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG'),
-  ('V-SAMPLE-006', 'chr3', 178000000, 178002000, 0.71, '+', 'PIK3CA', NULL),
-  ('V-SAMPLE-006', 'chr3', 178010000, 178012000, 0.83, '-', 'PIK3CA', NULL);
+  ('SCOV2-REF-001', 'NC_045512.2', 266, 21555, 0.98, '+', 'ORF1ab', NULL),
+  ('SCOV2-REF-001', 'NC_045512.2', 21563, 25384, 0.97, '+', 'S', NULL),
+  ('SCOV2-REF-001', 'NC_045512.2', 25393, 26220, 0.90, '+', 'ORF3a', NULL),
+  ('SCOV2-REF-001', 'NC_045512.2', 26245, 26472, 0.84, '+', 'E', NULL),
+  ('SCOV2-REF-001', 'NC_045512.2', 26523, 27191, 0.92, '+', 'M', NULL),
+  ('SCOV2-REF-001', 'NC_045512.2', 27202, 27387, 0.76, '+', 'ORF6', NULL),
+  ('SCOV2-REF-001', 'NC_045512.2', 27394, 27759, 0.82, '+', 'ORF7a', NULL),
+  ('SCOV2-REF-001', 'NC_045512.2', 27756, 27887, 0.71, '+', 'ORF7b', NULL),
+  ('SCOV2-REF-001', 'NC_045512.2', 27894, 28259, 0.80, '+', 'ORF8', NULL),
+  ('SCOV2-REF-001', 'NC_045512.2', 28274, 29533, 0.95, '+', 'N', NULL),
+  ('SCOV2-REF-001', 'NC_045512.2', 29558, 29674, 0.68, '+', 'ORF10', NULL);

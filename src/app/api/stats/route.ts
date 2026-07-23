@@ -2,12 +2,10 @@ import { NextResponse } from 'next/server';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
 export async function GET() {
-  // Return fallback demo data when Supabase is not configured
   if (!isSupabaseConfigured) {
     return NextResponse.json(DEMO_STATS);
   }
 
-  // Fetch counts from Supabase
   const sb = getSupabase();
   const [
     { count: totalSamples },
@@ -21,7 +19,6 @@ export async function GET() {
     sb.from('genome_samples').select('species'),
   ]);
 
-  // Build species distribution from sample data
   const speciesDistribution: Record<string, number> = {};
   if (sampleData) {
     for (const row of sampleData) {
@@ -30,7 +27,6 @@ export async function GET() {
     }
   }
 
-  // Compute score distribution via Supabase
   const { data: scoreData } = await getSupabase()
     .from('predicted_promoters')
     .select('score');
@@ -64,26 +60,23 @@ export async function GET() {
   });
 }
 
-// Minimal demo data used when Supabase is not yet connected
 const DEMO_STATS = {
-  total_samples: 6,
-  total_promoters: 125430,
-  total_variants: 8947521,
+  total_samples: 1,
+  total_promoters: 11,
+  total_variants: 0,
   species_distribution: {
-    'Homo sapiens': 3,
-    'Oryza sativa': 2,
-    'Escherichia coli': 1,
+    'Severe acute respiratory syndrome coronavirus 2': 1,
   } as Record<string, number>,
   score_distribution: [
-    { range: '0.0-0.1', count: 1204 },
-    { range: '0.1-0.2', count: 3456 },
-    { range: '0.2-0.3', count: 8901 },
-    { range: '0.3-0.4', count: 15230 },
-    { range: '0.4-0.5', count: 22340 },
-    { range: '0.5-0.6', count: 28910 },
-    { range: '0.6-0.7', count: 19870 },
-    { range: '0.7-0.8', count: 14560 },
-    { range: '0.8-0.9', count: 7890 },
-    { range: '0.9-1.0', count: 1069 },
+    { range: '0.0-0.1', count: 0 },
+    { range: '0.1-0.2', count: 0 },
+    { range: '0.2-0.3', count: 0 },
+    { range: '0.3-0.4', count: 0 },
+    { range: '0.4-0.5', count: 0 },
+    { range: '0.5-0.6', count: 0 },
+    { range: '0.6-0.7', count: 1 },
+    { range: '0.7-0.8', count: 3 },
+    { range: '0.8-0.9', count: 3 },
+    { range: '0.9-1.0', count: 4 },
   ],
 };

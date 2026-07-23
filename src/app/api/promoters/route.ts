@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
 // WHO adult BMI classification (kg/m^2)
-// Underweight <18.5 · Normal 18.5–24.9 · Overweight 25.0–29.9 · Obese >=30.0
+// Underweight <18.5 | Normal 18.5-24.9 | Overweight 25.0-29.9 | Obese >=30.0
 const BMI_BANDS: Record<string, [number, number]> = {
   underweight: [0, 18.5],
   normal: [18.5, 25],
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
   const sb = getSupabase();
 
-  // Step 1 — if any sample-level filter is set, resolve matching sample_ids first.
+  // Step 1 - if any sample-level filter is set, resolve matching sample_ids first.
   const needSampleFilter = species || tissue || cohort || bmiClass;
   let allowedSampleIds: string[] | null = null;
 
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     }
   }
 
-  // Step 2 — promoter query with combined filters
+  // Step 2 - promoter query with combined filters.
   let query = sb.from('predicted_promoters').select('*', { count: 'exact' });
   if (chrom) query = query.eq('chrom', chrom);
   if (geneSymbol) query = query.ilike('gene_symbol', `%${geneSymbol}%`);
@@ -79,16 +79,16 @@ export async function GET(request: Request) {
   });
 }
 
-// Minimal demo data used when Supabase is not yet connected
 const DEMO_PROMOTERS = [
-  { id: '1', sample_id: 'P-SAMPLE-001', chrom: 'chr17', start: 43044295, end_pos: 43045800, score: 0.95, strand: '+', gene_symbol: 'BRCA1', created_at: '2025-01-15' },
-  { id: '2', sample_id: 'P-SAMPLE-001', chrom: 'chr17', start: 43050000, end_pos: 43051500, score: 0.88, strand: '-', gene_symbol: 'BRCA1', created_at: '2025-01-15' },
-  { id: '3', sample_id: 'P-SAMPLE-002', chrom: 'chr7', start: 55000000, end_pos: 55002000, score: 0.91, strand: '+', gene_symbol: 'EGFR', created_at: '2025-01-16' },
-  { id: '4', sample_id: 'P-SAMPLE-002', chrom: 'chr7', start: 55010000, end_pos: 55011500, score: 0.73, strand: '-', gene_symbol: 'EGFR', created_at: '2025-01-16' },
-  { id: '5', sample_id: 'C-SAMPLE-003', chrom: 'chr12', start: 25000000, end_pos: 25001800, score: 0.82, strand: '+', gene_symbol: 'KRAS', created_at: '2025-01-17' },
-  { id: '6', sample_id: 'C-SAMPLE-003', chrom: 'chr12', start: 25005000, end_pos: 25006000, score: 0.67, strand: '+', gene_symbol: 'KRAS', created_at: '2025-01-17' },
-  { id: '7', sample_id: 'P-SAMPLE-004', chrom: 'chr1', start: 150000000, end_pos: 150002000, score: 0.89, strand: '-', gene_symbol: 'TP53', created_at: '2025-01-18' },
-  { id: '8', sample_id: 'P-SAMPLE-004', chrom: 'chr1', start: 150010000, end_pos: 150011500, score: 0.94, strand: '+', gene_symbol: 'TP53', created_at: '2025-01-18' },
-  { id: '9', sample_id: 'C-SAMPLE-005', chrom: 'chr2', start: 47000000, end_pos: 47002500, score: 0.78, strand: '+', gene_symbol: 'MYCN', created_at: '2025-01-19' },
-  { id: '10', sample_id: 'C-SAMPLE-005', chrom: 'chr2', start: 47008000, end_pos: 47009500, score: 0.86, strand: '-', gene_symbol: 'ALK', created_at: '2025-01-19' },
+  { id: '1', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 266, end_pos: 21555, score: 0.98, strand: '+', gene_symbol: 'ORF1ab', created_at: '2025-01-15' },
+  { id: '2', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 21563, end_pos: 25384, score: 0.97, strand: '+', gene_symbol: 'S', created_at: '2025-01-15' },
+  { id: '3', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 25393, end_pos: 26220, score: 0.9, strand: '+', gene_symbol: 'ORF3a', created_at: '2025-01-16' },
+  { id: '4', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 26245, end_pos: 26472, score: 0.84, strand: '+', gene_symbol: 'E', created_at: '2025-01-16' },
+  { id: '5', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 26523, end_pos: 27191, score: 0.92, strand: '+', gene_symbol: 'M', created_at: '2025-01-17' },
+  { id: '6', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27202, end_pos: 27387, score: 0.76, strand: '+', gene_symbol: 'ORF6', created_at: '2025-01-17' },
+  { id: '7', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27394, end_pos: 27759, score: 0.82, strand: '+', gene_symbol: 'ORF7a', created_at: '2025-01-18' },
+  { id: '8', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27756, end_pos: 27887, score: 0.71, strand: '+', gene_symbol: 'ORF7b', created_at: '2025-01-18' },
+  { id: '9', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27894, end_pos: 28259, score: 0.8, strand: '+', gene_symbol: 'ORF8', created_at: '2025-01-19' },
+  { id: '10', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 28274, end_pos: 29533, score: 0.95, strand: '+', gene_symbol: 'N', created_at: '2025-01-19' },
+  { id: '11', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 29558, end_pos: 29674, score: 0.68, strand: '+', gene_symbol: 'ORF10', created_at: '2025-01-20' },
 ];

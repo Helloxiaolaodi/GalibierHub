@@ -1,20 +1,20 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Promoter } from '@/types/genome';
 
 const DEMO_PROMOTERS: Record<string, Promoter> = {
-  'chr17_43044295_43045800': {
-    id: '1', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43044295, end_pos: 43045800,
-    score: 0.95, strand: '+', gene_symbol: 'BRCA1',
-    sequence: 'ATGCGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCATCGATCG',
+  'NC_045512.2_266_21555': {
+    id: '1', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 266, end_pos: 21555,
+    score: 0.98, strand: '+', gene_symbol: 'ORF1ab',
+    sequence: null,
     created_at: '2025-01-15',
   },
-  'chr7_55000000_55002000': {
-    id: '3', sample_id: 'SAMPLE-002', chrom: 'chr7', start: 55000000, end_pos: 55002000,
-    score: 0.91, strand: '+', gene_symbol: 'EGFR',
-    sequence: 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC',
+  'NC_045512.2_21563_25384': {
+    id: '2', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 21563, end_pos: 25384,
+    score: 0.97, strand: '+', gene_symbol: 'S',
+    sequence: null,
     created_at: '2025-01-16',
   },
 };

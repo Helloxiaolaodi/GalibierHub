@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Promoter, DashboardStats } from '@/types/genome';
@@ -9,58 +9,51 @@ import PromoterDetail from '@/components/promoter-detail';
 import GenomeBrowser from '@/components/genome-browser';
 import UserGuide from '@/components/user-guide';
 
-// Fallback demo data — used only when Supabase is not yet connected
+// Fallback demo data - used only when Supabase is not yet connected
 const DEMO_PROMOTERS: Promoter[] = [
-  { id: '1', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43044295, end_pos: 43045800, score: 0.95, strand: '+', gene_symbol: 'BRCA1', sequence: 'ATGCGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCATCGATCG', created_at: '2025-01-15' },
-  { id: '2', sample_id: 'SAMPLE-001', chrom: 'chr17', start: 43050000, end_pos: 43051500, score: 0.88, strand: '-', gene_symbol: 'BRCA1', sequence: 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-15' },
-  { id: '3', sample_id: 'SAMPLE-002', chrom: 'chr7', start: 55000000, end_pos: 55002000, score: 0.91, strand: '+', gene_symbol: 'EGFR', sequence: 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC', created_at: '2025-01-16' },
-  { id: '4', sample_id: 'SAMPLE-002', chrom: 'chr7', start: 55010000, end_pos: 55011500, score: 0.73, strand: '-', gene_symbol: 'EGFR', sequence: 'TTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC', created_at: '2025-01-16' },
-  { id: '5', sample_id: 'SAMPLE-003', chrom: 'chr12', start: 25000000, end_pos: 25001800, score: 0.82, strand: '+', gene_symbol: 'KRAS', sequence: 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-17' },
-  { id: '6', sample_id: 'SAMPLE-003', chrom: 'chr12', start: 25005000, end_pos: 25006000, score: 0.67, strand: '+', gene_symbol: 'KRAS', sequence: 'AACGTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-17' },
-  { id: '7', sample_id: 'SAMPLE-004', chrom: 'chr1', start: 150000000, end_pos: 150002000, score: 0.89, strand: '-', gene_symbol: 'TP53', sequence: 'ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-18' },
-  { id: '8', sample_id: 'SAMPLE-004', chrom: 'chr1', start: 150010000, end_pos: 150011500, score: 0.94, strand: '+', gene_symbol: 'TP53', sequence: 'GCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-18' },
-  { id: '9', sample_id: 'SAMPLE-005', chrom: 'chr2', start: 47000000, end_pos: 47002500, score: 0.78, strand: '+', gene_symbol: 'MYCN', sequence: 'TTACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-19' },
-  { id: '10', sample_id: 'SAMPLE-005', chrom: 'chr2', start: 47008000, end_pos: 47009500, score: 0.86, strand: '-', gene_symbol: 'ALK', sequence: 'GCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG', created_at: '2025-01-19' },
-  { id: '11', sample_id: 'SAMPLE-006', chrom: 'chr3', start: 178000000, end_pos: 178002000, score: 0.71, strand: '+', gene_symbol: 'PIK3CA', sequence: null, created_at: '2025-01-20' },
-  { id: '12', sample_id: 'SAMPLE-006', chrom: 'chr3', start: 178010000, end_pos: 178012000, score: 0.83, strand: '-', gene_symbol: 'PIK3CA', sequence: null, created_at: '2025-01-20' },
+  { id: '1', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 266, end_pos: 21555, score: 0.98, strand: '+', gene_symbol: 'ORF1ab', sequence: null, created_at: '2025-01-15' },
+  { id: '2', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 21563, end_pos: 25384, score: 0.97, strand: '+', gene_symbol: 'S', sequence: null, created_at: '2025-01-15' },
+  { id: '3', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 25393, end_pos: 26220, score: 0.9, strand: '+', gene_symbol: 'ORF3a', sequence: null, created_at: '2025-01-16' },
+  { id: '4', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 26245, end_pos: 26472, score: 0.84, strand: '+', gene_symbol: 'E', sequence: null, created_at: '2025-01-16' },
+  { id: '5', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 26523, end_pos: 27191, score: 0.92, strand: '+', gene_symbol: 'M', sequence: null, created_at: '2025-01-17' },
+  { id: '6', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27202, end_pos: 27387, score: 0.76, strand: '+', gene_symbol: 'ORF6', sequence: null, created_at: '2025-01-17' },
+  { id: '7', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27394, end_pos: 27759, score: 0.82, strand: '+', gene_symbol: 'ORF7a', sequence: null, created_at: '2025-01-18' },
+  { id: '8', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27756, end_pos: 27887, score: 0.71, strand: '+', gene_symbol: 'ORF7b', sequence: null, created_at: '2025-01-18' },
+  { id: '9', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 27894, end_pos: 28259, score: 0.8, strand: '+', gene_symbol: 'ORF8', sequence: null, created_at: '2025-01-19' },
+  { id: '10', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 28274, end_pos: 29533, score: 0.95, strand: '+', gene_symbol: 'N', sequence: null, created_at: '2025-01-19' },
+  { id: '11', sample_id: 'SCOV2-REF-001', chrom: 'NC_045512.2', start: 29558, end_pos: 29674, score: 0.68, strand: '+', gene_symbol: 'ORF10', sequence: null, created_at: '2025-01-20' },
 ];
 
 const DEMO_STATS: DashboardStats = {
-  total_samples: 6,
-  total_promoters: 125430,
-  total_variants: 8947521,
+  total_samples: 1,
+  total_promoters: 11,
+  total_variants: 0,
   species_distribution: {
-    'Homo sapiens': 3,
-    'Oryza sativa': 2,
-    'Escherichia coli': 1,
+    'Severe acute respiratory syndrome coronavirus 2': 1,
   },
   score_distribution: [
-    { range: '0.0-0.1', count: 1204 },
-    { range: '0.1-0.2', count: 3456 },
-    { range: '0.2-0.3', count: 8901 },
-    { range: '0.3-0.4', count: 15230 },
-    { range: '0.4-0.5', count: 22340 },
-    { range: '0.5-0.6', count: 28910 },
-    { range: '0.6-0.7', count: 19870 },
-    { range: '0.7-0.8', count: 14560 },
-    { range: '0.8-0.9', count: 7890 },
-    { range: '0.9-1.0', count: 1069 },
+    { range: '0.0-0.1', count: 0 },
+    { range: '0.1-0.2', count: 0 },
+    { range: '0.2-0.3', count: 0 },
+    { range: '0.3-0.4', count: 0 },
+    { range: '0.4-0.5', count: 0 },
+    { range: '0.5-0.6', count: 0 },
+    { range: '0.6-0.7', count: 1 },
+    { range: '0.7-0.8', count: 3 },
+    { range: '0.8-0.9', count: 3 },
+    { range: '0.9-1.0', count: 4 },
   ],
 };
 
 export default function HomePage() {
   const [promoters, setPromoters] = useState<Promoter[]>(DEMO_PROMOTERS);
-  // Start null so the summary cards never flash placeholder numbers before the
-  // real /api/stats response lands — StatsChart renders a skeleton while null.
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [selectedPromoter, setSelectedPromoter] = useState<Promoter | null>(null);
-  const [browserLocus, setBrowserLocus] = useState('chr17:43,044,295-43,125,483');
+  const [browserLocus, setBrowserLocus] = useState('NC_045512.2:21,563-25,384');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome'>('overview');
   const [guideOpen, setGuideOpen] = useState(false);
 
-  // Fetch stats from API on mount. On failure fall back to demo data so the
-  // dashboard still renders something meaningful offline.
   useEffect(() => {
     fetch('/api/stats')
       .then((res) => res.json())
@@ -90,7 +83,6 @@ export default function HomePage() {
         if (data?.data) setPromoters(data.data);
       })
       .catch(() => {
-        // Fallback: filter demo data client-side
         let filtered = DEMO_PROMOTERS;
         if (filters.chrom) filtered = filtered.filter((p) => p.chrom === filters.chrom);
         if (filters.geneSymbol) filtered = filtered.filter((p) => p.gene_symbol?.toLowerCase().includes(filters.geneSymbol.toLowerCase()));
@@ -112,7 +104,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -162,7 +153,6 @@ export default function HomePage() {
       <UserGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Overview tab */}
         {activeTab === 'overview' && (
           <>
             <StatsChart stats={stats} />
@@ -177,7 +167,7 @@ export default function HomePage() {
             />
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
-                Genome Browser — Click a promoter row to navigate
+                Genome Browser - Click a promoter row to navigate
               </div>
               <GenomeBrowser
                 locus={browserLocus}
@@ -187,7 +177,6 @@ export default function HomePage() {
           </>
         )}
 
-        {/* Promoters tab */}
         {activeTab === 'promoters' && (
           <>
             <SearchFilters onSearch={handleSearch} loading={loading} />
@@ -195,7 +184,6 @@ export default function HomePage() {
           </>
         )}
 
-        {/* Genome browser tab */}
         {activeTab === 'genome' && (
           <>
             <SearchFilters onSearch={handleSearch} loading={loading} />
@@ -210,7 +198,6 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Promoter detail modal */}
       {selectedPromoter && (
         <PromoterDetail
           promoter={selectedPromoter}
