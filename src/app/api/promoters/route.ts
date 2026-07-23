@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { SiteConfig } from '@/site-config';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
+const TEMPLATE_SAMPLE_ID = 'SCOV2-REF-001';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
@@ -33,6 +35,7 @@ export async function GET(request: Request) {
 
   if (needSampleFilter) {
     let sq = sb.from('genome_samples').select('sample_id');
+    sq = sq.neq('sample_id', TEMPLATE_SAMPLE_ID);
     if (species) sq = sq.eq('species', species);
     if (tissue) sq = sq.eq('tissue', tissue);
     if (cohort) sq = sq.eq('cohort', cohort);
@@ -50,13 +53,19 @@ export async function GET(request: Request) {
 
   // Step 2 - promoter query with combined filters.
   let query = sb.from('predicted_promoters').select('*', { count: 'exact' });
+  query = query.neq('sample_id', TEMPLATE_SAMPLE_ID);
   if (id) query = query.eq('id', id);
   if (chrom) query = query.eq('chrom', chrom);
   if (geneSymbol) query = query.ilike('gene_symbol', `%${geneSymbol}%`);
   if (minScore) query = query.gte('score', Number.parseFloat(minScore));
   if (start) query = query.gte('start', Number.parseInt(start));
   if (endPos) query = query.lte('end_pos', Number.parseInt(endPos));
-  if (sampleId) query = query.eq('sample_id', sampleId);
+  if (sampleId) {
+    if (sampleId === TEMPLATE_SAMPLE_ID) {
+      return NextResponse.json({ data: [], total: 0, offset, limit });
+    }
+    query = query.eq('sample_id', sampleId);
+  }
   if (allowedSampleIds) query = query.in('sample_id', allowedSampleIds);
 
   const { data, error, count } = await query.range(offset, offset + limit - 1);

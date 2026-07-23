@@ -6,10 +6,7 @@ import PluginLinearGenomeView from '@jbrowse/plugin-linear-genome-view';
 import { SiteConfig } from '@/site-config';
 import { getStorageUrl } from '@/lib/storage';
 
-type AssemblyData = (typeof SiteConfig.jbrowse.assemblies)[keyof typeof SiteConfig.jbrowse.assemblies];
-type DemoTrack = AssemblyData['tracks'][number];
-
-interface DemoTrackAdapter {
+export interface DemoTrackAdapter {
   type: string;
   gffGzLocation?: string;
   bamLocation?: string;
@@ -20,6 +17,21 @@ interface DemoTrackAdapter {
     location: string;
     indexType: string;
   };
+}
+
+export interface DemoTrack {
+  trackId: string;
+  name: string;
+  type: string;
+  adapter: DemoTrackAdapter;
+  displays?: ReadonlyArray<{ displayId: string; type: string }>;
+}
+
+export interface AssemblyData {
+  defaultLocus: string;
+  fasta: string;
+  fastaIndex: string;
+  tracks: ReadonlyArray<DemoTrack>;
 }
 
 interface JBrowseViewerProps {

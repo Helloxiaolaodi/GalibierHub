@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { SiteConfig } from '@/site-config';
 import { getStorageUrl } from '@/lib/storage';
+import type { AssemblyData, DemoTrack, DemoTrackAdapter } from './jbrowse-viewer';
 
 interface GenomeBrowserProps {
   locus?: string;
@@ -11,20 +12,8 @@ interface GenomeBrowserProps {
 }
 
 type Probe = 'idle' | 'checking' | 'ready' | 'missing-data';
-type AssemblyName = keyof typeof SiteConfig.jbrowse.assemblies;
-type DemoTrack = (typeof SiteConfig.jbrowse.assemblies)[AssemblyName]['tracks'][number];
-
-interface AdapterWithFiles {
-  gffGzLocation?: string;
-  bamLocation?: string;
-  bigBedLocation?: string;
-  bedLocation?: string;
-  gffLocation?: string;
-  index?: {
-    location: string;
-    indexType: string;
-  };
-}
+type AssemblyConfig = AssemblyData;
+type AdapterWithFiles = DemoTrackAdapter;
 
 const JBrowseViewer = dynamic(() => import('./jbrowse-viewer'), {
   ssr: false,
@@ -81,18 +70,18 @@ async function getReachableTracks(baseUrl: string, tracks: readonly DemoTrack[])
 
 export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
   const configuredBase = SiteConfig.jbrowse.storageBaseUrl;
-  const assemblies = SiteConfig.jbrowse.assemblies;
+  const assemblies = SiteConfig.jbrowse.assemblies as Record<string, AssemblyConfig>;
   const defaultAssembly = SiteConfig.jbrowse.defaultAssembly;
 
-  const assemblyNames = useMemo<AssemblyName[]>(() => {
-    const keys = Object.keys(assemblies) as AssemblyName[];
+  const assemblyNames = useMemo<string[]>(() => {
+    const keys = Object.keys(assemblies);
     const rest = keys.filter((key) => key !== defaultAssembly);
     return [defaultAssembly, ...rest];
   }, [assemblies, defaultAssembly]);
 
   const [probe, setProbe] = useState<Probe>('idle');
   const [dataBase, setDataBase] = useState(configuredBase);
-  const [resolvedAssembly, setResolvedAssembly] = useState<AssemblyName>(defaultAssembly);
+  const [resolvedAssembly, setResolvedAssembly] = useState<string>(defaultAssembly);
   const [availableTracks, setAvailableTracks] = useState<DemoTrack[]>([]);
 
   const assemblyData = assemblies[resolvedAssembly];
@@ -174,7 +163,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
           </p>
           <p className="text-sm text-gray-500">
             SeqEdge is configured to use only your real genome storage.
-            Set NEXT_PUBLIC_STORAGE_BASE_URL to a CORS-enabled object store and make sure the SARS-CoV-2 reference files are reachable.
+            Set NEXT_PUBLIC_STORAGE_BASE_URL to a CORS-enabled object store and make sure the configured reference files are reachable.
           </p>
           <p className="text-xs text-gray-400">
             See <code className="bg-gray-100 px-1 rounded">docs/data-compression-guide.md</code> for the recommended formats.

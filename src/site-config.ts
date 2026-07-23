@@ -25,37 +25,37 @@ export const SiteConfig = {
   },
 
   jbrowse: {
-    defaultAssembly: 'NC_045512.2',
-    defaultLocus: 'NC_045512.2:1-5000',
+    defaultAssembly: process.env.NEXT_PUBLIC_REFERENCE_ASSEMBLY || 'reference',
+    defaultLocus: process.env.NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS || 'reference:1-1000',
     storageBaseUrl:
       process.env.NEXT_PUBLIC_STORAGE_BASE_URL ||
       process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
       '',
     assemblies: {
-      'NC_045512.2': {
-        defaultLocus: 'NC_045512.2:1-5000',
-        fasta: 'scov2.fa',
-        fastaIndex: 'scov2.fa.fai',
+      [process.env.NEXT_PUBLIC_REFERENCE_ASSEMBLY || 'reference']: {
+        defaultLocus: process.env.NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS || 'reference:1-1000',
+        fasta: process.env.NEXT_PUBLIC_REFERENCE_FASTA || 'reference.fa',
+        fastaIndex: process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX || 'reference.fa.fai',
         tracks: [
           {
-            trackId: 'scov2-genes-bed',
-            name: 'SARS-CoV-2 Genes (BED)',
+            trackId: 'annotations-bed',
+            name: 'Reference Annotations (BED)',
             type: 'FeatureTrack',
             adapter: {
               type: 'BedAdapter',
-              bedLocation: 'scov2.genes.bed',
+              bedLocation: process.env.NEXT_PUBLIC_REFERENCE_BED || 'reference.annotations.bed',
             },
-            displays: [{ displayId: 'scov2-genes-bed-LinearBasicDisplay', type: 'LinearBasicDisplay' }],
+            displays: [{ displayId: 'annotations-bed-LinearBasicDisplay', type: 'LinearBasicDisplay' }],
           },
           {
-            trackId: 'scov2-genes-gff3',
-            name: 'SARS-CoV-2 Genes (GFF3)',
+            trackId: 'annotations-gff3',
+            name: 'Reference Annotations (GFF3)',
             type: 'FeatureTrack',
             adapter: {
               type: 'Gff3Adapter',
-              gffLocation: 'scov2.genes.gff3',
+              gffLocation: process.env.NEXT_PUBLIC_REFERENCE_GFF3 || 'reference.annotations.gff3',
             },
-            displays: [{ displayId: 'scov2-genes-gff3-LinearBasicDisplay', type: 'LinearBasicDisplay' }],
+            displays: [{ displayId: 'annotations-gff3-LinearBasicDisplay', type: 'LinearBasicDisplay' }],
           },
         ],
       },
@@ -70,7 +70,7 @@ export const SiteConfig = {
     overweight: [24.0, 28.0],
     obese: [28.0, 100],
   },
-  chromosomes: ['NC_045512.2'],
+  chromosomes: [process.env.NEXT_PUBLIC_REFERENCE_ASSEMBLY || 'reference'],
 
   pageSize: 20,
 

@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS genome_samples (
   species TEXT NOT NULL,
   tissue TEXT,
   sequencing_platform TEXT,
-  assembly_version TEXT NOT NULL DEFAULT 'NC_045512.2',
+  assembly_version TEXT NOT NULL,
   total_variants INTEGER DEFAULT 0,
   coverage NUMERIC DEFAULT 0,
   -- Phenotype / cohort metadata — optional, drives the metadata filter panel
@@ -101,35 +101,8 @@ CREATE POLICY "Public read predicted_promoters" ON predicted_promoters FOR SELEC
 CREATE POLICY "Public read variant_index"       ON variant_index       FOR SELECT TO anon USING (true);
 
 -- ============================================================
--- Sample data (remove in production)
+-- No template seed data is inserted by default.
 -- ============================================================
--- Idempotent seed for the samples table using the bundled public SARS-CoV-2
--- reference assembly and annotations.
-INSERT INTO genome_samples (sample_id, species, tissue, sequencing_platform, assembly_version, total_variants, coverage, cohort, bmi, age, sex) VALUES
-  ('SCOV2-REF-001', 'Severe acute respiratory syndrome coronavirus 2', 'nasopharyngeal swab', 'Illumina', 'NC_045512.2', 0, 100.0, 'Reference genome', NULL, NULL, NULL)
-ON CONFLICT (sample_id) DO UPDATE SET
-  species             = EXCLUDED.species,
-  tissue              = EXCLUDED.tissue,
-  sequencing_platform = EXCLUDED.sequencing_platform,
-  assembly_version    = EXCLUDED.assembly_version,
-  total_variants      = EXCLUDED.total_variants,
-  coverage            = EXCLUDED.coverage,
-  cohort              = EXCLUDED.cohort,
-  bmi                 = EXCLUDED.bmi,
-  age                 = EXCLUDED.age,
-  sex                 = EXCLUDED.sex;
-
--- Promoter seed rows — safe on a fresh database. Skip this block if
--- predicted_promoters already contains data you want to keep.
-INSERT INTO predicted_promoters (sample_id, chrom, start, end_pos, score, strand, gene_symbol, sequence) VALUES
-  ('SCOV2-REF-001', 'NC_045512.2', 266, 21555, 0.98, '+', 'ORF1ab', NULL),
-  ('SCOV2-REF-001', 'NC_045512.2', 21563, 25384, 0.97, '+', 'S', NULL),
-  ('SCOV2-REF-001', 'NC_045512.2', 25393, 26220, 0.90, '+', 'ORF3a', NULL),
-  ('SCOV2-REF-001', 'NC_045512.2', 26245, 26472, 0.84, '+', 'E', NULL),
-  ('SCOV2-REF-001', 'NC_045512.2', 26523, 27191, 0.92, '+', 'M', NULL),
-  ('SCOV2-REF-001', 'NC_045512.2', 27202, 27387, 0.76, '+', 'ORF6', NULL),
-  ('SCOV2-REF-001', 'NC_045512.2', 27394, 27759, 0.82, '+', 'ORF7a', NULL),
-  ('SCOV2-REF-001', 'NC_045512.2', 27756, 27887, 0.71, '+', 'ORF7b', NULL),
-  ('SCOV2-REF-001', 'NC_045512.2', 27894, 28259, 0.80, '+', 'ORF8', NULL),
-  ('SCOV2-REF-001', 'NC_045512.2', 28274, 29533, 0.95, '+', 'N', NULL),
-  ('SCOV2-REF-001', 'NC_045512.2', 29558, 29674, 0.68, '+', 'ORF10', NULL);
+-- Import only your real metadata and genomic annotations.
+-- If you previously loaded the template sample SCOV2-REF-001, remove it before
+-- production use so the public site cannot surface placeholder records.

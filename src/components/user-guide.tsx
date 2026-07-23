@@ -25,7 +25,7 @@ const REFERENCES = [
   },
   {
     name: '@jbrowse/product-core ^4.3.0',
-    href: 'https://jbrowse.org/jb2/docs/',
+    href: 'https://jbrowse.org/jb2/',
     note: 'JBrowse 2 official documentation',
   },
   {
@@ -136,6 +136,9 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
               <li><span className="font-medium text-gray-900">Metadata &amp; Tables:</span> Structured datasets are served via cloud databases with secure read access.</li>
               <li><span className="font-medium text-gray-900">Genomic Files:</span> Large tracks (FASTA, BAM, VCF, GFF3) are hosted via object storage with range-request acceleration for fast streaming.</li>
             </ul>
+            <p className="mt-3 text-xs leading-5 text-gray-500">
+              For local validation or reproducible setup, download <span className="font-medium text-gray-700">seqedge-test-data.zip</span> from the repository Releases page, upload the extracted files to your object storage, and point the deployment to those real files.
+            </p>
           </section>
 
           <section>

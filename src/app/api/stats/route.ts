@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
+const TEMPLATE_SAMPLE_ID = 'SCOV2-REF-001';
+
 export async function GET() {
   if (!isSupabaseConfigured) {
     return NextResponse.json(
@@ -16,15 +18,18 @@ export async function GET() {
     { count: totalVariants },
     { data: sampleData },
   ] = await Promise.all([
-    sb.from('genome_samples').select('*', { count: 'exact', head: true }),
-    sb.from('predicted_promoters').select('*', { count: 'exact', head: true }),
+    sb.from('genome_samples').select('*', { count: 'exact', head: true }).neq('sample_id', TEMPLATE_SAMPLE_ID),
+    sb.from('predicted_promoters').select('*', { count: 'exact', head: true }).neq('sample_id', TEMPLATE_SAMPLE_ID),
     sb.from('variant_index').select('*', { count: 'exact', head: true }),
-    sb.from('genome_samples').select('species'),
+    sb.from('genome_samples').select('species, sample_id').neq('sample_id', TEMPLATE_SAMPLE_ID),
   ]);
 
   const speciesDistribution: Record<string, number> = {};
   if (sampleData) {
     for (const row of sampleData) {
+      if (row.sample_id === TEMPLATE_SAMPLE_ID) {
+        continue;
+      }
       const sp = row.species || 'Unknown';
       speciesDistribution[sp] = (speciesDistribution[sp] || 0) + 1;
     }
@@ -32,7 +37,8 @@ export async function GET() {
 
   const { data: scoreData } = await getSupabase()
     .from('predicted_promoters')
-    .select('score');
+    .select('score, sample_id')
+    .neq('sample_id', TEMPLATE_SAMPLE_ID);
 
   const bins = [
     { range: '0.0-0.1', min: 0, max: 0.1 },
@@ -50,7 +56,7 @@ export async function GET() {
   const scoreDistribution = bins.map((bin) => ({
     range: bin.range,
     count: scoreData
-      ? scoreData.filter((row: { score: number }) => row.score >= bin.min && row.score < bin.max).length
+      ? scoreData.filter((row: { score: number; sample_id: string }) => row.score >= bin.min && row.score < bin.max).length
       : 0,
   }));
 

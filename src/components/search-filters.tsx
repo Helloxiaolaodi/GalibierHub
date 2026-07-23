@@ -20,17 +20,6 @@ interface SearchFiltersProps {
   loading?: boolean;
 }
 
-const CHROMOSOMES = ['NC_045512.2'];
-
-// Species / tissue lists mirror the public seed data in schema.sql.
-const SPECIES = ['Severe acute respiratory syndrome coronavirus 2'];
-const TISSUES = ['nasopharyngeal swab'];
-
-// Cohort tokens should stay aligned with the public demo seed rows.
-const COHORTS = [
-  { value: 'Reference genome', label: 'Reference genome' },
-];
-
 // Chinese adult BMI classification (kg/m^2)
 const BMI_CLASSES = [
   { value: 'underweight', label: 'Underweight (<18.5)' },
@@ -60,8 +49,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           Search Filters
         </h2>
         <p className="text-xs text-gray-500 mt-0.5">
-          Filter public SARS-CoV-2 reference annotations by locus, feature name,
-          sample identifier, and score.
+          Filter records by locus, feature name, sample metadata, and score.
         </p>
       </div>
 
@@ -73,24 +61,18 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label htmlFor="filter-species" className="block text-xs text-gray-500 mb-1">Species</label>
-            <select id="filter-species" value={filters.species} onChange={(e) => set('species', e.target.value)} className={cellCls}>
-              <option value="">All</option>
-              {SPECIES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <input id="filter-species" type="text" placeholder="Enter species" value={filters.species}
+              onChange={(e) => set('species', e.target.value)} className={cellCls} />
           </div>
           <div>
             <label htmlFor="filter-tissue" className="block text-xs text-gray-500 mb-1">Tissue</label>
-            <select id="filter-tissue" value={filters.tissue} onChange={(e) => set('tissue', e.target.value)} className={cellCls}>
-              <option value="">All</option>
-              {TISSUES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
+            <input id="filter-tissue" type="text" placeholder="Enter tissue or source" value={filters.tissue}
+              onChange={(e) => set('tissue', e.target.value)} className={cellCls} />
           </div>
           <div>
-            <label htmlFor="filter-cohort" className="block text-xs text-gray-500 mb-1">Cohort prefix</label>
-            <select id="filter-cohort" value={filters.cohort} onChange={(e) => set('cohort', e.target.value)} className={cellCls}>
-              <option value="">All</option>
-              {COHORTS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
+            <label htmlFor="filter-cohort" className="block text-xs text-gray-500 mb-1">Cohort</label>
+            <input id="filter-cohort" type="text" placeholder="Enter cohort label" value={filters.cohort}
+              onChange={(e) => set('cohort', e.target.value)} className={cellCls} />
           </div>
           <div>
             <label htmlFor="filter-bmi" className="block text-xs text-gray-500 mb-1">
@@ -112,24 +94,22 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label htmlFor="filter-chrom" className="block text-xs text-gray-500 mb-1">Chromosome</label>
-            <select id="filter-chrom" value={filters.chrom} onChange={(e) => set('chrom', e.target.value)} className={cellCls}>
-              <option value="">All</option>
-              {CHROMOSOMES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <input id="filter-chrom" type="text" placeholder="Enter chromosome or contig" value={filters.chrom}
+              onChange={(e) => set('chrom', e.target.value)} className={cellCls} />
           </div>
           <div>
             <label htmlFor="filter-start" className="block text-xs text-gray-500 mb-1">Start position</label>
-            <input id="filter-start" type="number" placeholder="e.g. 21563" value={filters.start}
+            <input id="filter-start" type="number" placeholder="Start coordinate" value={filters.start}
               onChange={(e) => set('start', e.target.value)} className={cellCls} />
           </div>
           <div>
             <label htmlFor="filter-end" className="block text-xs text-gray-500 mb-1">End position</label>
-            <input id="filter-end" type="number" placeholder="e.g. 25384" value={filters.end_pos}
+            <input id="filter-end" type="number" placeholder="End coordinate" value={filters.end_pos}
               onChange={(e) => set('end_pos', e.target.value)} className={cellCls} />
           </div>
           <div>
             <label htmlFor="filter-gene" className="block text-xs text-gray-500 mb-1">Gene symbol</label>
-            <input id="filter-gene" type="text" placeholder="e.g. S or ORF1ab" value={filters.geneSymbol}
+            <input id="filter-gene" type="text" placeholder="Enter gene or feature name" value={filters.geneSymbol}
               onChange={(e) => set('geneSymbol', e.target.value)} className={cellCls} />
           </div>
           <div>
@@ -142,7 +122,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           </div>
           <div>
             <label htmlFor="filter-sample" className="block text-xs text-gray-500 mb-1">Sample ID</label>
-            <input id="filter-sample" type="text" placeholder="e.g. SCOV2-REF-001" value={filters.sampleId}
+            <input id="filter-sample" type="text" placeholder="Enter sample ID" value={filters.sampleId}
               onChange={(e) => set('sampleId', e.target.value)} className={cellCls} />
           </div>
           <div className="lg:col-span-2 flex items-end gap-2">
