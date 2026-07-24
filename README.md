@@ -298,7 +298,6 @@ Keep these for the current feature set:
 - `README.zh-CN.md`
 - `cloudflare-templates/hf-proxy/`
 - `scripts/`
-- `public/demo-data/`
 - `public/seqedge-github-img-readme.jpg`
 
 Default template SVG assets under `public/` (file, globe, etc.) are unused and can be removed.

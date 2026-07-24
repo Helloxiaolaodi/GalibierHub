@@ -85,6 +85,8 @@ export interface SiteFeedbackEntry {
   creator_reply: string | null;
   replied_at: string | null;
   created_at: string;
+  pinned?: boolean;
+  hidden?: boolean;
 }
 
 export interface FeedbackSummary {

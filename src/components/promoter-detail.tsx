@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { SiteConfig } from '@/site-config';
@@ -247,6 +247,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
   };
 
   return (
+    <div className="fixed inset-0 z-50 bg-black/20" onClick={onClose} role="presentation">
     <div
       className="fixed z-50 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-2xl"
       style={{
@@ -257,8 +258,9 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
         height: isDesktop ? `${size.height}px` : 'auto',
         maxHeight: `min(${maxPanelHeight}px, calc(100vh - 2rem))`,
       }}
-    >
-      <div className="flex max-h-[inherit] flex-col overflow-hidden">
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex max-h-[inherit] flex-col overflow-hidden">
         <div
           className={`sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4 ${dragging ? 'cursor-grabbing' : 'cursor-default lg:cursor-grab'}`}
           onPointerDown={handlePointerDown}
@@ -277,10 +279,9 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
           </div>
           <button
             type="button"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={onClose}
+            onClick={(event) => { event.stopPropagation(); onClose(); }}
             aria-label="Close"
-            className="rounded-lg p-1.5 transition-colors hover:bg-gray-100"
+            className="rounded-lg p-1.5 transition-colors hover:bg-gray-100 shrink-0"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -460,6 +461,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
           </svg>
         </button>
       </div>
+    </div>
     </div>
   );
 }

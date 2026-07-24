@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- SeqEdge — Supabase Database Schema
 -- ============================================================
 -- Run this SQL in your Supabase SQL Editor to create all
@@ -127,6 +127,8 @@ ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS visitor_email TEXT;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS creator_reply TEXT;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS replied_at TIMESTAMPTZ;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS visibility TEXT;
+ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS pinned BOOLEAN DEFAULT false;
+ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS hidden BOOLEAN DEFAULT false;
 UPDATE site_feedback SET visibility = 'public' WHERE visibility IS NULL;
 ALTER TABLE site_feedback ALTER COLUMN visibility SET DEFAULT 'public';
 DO $$ BEGIN
@@ -141,6 +143,7 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_site_feedback_created_at ON site_feedback (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_site_feedback_category ON site_feedback (category);
+CREATE INDEX IF NOT EXISTS idx_site_feedback_pinned ON site_feedback (pinned);
 
 -- 5. Anonymous site reactions with one reaction per browser fingerprint and type
 CREATE TABLE IF NOT EXISTS site_reactions (
