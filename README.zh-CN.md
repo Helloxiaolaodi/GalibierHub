@@ -1,13 +1,30 @@
-﻿# SeqEdge
+# SeqEdge
 
 ![SeqEdge Screenshot](./seqedge-github-img-readme.jpg)
 
-SeqEdge is a lightweight template for building a public genomics site with searchable metadata, an embedded JBrowse view, and direct dataset downloads.
+Edge-Native Genomics Database Template
+
+An open-source template for coordinate-based genomics portals that combine searchable metadata, genome browser views, charts, and storage-decoupled deployment.
 
 Primary: [https://seq-edge.vercel.app](https://seq-edge.vercel.app)
 Mirror: [https://seqedge.pages.dev](https://seqedge.pages.dev)
+GitHub: [https://github.com/Helloxiaolaodi/SeqEdge](https://github.com/Helloxiaolaodi/SeqEdge)
 
-English README: [README.md](./README.md)
+Language: [English](./README.md) | Simplified Chinese | [Issues](https://github.com/Helloxiaolaodi/SeqEdge/issues)
+
+Detailed build guide: [SeqEdge Developer Notes](https://www.cnblogs.com/Helloxiaolaodi/p/21776736)
+
+Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts
+
+![License](https://img.shields.io/github/license/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Stars](https://img.shields.io/github/stars/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Forks](https://img.shields.io/github/forks/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Issues](https://img.shields.io/github/issues/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Next.js](https://img.shields.io/badge/Next.js-15.5.21-black?style=flat-square&logo=next.js)
+![Supabase](https://img.shields.io/badge/Supabase-2.110.7-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=flat-square&logo=vercel)
+
+![SeqEdge Architecture](./docs/architecture.gif)
 
 ## What Users Can Do
 
@@ -201,13 +218,13 @@ To let the site owner sign in and reply from the browser:
 
 ### 1. Enable GitHub Auth in Supabase
 
-In Supabase Dashboard, go to **Authentication** → **Sign In / Providers** (under CONFIGURATION, not OAuth Server). Find **GitHub** in the provider list, expand it, and enable **Sign in with GitHub**.
+In Supabase Dashboard, go to **Authentication** ? **Sign In / Providers** (under CONFIGURATION, not OAuth Server). Find **GitHub** in the provider list, expand it, and enable **Sign in with GitHub**.
 
 ### 2. Configure Supabase Auth URLs (critical for production)
 
 After enabling GitHub Auth, update the URL configuration so OAuth redirects land on your production site instead of localhost:
 
-1. In Supabase Dashboard, go to **Authentication** → **URL Configuration**
+1. In Supabase Dashboard, go to **Authentication** ? **URL Configuration**
 2. Set **Site URL** to your production domain, e.g. https://seq-edge.vercel.app
 3. Under **Redirect URLs**, add all deployed domains (one per line):
    - https://seq-edge.vercel.app
@@ -220,11 +237,11 @@ If the Site URL is left as the default http://localhost:3000, OAuth sign-in will
 
 ### 3. Get GitHub OAuth Credentials
 
-1. Go to GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**
+1. Go to GitHub ? **Settings** ? **Developer settings** ? **OAuth Apps** ? **New OAuth App**
 2. **Application name**: e.g. `SeqEdge Auth`
 3. **Homepage URL**: `https://seq-edge.vercel.app` (or `http://localhost:3000` for local dev)
 4. **Authorization callback URL**: `https://<your-project>.supabase.co/auth/v1/callback`
-5. Click **Register application**, then **Generate a new client secret** (save immediately — shown only once)
+5. Click **Register application**, then **Generate a new client secret** (save immediately � shown only once)
 6. Copy the **Client ID** and **Client Secret** back into Supabase and click **Save**
 
 ### 4. Configure Environment
@@ -233,20 +250,20 @@ Set `GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the 
 
 Then sign in from the top-right `Log in with GitHub` button on the site.
 
-﻿## 邮件通知配置（Resend）
+?## ??????(Resend)
 
-SeqEdge 使用 [Resend](https://resend.com) 向网站创建者发送留言通知邮件。
+SeqEdge ?? [Resend](https://resend.com) ???????????????
 
-### 测试模式（无需域名）
+### ????(????)
 
-Resend 提供免费测试模式，无需 DNS 域名验证即可使用：
+Resend ????????,?? DNS ????????:
 
-1. 在 [resend.com](https://resend.com) 注册并进入 **API Keys**
-2. 创建新的 API 密钥并复制
-3. 测试发件地址为 `onboarding@resend.dev`，无需域名验证
-4. 测试模式下邮件只会发送到你自己已验证的邮箱地址（`FEEDBACK_EMAIL_TO`）
+1. ? [resend.com](https://resend.com) ????? **API Keys**
+2. ???? API ?????
+3. ??????? `onboarding@resend.dev`,??????
+4. ???????????????????????(`FEEDBACK_EMAIL_TO`)
 
-### 环境变量
+### ????
 
 ```bash
 FEEDBACK_EMAIL_API_URL=https://api.resend.com/emails
@@ -254,46 +271,46 @@ FEEDBACK_EMAIL_API_KEY=re_xxxxxxxxxxxx
 FEEDBACK_EMAIL_TO=1641454426@qq.com
 ```
 
-- `FEEDBACK_EMAIL_API_URL` — Resend API 端点（始终为 `https://api.resend.com/emails`）
-- `FEEDBACK_EMAIL_API_KEY` — 你的 Resend API 密钥（以 `re_` 开头）
-- `FEEDBACK_EMAIL_TO` — 接收留言通知的邮箱地址
+- `FEEDBACK_EMAIL_API_URL` � Resend API ??(??? `https://api.resend.com/emails`)
+- `FEEDBACK_EMAIL_API_KEY` � ?? Resend API ??(? `re_` ??)
+- `FEEDBACK_EMAIL_TO` � ???????????
 
-### 获取 API 密钥
+### ?? API ??
 
-1. 进入 [resend.com/api-keys](https://resend.com/api-keys)
-2. 点击 **Create API Key**
-3. 命名（例如 `SeqEdge`）
-4. 权限设为 **Sending access**
-5. 立即复制密钥 — 只显示一次，刷新后不可见
+1. ?? [resend.com/api-keys](https://resend.com/api-keys)
+2. ?? **Create API Key**
+3. ??(?? `SeqEdge`)
+4. ???? **Sending access**
+5. ?????? � ?????,??????
 
-### 生产模式（需要有自有域名）
+### ????(???????)
 
-测试模式下邮件只能发给自己的已验证邮箱。要向任意留言者发送回复邮件，需要已验证的自有域名。
+?????????????????????????????????,???????????
 
-**域名验证详细步骤：**
+**????????:**
 
-1. 进入 [resend.com/domains](https://resend.com/domains)
-2. 点击 **Add Domain**
-3. 填入发送子域名，例如 `mail.yourdomain.com`（Resend 推荐使用子域名而非根域名）
-4. 选择区域（非欧洲用户选 `us-east-1`）
-5. 点击 **Add** — Resend 生成三条 DNS 记录：
-   - **DKIM TXT 记录** — 主机: `resend._domainkey.mail`，值: 一长串 TXT 字符串（每个域名唯一）
-   - **SPF TXT 记录** — 主机: `mail`，值: `v=spf1 include:spf.resend.io ~all`
-   - **Return-path MX 记录** — 主机: `mail`，值: `feedback.resend.io`，优先级: `10`
-6. 前往你的 DNS 管理商（Cloudflare、阿里云 DNS、Namecheap 等）
-7. 逐条添加上述 DNS 记录，TTL 保持默认或设为 3600
-8. 回到 Resend Domains 页面，点击 **Verify DNS Records**
-9. DNS 传播需要几分钟，验证通过后 Resend 显示绿色勾号
-10. 验证完成后，将发件地址从 `onboarding@resend.dev` 改为 `seqedge@mail.yourdomain.com`
+1. ?? [resend.com/domains](https://resend.com/domains)
+2. ?? **Add Domain**
+3. ???????,?? `mail.yourdomain.com`(Resend ????????????)
+4. ????(?????? `us-east-1`)
+5. ?? **Add** � Resend ???? DNS ??:
+   - **DKIM TXT ??** � ??: `resend._domainkey.mail`,?: ??? TXT ???(??????)
+   - **SPF TXT ??** � ??: `mail`,?: `v=spf1 include:spf.resend.io ~all`
+   - **Return-path MX ??** � ??: `mail`,?: `feedback.resend.io`,???: `10`
+6. ???? DNS ???(Cloudflare???? DNS?Namecheap ?)
+7. ?????? DNS ??,TTL ??????? 3600
+8. ?? Resend Domains ??,?? **Verify DNS Records**
+9. DNS ???????,????? Resend ??????
+10. ?????,?????? `onboarding@resend.dev` ?? `seqedge@mail.yourdomain.com`
 
-**免费域名的限制：** 如果你部署在 `pages.dev` 或 `vercel.app` 上，无法为这些域名添加 DNS 记录（不拥有域名所有权）。需要有自己注册的域名才能使用生产模式。在此之前，测试模式完全够用。
+**???????:** ?????? `pages.dev` ? `vercel.app` ?,????????? DNS ??(????????)????????????????????????,?????????
 
-**推荐发送方案：**
+**??????:**
 
-- **方案 A（生产模式）：** 自有域名 + Resend 域名验证 → 可向任意邮箱发送
-- **方案 B（测试模式，当前）：** 无需域名 → `onboarding@resend.dev` 发件 → 仅发送到 `FEEDBACK_EMAIL_TO`
+- **?? A(????):** ???? + Resend ???? ? ????????
+- **?? B(????,??):** ???? ? `onboarding@resend.dev` ?? ? ???? `FEEDBACK_EMAIL_TO`
 
-如果你刚起步，方案 B 完全满足需求。拥有自有域名后再切换到方案 A。
+??????,?? B ???????????????????? A?
 
 ## Site Uptime
 

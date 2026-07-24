@@ -90,6 +90,7 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
   const [composerErrors, setComposerErrors] = useState<Record<string, string>>({});
  const [pinToggling, setPinToggling] = useState<string | null>(null);
  const [hideToggling, setHideToggling] = useState<string | null>(null);
+ const [deletingId, setDeletingId] = useState<string | null>(null);
  const [expandedEntries, setExpandedEntries] = useState<Record<string, boolean>>({});
   const [inProgressSort, setInProgressSort] = useState<'newest' | 'oldest' | 'most_liked'>('newest');
   const [completedSort, setCompletedSort] = useState<'newest' | 'oldest' | 'most_liked'>('newest');
@@ -573,6 +574,22 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
       await fetchFeedback();
     } catch { /* ignore */ }
     finally { setHideToggling(null); }
+
+  const handleDelete = async (entryId: string) => {
+    if (!accessToken) return;
+    if (!window.confirm('Permanently delete this feedback entry?')) return;
+    setDeletingId(entryId);
+    try {
+      const response = await fetch(`/api/feedback?id=${encodeURIComponent(entryId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error || 'Failed to delete entry.');
+      await fetchFeedback();
+    } catch { /* ignore */ }
+    finally { setDeletingId(null); }
+  };
   };
 
   return (

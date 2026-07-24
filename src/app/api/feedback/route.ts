@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
 import { getBearerToken, requireCreatorGithubAuth, requireGithubAuth } from "@/lib/feedback-admin";
 
@@ -454,4 +454,36 @@ export async function PATCH(request: NextRequest) {
   }
 
   return NextResponse.json({ entry: data });
+}
+
+export async function DELETE(request: NextRequest) {
+  if (!isSupabaseConfigured) {
+    return NextResponse.json(
+      { error: "Supabase is not configured." },
+      { status: 503 },
+    );
+  }
+
+  const token = getBearerToken(request);
+  const adminCheck = await requireCreatorGithubAuth(token);
+  if (!adminCheck.ok) {
+    return NextResponse.json({ error: adminCheck.error }, { status: 401 });
+  }
+
+  const id = request.nextUrl.searchParams.get('id');
+  if (!id) {
+    return NextResponse.json({ error: "Feedback id is required." }, { status: 400 });
+  }
+
+  const sb = getSupabase();
+  const { error } = await sb
+    .from("site_feedback")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }
