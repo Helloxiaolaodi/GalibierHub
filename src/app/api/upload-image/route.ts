@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  const { data, error } = await sb.storage
-    .from("feedback-images")
+  const { error } = await sb.storage
+   .from("feedback-images")
     .upload(fileName, buffer, {
       contentType: file.type,
       upsert: false,
