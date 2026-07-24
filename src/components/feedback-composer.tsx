@@ -61,7 +61,21 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
     visibility: 'public' as VisibilityMode,
     message: '',
   });
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+ const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await fetch('/api/upload-image', { method: 'POST', body: formData });
+      const data = await response.json() as { url?: string; error?: string };
+      if (!response.ok) throw new Error(data.error || 'Upload failed');
+      return data.url || null;
+    } catch {
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -346,9 +360,17 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
                 value={form.message}
                 onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
               rows={6}
-              className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-            />
-             {validationErrors.message && <span className="text-xs text-red-600">{validationErrors.message}</span>}
+             className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+           />
+            <div className="mt-2 flex items-center gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                Upload Image
+                <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const file = e.target.files?.[0]; if (file) { setUploadingImage(true); const url = await handleImageUpload(file); setUploadingImage(false); if (url) { setForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); } } }} />
+              </label>
+              {uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
+            </div>
+            {validationErrors.message && <span className="text-xs text-red-600">{validationErrors.message}</span>}
             </label>
 
             {submitError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</div>}
