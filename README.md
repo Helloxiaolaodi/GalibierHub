@@ -203,7 +203,22 @@ To let the site owner sign in and reply from the browser:
 
 In Supabase Dashboard, go to **Authentication** → **Sign In / Providers** (under CONFIGURATION, not OAuth Server). Find **GitHub** in the provider list, expand it, and enable **Sign in with GitHub**.
 
-### 2. Get GitHub OAuth Credentials
+### 2. Configure Supabase Auth URLs (critical for production)
+
+After enabling GitHub Auth, update the URL configuration so OAuth redirects land on your production site instead of localhost:
+
+1. In Supabase Dashboard, go to **Authentication** → **URL Configuration**
+2. Set **Site URL** to your production domain, e.g. https://seq-edge.vercel.app
+3. Under **Redirect URLs**, add all deployed domains (one per line):
+   - https://seq-edge.vercel.app
+   - https://seq-edge.vercel.app/**
+   - https://seqedge.pages.dev
+   - https://seqedge.pages.dev/**
+4. Click **Save**
+
+If the Site URL is left as the default http://localhost:3000, OAuth sign-in will redirect users there, which does not exist in production and will show a connection-refused page.
+
+### 3. Get GitHub OAuth Credentials
 
 1. Go to GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**
 2. **Application name**: e.g. `SeqEdge Auth`
@@ -212,7 +227,7 @@ In Supabase Dashboard, go to **Authentication** → **Sign In / Providers** (und
 5. Click **Register application**, then **Generate a new client secret** (save immediately — shown only once)
 6. Copy the **Client ID** and **Client Secret** back into Supabase and click **Save**
 
-### 3. Configure Environment
+### 4. Configure Environment
 
 Set `GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the GitHub login that may reply. Any other signed-in GitHub account can read but cannot send creator replies.
 

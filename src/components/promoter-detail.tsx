@@ -171,9 +171,12 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
   const strandColor = promoter.strand === '+' ? 'text-blue-600' : 'text-red-600';
   const length = promoter.end_pos - promoter.start;
   const bmi = sample && sample !== null ? bmiClass(sample.bmi) : null;
-  const vcfDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.vcf_download_url) : '';
-  const fastaDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.fasta_download_url) : '';
-  const showVcfCli = sample?.vcf_download_mode === 'cli';
+ const vcfDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.vcf_download_url) : '';
+ const fastaDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.fasta_download_url) : '';
+  const gbDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gb_download_url) : '';
+  const bedDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.bed_download_url) : '';
+  const gff3DownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gff3_download_url) : '';
+ const showVcfCli = sample?.vcf_download_mode === 'cli';
   const showFastaCli = sample?.fasta_download_mode === 'cli';
 
   const handleCopyBed = () => {
@@ -423,7 +426,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
             )}
           </div>
 
-          {(vcfDownloadUrl || fastaDownloadUrl) && (
+          {(vcfDownloadUrl || fastaDownloadUrl || gbDownloadUrl || bedDownloadUrl || gff3DownloadUrl) && (
             <Card title="Sample file downloads">
               <div className="space-y-4">
                 {vcfDownloadUrl && (
@@ -434,12 +437,36 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
                     showCli={showVcfCli}
                   />
                 )}
-                {fastaDownloadUrl && (
+               {fastaDownloadUrl && (
+                 <DownloadActions
+                   url={fastaDownloadUrl}
+                   label="Download FASTA"
+                   description="Direct sample-level FASTA download from the public storage host."
+                   showCli={showFastaCli}
+                 />
+               )}
+                {gbDownloadUrl && (
                   <DownloadActions
-                    url={fastaDownloadUrl}
-                    label="Download FASTA"
-                    description="Direct sample-level FASTA download from the public storage host."
-                    showCli={showFastaCli}
+                    url={gbDownloadUrl}
+                    label="Download GenBank"
+                    description="Direct sample-level GenBank (.gb) download from the public storage host."
+                    showCli={false}
+                  />
+                )}
+                {bedDownloadUrl && (
+                  <DownloadActions
+                    url={bedDownloadUrl}
+                    label="Download BED"
+                    description="Direct sample-level BED annotation download from the public storage host."
+                    showCli={false}
+                  />
+                )}
+                {gff3DownloadUrl && (
+                  <DownloadActions
+                    url={gff3DownloadUrl}
+                    label="Download GFF3"
+                    description="Direct sample-level GFF3 annotation download from the public storage host."
+                    showCli={false}
                   />
                 )}
               </div>
