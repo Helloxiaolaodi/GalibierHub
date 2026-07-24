@@ -425,15 +425,23 @@ export async function PATCH(request: NextRequest) {
     updatePayload.hidden = hidden;
   }
 
- const { data, error } = await sb
+ const { error: updateErr } = await sb
    .from("site_feedback")
    .update(updatePayload)
-   .eq("id", id)
-   .select("id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden")
-    .maybeSingle();
+   .eq("id", id);
 
- if (error) {
-   return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
+ if (updateErr) {
+   return NextResponse.json({ error: formatFeedbackStorageError(updateErr.message) }, { status: 500 });
+ }
+
+ const { data, error: fetchErr } = await sb
+   .from("site_feedback")
+   .select("id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden")
+   .eq("id", id)
+   .maybeSingle();
+
+ if (fetchErr) {
+   return NextResponse.json({ error: formatFeedbackStorageError(fetchErr.message) }, { status: 500 });
  }
 
   if (!data) {

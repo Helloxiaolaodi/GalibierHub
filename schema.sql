@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- SeqEdge â€” Supabase Database Schema
 -- ============================================================
 -- Run this SQL in your Supabase SQL Editor to create all
@@ -230,4 +230,11 @@ CREATE POLICY "Anyone can upload feedback images" ON storage.objects
 DROP POLICY IF EXISTS "Public delete site_reactions" ON site_reactions;
 CREATE POLICY "Public delete site_reactions" ON site_reactions FOR DELETE TO anon USING (true);
 DROP POLICY IF EXISTS "Service delete site_feedback" ON site_feedback;
-CREATE POLICY "Service delete site_feedback" ON site_feedback FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Service delete site_feedback" ON site_feedback FOR DELETE TO anon USING (true);
+-- ============================================================
+-- UPDATE policies for feedback-related tables
+-- ============================================================
+DROP POLICY IF EXISTS "Public update site_feedback" ON site_feedback;
+CREATE POLICY "Public update site_feedback" ON site_feedback FOR UPDATE TO anon USING (true);
+DROP POLICY IF EXISTS "Public update feedback_comments" ON feedback_comments;
+CREATE POLICY "Public update feedback_comments" ON feedback_comments FOR UPDATE TO anon USING (true);
