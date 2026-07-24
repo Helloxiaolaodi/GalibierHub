@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import type { Promoter, DashboardStats } from '@/types/genome';
 import { getDirectDownloadUrl } from '@/lib/storage';
 import { SiteConfig } from '@/site-config';
+import { getBrowserSupabase } from '@/utils/supabase-browser';
 import SearchFilters, { type SearchFilters as FiltersType } from '@/components/search-filters';
 import StatsChart from '@/components/stats-chart';
 import PromoterTable from '@/components/promoter-table';
@@ -13,12 +15,13 @@ import UserGuide from '@/components/user-guide';
 import DownloadActions from '@/components/download-actions';
 import SiteFeedback from '@/components/site-feedback';
 import SiteUptime from '@/components/site-uptime';
+import FeedbackComposer from '@/components/feedback-composer';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
 
 function buildPromoterLocus(promoter: Promoter) {
-  return `${promoter.chrom}:${Math.max(0, promoter.start - 2000)}-${promoter.end_pos + 2000}`;
+  return `${promoter.chrom}:${Math.max(1, promoter.start - 2000)}-${Math.max(promoter.end_pos + 2000, promoter.start + 1)}`;
 }
 
 function buildHighlightRegion(promoter: Promoter | null) {
@@ -59,8 +62,12 @@ export default function HomePage() {
   const [currentFilters, setCurrentFilters] = useState<FiltersType>(EMPTY_FILTERS);
   const [sortMode, setSortMode] = useState<PromoterSortMode>('score_desc');
   const [summaryMode, setSummaryMode] = useState<SummaryMode>('overview');
-  const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome' | 'feedback'>('overview');
   const [guideOpen, setGuideOpen] = useState(false);
+  const [feedbackComposerOpen, setFeedbackComposerOpen] = useState(false);
+  const [feedbackRefreshSignal, setFeedbackRefreshSignal] = useState(0);
+  const [creatorSession, setCreatorSession] = useState<Session | null>(null);
+  const [creatorLogin, setCreatorLogin] = useState<string | null>(null);
   const [dataError, setDataError] = useState<string | null>(null);
   const featuredDownloads = useMemo(
     () => SiteConfig.downloads.featured
@@ -85,6 +92,40 @@ export default function HomePage() {
     }
     return hints;
   }, [dataError]);
+
+  useEffect(() => {
+    const supabase = getBrowserSupabase();
+    if (!supabase) {
+      return undefined;
+    }
+
+    const syncSession = (session: Session | null) => {
+      setCreatorSession(session);
+      const metadata = session?.user?.user_metadata && typeof session.user.user_metadata === 'object'
+        ? session.user.user_metadata as Record<string, unknown>
+        : {};
+      const login = typeof metadata.user_name === 'string'
+        ? metadata.user_name
+        : typeof metadata.preferred_username === 'string'
+          ? metadata.preferred_username
+          : typeof metadata.login === 'string'
+            ? metadata.login
+            : null;
+      setCreatorLogin(login);
+    };
+
+    void supabase.auth.getSession().then(({ data }) => {
+      syncSession(data.session ?? null);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncSession(session);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     fetch('/api/stats')
@@ -164,6 +205,16 @@ export default function HomePage() {
     setActiveTab('genome');
   }, []);
 
+  useEffect(() => {
+    if (activeTab !== 'genome' || selectedPromoter || promoters.length === 0) {
+      return;
+    }
+
+    const firstPromoter = promoters[0];
+    setSelectedPromoter(firstPromoter);
+    setBrowserLocus(buildPromoterLocus(firstPromoter));
+  }, [activeTab, promoters, selectedPromoter]);
+
   const filterSummary = useMemo(() => {
     const items: Array<{ label: string; value: string }> = [];
     if (currentFilters.chrom) items.push({ label: 'Chromosome', value: currentFilters.chrom });
@@ -216,10 +267,34 @@ export default function HomePage() {
     [selectedPromoter],
   );
 
+  const creatorAccessToken = creatorSession?.access_token || null;
+
+  const handleCreatorSignIn = useCallback(async () => {
+    const supabase = getBrowserSupabase();
+    if (!supabase || typeof window === 'undefined') {
+      return;
+    }
+
+    await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${window.location.origin}${window.location.pathname}`,
+      },
+    });
+  }, []);
+
+  const handleCreatorSignOut = useCallback(async () => {
+    const supabase = getBrowserSupabase();
+    if (!supabase) {
+      return;
+    }
+    await supabase.auth.signOut();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
               SE
@@ -244,8 +319,8 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-          <nav className="flex items-center gap-1">
-            {(['overview', 'promoters', 'genome'] as const).map((tab) => (
+          <nav className="flex flex-wrap items-center gap-1">
+            {(['overview', 'promoters', 'genome', 'feedback'] as const).map((tab) => (
               <button type="button" key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -254,10 +329,37 @@ export default function HomePage() {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                {tab === 'overview' ? 'Overview' : tab === 'promoters' ? 'Promoters' : 'Genome Browser'}
+                {tab === 'overview'
+                  ? 'Overview'
+                  : tab === 'promoters'
+                    ? 'Promoters'
+                    : tab === 'genome'
+                      ? 'Genome Browser'
+                      : 'Community Feedback'}
               </button>
             ))}
             <div className="w-px h-5 bg-gray-200 mx-1" />
+            <button type="button" onClick={() => setFeedbackComposerOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 border border-gray-200 text-gray-700 hover:bg-gray-100"
+            >
+              Leave Feedback
+            </button>
+            {creatorSession ? (
+              <>
+                <span className="px-2 py-1 text-xs text-gray-500">@{creatorLogin || 'creator'}</span>
+                <button type="button" onClick={() => void handleCreatorSignOut()}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
+                >
+                  Creator Sign Out
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={() => void handleCreatorSignIn()}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
+              >
+                Creator Sign In
+              </button>
+            )}
             <button type="button" onClick={() => setGuideOpen((v) => !v)}
               aria-expanded={guideOpen}
               aria-controls="seqedge-user-guide"
@@ -314,7 +416,6 @@ export default function HomePage() {
                 </div>
               </section>
             )}
-            <SiteFeedback />
             <SearchFilters onSearch={handleSearch} loading={loading} />
             <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} visibleCount={pageSummary.visibleCount} sortMode={sortMode} summaryMode={summaryMode} onSortModeChange={(nextMode) => {
                 setSortMode(nextMode);
@@ -347,17 +448,42 @@ export default function HomePage() {
         {activeTab === 'genome' && (
           <>
             <SearchFilters onSearch={handleSearch} loading={loading} />
+            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+              {selectedPromoter ? (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span className="font-semibold text-gray-900">Current focus</span>
+                  <span>{selectedPromoter.gene_symbol || selectedPromoter.sample_id}</span>
+                  <span className="font-mono text-xs text-gray-500">
+                    {selectedPromoter.chrom}:{selectedPromoter.start.toLocaleString()}-{selectedPromoter.end_pos.toLocaleString()}
+                  </span>
+                </div>
+              ) : (
+                <span>No promoter is selected yet. The browser will focus on the first record in the current result set.</span>
+              )}
+            </div>
             <GenomeBrowser
               locus={browserLocus}
               onLocusChange={setBrowserLocus}
               highlightRegion={highlightedPromoterRegion}
             />
             <div className="text-sm text-gray-500">
-              Showing {promoters.length} promoter records in the current result set. Select a real record to synchronize the browser view.
+              Showing {promoters.length} promoter records in the current result set. For the current SARS-CoV-2 dataset, all promoters belong to the same reference sequence `NC_045512.2`, so the key change is the coordinate window rather than the chromosome name.
             </div>
           </>
         )}
+
+        {activeTab === 'feedback' && (
+          <SiteFeedback accessToken={creatorAccessToken} creatorLogin={creatorLogin} refreshSignal={feedbackRefreshSignal} />
+        )}
       </main>
+
+      <FeedbackComposer
+        open={feedbackComposerOpen}
+        onClose={() => setFeedbackComposerOpen(false)}
+        onSubmitted={() => {
+          setFeedbackRefreshSignal((current) => current + 1);
+        }}
+      />
 
       {selectedPromoter && (
         <PromoterDetail

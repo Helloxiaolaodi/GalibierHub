@@ -74,6 +74,7 @@ export type FeedbackCategory = 'general' | 'issue' | 'idea' | 'data' | 'collabor
 
 export interface SiteFeedbackEntry {
   id: string;
+  title: string | null;
   display_name: string;
   visitor_email?: string | null;
   affiliation: string | null;

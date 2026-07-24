@@ -15,7 +15,8 @@ Chinese README: [README.zh-CN.md](./README.zh-CN.md)
 - Open the embedded genome browser and jump directly from a promoter record to the matching region.
 - Inspect promoter details in a floating, resizable panel without hiding the browser.
 - Download reference bundles, release archives, and sample-level files from public storage.
-- Leave public or creator-only messages, react with like/bookmark, and follow reply status in the on-page feedback area.
+- Submit public or creator-only messages from the top-right `Leave Feedback` button, then review thread status on the `Community Feedback` page.
+- Sign in with the allowed GitHub creator account to publish official replies.
 - Check the site uptime counter at the bottom of the page.
 
 ## Current Download Strategy
@@ -89,11 +90,21 @@ NEXT_PUBLIC_REFERENCE_BUNDLE_SIZE=180 MB
 NEXT_PUBLIC_REFERENCE_BUNDLE_MODE=direct
 ```
 
+Optional creator-reply variables:
+
+```bash
+GITHUB_ADMIN_USERNAME=your-github-login
+FEEDBACK_EMAIL_API_URL=https://your-mail-service.example/send
+FEEDBACK_EMAIL_API_KEY=your_mail_api_key
+FEEDBACK_EMAIL_TO=owner@example.org
+```
+
 Notes:
 
 - `SUPABASE_SERVICE_ROLE_KEY` is recommended for production API routes.
 - If files live in a subfolder, include that prefix in `NEXT_PUBLIC_STORAGE_BASE_URL`.
 - Direct Hugging Face reads are supported, but the Worker is the most reliable JBrowse path.
+- To enable creator replies, turn on the GitHub auth provider in Supabase and set `GITHUB_ADMIN_USERNAME` to the single GitHub login allowed to reply.
 
 ### 3. Initialize the database
 
@@ -172,16 +183,29 @@ This is where end users can learn the difference between browser downloads and C
 
 SeqEdge now includes a lightweight interaction area for research communication:
 
-- Visitors can submit a message with name or nickname, email, optional affiliation, category, rating, and visibility.
+- Visitors open the top-right `Leave Feedback` button to submit a titled message with name or nickname, email, optional affiliation, category, rating, and visibility.
 - Messages can be `Public` or `Creator only`.
+- The `Community Feedback` page is the fourth main page and focuses on browsing, status tracking, reactions, and creator replies.
 - Threads are split into `In progress` and `Completed`.
 - Creator replies are shown on the site and can also trigger an email reply when the email API is configured.
+- The reply action is restricted to the GitHub account whose login matches `GITHUB_ADMIN_USERNAME`.
 - Posted and replied timestamps are displayed for each thread.
 - Visitors can also leave `Like` and `Bookmark` reactions.
 
 Required database objects for this feature are included in `schema.sql`.
 
-Optional environment variables for admin reply and email delivery are listed in `.env.example`.
+Supabase GitHub OAuth and optional feedback email variables are listed in `.env.example`.
+
+## Creator Reply Setup
+
+To let the site owner reply from the browser:
+
+1. Enable GitHub as an Auth provider in Supabase.
+2. Configure the GitHub OAuth app callback URL in Supabase Auth.
+3. Set `GITHUB_ADMIN_USERNAME` in the deployment environment.
+4. Sign in from the top-right `Creator Sign In` button.
+
+Any other signed-in GitHub account can read the page but cannot send creator replies.
 
 ## Site Uptime
 

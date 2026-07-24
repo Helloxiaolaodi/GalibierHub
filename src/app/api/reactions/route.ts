@@ -4,6 +4,18 @@ import { hashVisitorFingerprint } from '@/lib/feedback-admin';
 
 type ReactionType = 'like' | 'bookmark';
 
+function formatReactionStorageError(message: string) {
+  if (
+    message.includes("public.site_reactions")
+    || message.includes('relation "site_reactions" does not exist')
+    || message.includes('relation "public.site_reactions" does not exist')
+  ) {
+    return 'SeqEdge reactions are not initialized in the current Supabase project. Run the latest schema.sql so that site_reactions exists, then confirm Vercel is using the same NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY values.';
+  }
+
+  return message;
+}
+
 function isReactionType(value: string): value is ReactionType {
   return value === 'like' || value === 'bookmark';
 }
@@ -22,7 +34,7 @@ export async function GET() {
     .select('reaction_type');
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: formatReactionStorageError(error.message) }, { status: 500 });
   }
 
   const counts = {
@@ -79,7 +91,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (existingError) {
-    return NextResponse.json({ error: existingError.message }, { status: 500 });
+    return NextResponse.json({ error: formatReactionStorageError(existingError.message) }, { status: 500 });
   }
 
   if (existing?.id) {
@@ -89,7 +101,7 @@ export async function POST(request: NextRequest) {
       .eq('id', existing.id);
 
     if (deleteError) {
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      return NextResponse.json({ error: formatReactionStorageError(deleteError.message) }, { status: 500 });
     }
 
     return NextResponse.json({ active: false });
@@ -100,7 +112,7 @@ export async function POST(request: NextRequest) {
     .insert({ reaction_type: reactionType, fingerprint_hash: fingerprintHash });
 
   if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return NextResponse.json({ error: formatReactionStorageError(insertError.message) }, { status: 500 });
   }
 
   return NextResponse.json({ active: true }, { status: 201 });

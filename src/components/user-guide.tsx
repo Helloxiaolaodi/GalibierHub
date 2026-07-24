@@ -161,9 +161,13 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
           <section>
             <h3 className="mb-2 font-semibold text-gray-900">6. Community Feedback</h3>
             <ul className="space-y-2">
+              <li><span className="font-medium text-gray-900">Header submission flow:</span> Use the top-right <span className="font-medium text-gray-900">Leave Feedback</span> button to open the floating composer and submit a titled message without leaving the current page.</li>
+              <li><span className="font-medium text-gray-900">Titled messages:</span> New feedback includes a short title plus the main message body, which makes later browsing and creator replies easier to scan.</li>
               <li><span className="font-medium text-gray-900">Public and private messages:</span> Choose <span className="font-medium text-gray-900">Public</span> to show your message on the site, or <span className="font-medium text-gray-900">Creator only</span> to keep it visible only to the site maintainer.</li>
               <li><span className="font-medium text-gray-900">Contact-ready submissions:</span> Add your name or nickname and email address so the creator can reply on-site and, when email delivery is configured, send a reply to your inbox.</li>
+              <li><span className="font-medium text-gray-900">Dedicated review page:</span> The <span className="font-medium text-gray-900">Community Feedback</span> tab is the fourth main page and focuses on browsing threads, reply status, timestamps, and reactions.</li>
               <li><span className="font-medium text-gray-900">Thread status:</span> Messages are separated into <span className="font-medium text-gray-900">In progress</span> and <span className="font-medium text-gray-900">Completed</span> sections, with posted and replied timestamps shown for each thread.</li>
+              <li><span className="font-medium text-gray-900">Creator reply access:</span> The site owner replies from the top-right <span className="font-medium text-gray-900">Creator Sign In</span> button through GitHub login, and only the configured creator account can publish official replies.</li>
               <li><span className="font-medium text-gray-900">Lightweight reactions:</span> Visitors can leave a like or bookmark to signal usefulness without opening a full discussion thread.</li>
             </ul>
           </section>

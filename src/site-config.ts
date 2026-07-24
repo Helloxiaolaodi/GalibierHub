@@ -19,10 +19,9 @@ export const SiteConfig = {
     sectionTitle: 'Community Feedback',
     sectionDescription:
       'Collect public comments, private messages, quick reactions, and reply status in one place for research communication.',
-    adminTokenStorageKey: 'seqedge-admin-reply-token',
   },
   uptime: {
-    startAt: '2025-01-01T00:00:00+08:00',
+    startAt: '2026-07-22T00:00:00+08:00',
   },
 
   colors: {
