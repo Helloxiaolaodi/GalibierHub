@@ -1,18 +1,84 @@
 import { createHash } from 'crypto';
+import type { User } from '@supabase/supabase-js';
+import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
-export function isAdminTokenValid(token: string | null): boolean {
-  const expected = process.env.SITE_ADMIN_REPLY_TOKEN || '';
-  return Boolean(expected) && Boolean(token) && token === expected;
+type CreatorAuthResult =
+  | { ok: true; githubLogin: string; user: User }
+  | { ok: false; error: string };
+
+function readStringField(record: Record<string, unknown>, key: string): string | null {
+  const value = record[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-export function requireAdminToken(token: string | null): { ok: true } | { ok: false; error: string } {
-  if (!process.env.SITE_ADMIN_REPLY_TOKEN) {
-    return { ok: false, error: 'SITE_ADMIN_REPLY_TOKEN is not configured.' };
+function extractGithubLogin(user: User): string | null {
+  const metadata = user.user_metadata && typeof user.user_metadata === 'object'
+    ? user.user_metadata as Record<string, unknown>
+    : {};
+  const direct = readStringField(metadata, 'user_name')
+    || readStringField(metadata, 'preferred_username')
+    || readStringField(metadata, 'login');
+  if (direct) {
+    return direct;
   }
-  if (!isAdminTokenValid(token)) {
-    return { ok: false, error: 'Invalid admin token.' };
+
+  const githubIdentity = user.identities?.find((identity) => identity.provider === 'github');
+  if (!githubIdentity || !githubIdentity.identity_data || typeof githubIdentity.identity_data !== 'object') {
+    return null;
   }
-  return { ok: true };
+
+  const identityData = githubIdentity.identity_data as Record<string, unknown>;
+  return readStringField(identityData, 'user_name')
+    || readStringField(identityData, 'preferred_username')
+    || readStringField(identityData, 'login');
+}
+
+export async function requireCreatorGithubAuth(accessToken: string | null): Promise<CreatorAuthResult> {
+  if (!isSupabaseConfigured) {
+    return { ok: false, error: 'Supabase is not configured.' };
+  }
+
+  const expectedGithubLogin = (process.env.GITHUB_ADMIN_USERNAME || '').trim().toLowerCase();
+  if (!expectedGithubLogin) {
+    return { ok: false, error: 'GITHUB_ADMIN_USERNAME is not configured.' };
+  }
+
+  if (!accessToken) {
+    return { ok: false, error: 'Sign in with the creator GitHub account to reply.' };
+  }
+
+  const { data, error } = await getSupabase().auth.getUser(accessToken);
+  if (error || !data.user) {
+    return { ok: false, error: 'GitHub login could not be verified. Please sign in again.' };
+  }
+
+  const provider = data.user.app_metadata?.provider;
+  if (provider !== 'github' && !data.user.identities?.some((identity) => identity.provider === 'github')) {
+    return { ok: false, error: 'Only GitHub login is allowed for creator replies.' };
+  }
+
+  const githubLogin = extractGithubLogin(data.user);
+  if (!githubLogin) {
+    return { ok: false, error: 'The GitHub account login name could not be read from Supabase Auth.' };
+  }
+
+  if (githubLogin.toLowerCase() !== expectedGithubLogin) {
+    return { ok: false, error: 'This GitHub account does not have creator reply access.' };
+  }
+
+  return { ok: true, githubLogin, user: data.user };
+}
+
+export function getBearerToken(request: Request): string | null {
+  const header = request.headers.get('authorization') || request.headers.get('Authorization');
+  if (!header) {
+    return null;
+  }
+  const [scheme, token] = header.split(' ');
+  if (scheme?.toLowerCase() !== 'bearer' || !token?.trim()) {
+    return null;
+  }
+  return token.trim();
 }
 
 export function hashVisitorFingerprint(fingerprint: string): string {

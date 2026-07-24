@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
-import { requireAdminToken } from '@/lib/feedback-admin';
-import { ADMIN_TOKEN_HEADER } from '@/lib/feedback-shared';
+import { getBearerToken, requireCreatorGithubAuth } from '@/lib/feedback-admin';
 
 const VALID_CATEGORIES = new Set(['general', 'issue', 'idea', 'data', 'collaboration']);
+
+function formatFeedbackStorageError(message: string) {
+  if (
+    message.includes("public.site_feedback")
+    || message.includes('relation "site_feedback" does not exist')
+    || message.includes('relation "public.site_feedback" does not exist')
+  ) {
+    return 'SeqEdge feedback is not initialized in the current Supabase project. Run the latest schema.sql so that site_feedback exists, then confirm Vercel is using the same NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY values.';
+  }
+
+  return message;
+}
 
 function getOptionalEmailConfig() {
   const apiUrl = process.env.FEEDBACK_EMAIL_API_URL || '';
@@ -13,6 +24,7 @@ function getOptionalEmailConfig() {
 }
 
 async function sendFeedbackEmail(payload: {
+  title: string;
   displayName: string;
   visitorEmail: string;
   affiliation?: string | null;
@@ -35,8 +47,9 @@ async function sendFeedbackEmail(payload: {
     },
     body: JSON.stringify({
       to,
-      subject: `[SeqEdge] New public feedback: ${payload.category}`,
+      subject: `[SeqEdge] ${payload.title}`,
       text: [
+        `Title: ${payload.title}`,
         `Name: ${payload.displayName}`,
         `Visitor email: ${payload.visitorEmail}`,
         `Affiliation: ${payload.affiliation || 'Not provided'}`,
@@ -57,6 +70,7 @@ async function sendFeedbackEmail(payload: {
 
 async function sendReplyEmail(payload: {
   to: string;
+  title: string;
   displayName: string;
   creatorReply: string;
   category: string;
@@ -77,12 +91,13 @@ async function sendReplyEmail(payload: {
     },
     body: JSON.stringify({
       to: payload.to,
-      subject: `[SeqEdge] Reply to your message`,
+      subject: `[SeqEdge] Reply: ${payload.title}`,
       text: [
         `Hello ${payload.displayName},`,
         '',
         'The SeqEdge site creator has replied to your message.',
         '',
+        `Title: ${payload.title}`,
         `Category: ${payload.category}`,
         `Original message time: ${payload.createdAt}`,
         `Reply time: ${payload.repliedAt}`,
@@ -112,15 +127,16 @@ export async function GET(request: NextRequest) {
   const sb = getSupabase();
   const { data, error } = await sb
     .from('site_feedback')
-    .select('id, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at')
+    .select('id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at')
     .order('created_at', { ascending: false })
     .limit(50);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
   }
 
-  const isAdmin = requireAdminToken(requestHeadersToken(request)).ok;
+  const creatorAuth = await requireCreatorGithubAuth(getBearerToken(request));
+  const isAdmin = creatorAuth.ok;
   const entries = (data || [])
     .filter((entry) => isAdmin || entry.visibility === 'public')
     .map((entry) => {
@@ -148,10 +164,6 @@ export async function GET(request: NextRequest) {
   });
 }
 
-function requestHeadersToken(request: Request): string | null {
-  return request.headers.get(ADMIN_TOKEN_HEADER);
-}
-
 export async function POST(request: Request) {
   if (!isSupabaseConfigured) {
     return NextResponse.json(
@@ -169,6 +181,9 @@ export async function POST(request: Request) {
 
   const displayName = typeof (body as { displayName?: unknown }).displayName === 'string'
     ? (body as { displayName: string }).displayName.trim()
+    : '';
+  const title = typeof (body as { title?: unknown }).title === 'string'
+    ? (body as { title: string }).title.trim()
     : '';
   const affiliation = typeof (body as { affiliation?: unknown }).affiliation === 'string'
     ? (body as { affiliation: string }).affiliation.trim()
@@ -192,6 +207,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Display name is required and must be 80 characters or less.' }, { status: 400 });
   }
 
+  if (!title || title.length < 3 || title.length > 120) {
+    return NextResponse.json({ error: 'Title must be between 3 and 120 characters.' }, { status: 400 });
+  }
+
   if (affiliation.length > 160) {
     return NextResponse.json({ error: 'Affiliation must be 160 characters or less.' }, { status: 400 });
   }
@@ -212,14 +231,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Rating must be an integer between 1 and 5.' }, { status: 400 });
   }
 
-  if (!message || message.length < 10 || message.length > 2000) {
-    return NextResponse.json({ error: 'Message must be between 10 and 2000 characters.' }, { status: 400 });
+  if (!message || message.length < 3 || message.length > 2000) {
+    return NextResponse.json({ error: 'Message must be between 3 and 2000 characters.' }, { status: 400 });
   }
 
   const sb = getSupabase();
   const { data, error } = await sb
     .from('site_feedback')
     .insert({
+      title,
       display_name: displayName,
       visitor_email: visitorEmail,
       affiliation: affiliation || null,
@@ -228,14 +248,15 @@ export async function POST(request: Request) {
       visibility,
       message,
     })
-    .select('id, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at')
+    .select('id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at')
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
   }
 
   void sendFeedbackEmail({
+    title,
     displayName,
     visitorEmail,
     affiliation: affiliation || null,
@@ -257,7 +278,7 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const adminCheck = requireAdminToken(requestHeadersToken(request));
+  const adminCheck = await requireCreatorGithubAuth(getBearerToken(request));
   if (!adminCheck.ok) {
     return NextResponse.json({ error: adminCheck.error }, { status: 401 });
   }
@@ -288,15 +309,16 @@ export async function PATCH(request: NextRequest) {
     .from('site_feedback')
     .update({ creator_reply: creatorReply, replied_at: now })
     .eq('id', id)
-    .select('id, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at')
+    .select('id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at')
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
   }
 
   void sendReplyEmail({
     to: data.visitor_email,
+    title: data.title || 'SeqEdge message',
     displayName: data.display_name,
     creatorReply,
     category: data.category,

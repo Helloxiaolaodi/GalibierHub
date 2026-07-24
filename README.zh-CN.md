@@ -16,7 +16,8 @@ English README: [README.md](./README.md)
 - 从 promoter 表格直接联动到内嵌 JBrowse 浏览器。
 - 在不遮挡浏览器的情况下，用可拖动、可拉伸的浮动卡片查看 promoter 详情。
 - 下载参考数据包、整包发布数据和样本级文件。
-- 通过站内互动区提交公开留言或仅创建者可见的留言，并查看回复状态。
+- 通过右上角 `Leave Feedback` 按钮提交公开留言或仅创建者可见的留言，并在 `Community Feedback` 页面查看回复状态。
+- 创建者可通过右上角 `Creator Sign In` 使用 GitHub 登录后发布正式回复。
 - 在页面底部查看网站运行时长。
 
 ## 当前推荐的数据下载方案
@@ -90,11 +91,21 @@ NEXT_PUBLIC_REFERENCE_BUNDLE_SIZE=180 MB
 NEXT_PUBLIC_REFERENCE_BUNDLE_MODE=direct
 ```
 
+创建者回复相关可选项：
+
+```bash
+GITHUB_ADMIN_USERNAME=your-github-login
+FEEDBACK_EMAIL_API_URL=https://your-mail-service.example/send
+FEEDBACK_EMAIL_API_KEY=your_mail_api_key
+FEEDBACK_EMAIL_TO=owner@example.org
+```
+
 说明：
 
 - `SUPABASE_SERVICE_ROLE_KEY` 建议用于正式环境 API 路由。
 - 如果文件在子目录中，记得把子目录前缀写进 `NEXT_PUBLIC_STORAGE_BASE_URL`。
 - 虽然 SeqEdge 支持直接读取 Hugging Face，但 JBrowse 正式使用时仍建议优先配 Worker。
+- 如果要启用创建者在线回复，需要在 Supabase 中开启 GitHub Auth Provider，并把 `GITHUB_ADMIN_USERNAME` 设为唯一允许回复的 GitHub 用户名。
 
 ### 3. 初始化数据库
 
@@ -170,16 +181,29 @@ SeqEdge 现在会按以下顺序探测浏览器使用的参考数据：
 
 SeqEdge 现在带有一个轻量的科研交流区：
 
-- 访问者可以提交姓名或昵称、邮箱、可选单位、分类、评分和留言内容。
+- 访问者通过右上角 `Leave Feedback` 弹出窗口提交带标题的留言，可填写姓名或昵称、邮箱、可选单位、分类、评分和正文内容。
 - 留言可以选择 `Public` 或 `Creator only`。
+- `Community Feedback` 是单独的第四个页面，主要用于查看留言线程、互动状态和创建者回复。
 - 留言线程会分成 `In progress` 和 `Completed`。
 - 创建者回复后，会直接显示在网站上；如果邮件接口已配置，也可以把回复发送到留言者邮箱。
+- 创建者回复权限只开放给 `GITHUB_ADMIN_USERNAME` 对应的 GitHub 账号。
 - 每条留言和回复都显示日期时间。
 - 访问者还可以使用 `Like` 和 `Bookmark` 做轻量互动。
 
 这一部分需要的数据库表已经写入 `schema.sql`。
 
-管理员回复口令和邮件发送相关环境变量已经写入 `.env.example`。
+Supabase GitHub OAuth 和邮件发送相关环境变量已经写入 `.env.example`。
+
+## 创建者回复如何启用
+
+如需让网站创建者在前端直接回复留言，需要完成以下配置：
+
+1. 在 Supabase 开启 GitHub 登录。
+2. 在 Supabase Auth 中配置 GitHub OAuth 回调地址。
+3. 在部署环境变量中设置 `GITHUB_ADMIN_USERNAME`。
+4. 由创建者在网站右上角点击 `Creator Sign In` 登录。
+
+其他 GitHub 账号即使登录，也只能浏览，不能发送创建者回复。
 
 ## 网站运行时长
 

@@ -109,6 +109,7 @@ CREATE INDEX IF NOT EXISTS idx_variants_gene ON variant_index (gene_symbol);
 -- 4. Public site feedback
 CREATE TABLE IF NOT EXISTS site_feedback (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT,
   display_name TEXT NOT NULL,
   visitor_email TEXT NOT NULL,
   affiliation TEXT,
@@ -121,6 +122,7 @@ CREATE TABLE IF NOT EXISTS site_feedback (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS title TEXT;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS visitor_email TEXT;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS creator_reply TEXT;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS replied_at TIMESTAMPTZ;

@@ -1,11 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ADMIN_TOKEN_HEADER } from '@/lib/feedback-shared';
 import { SiteConfig } from '@/site-config';
 import type { FeedbackSummary, ReactionCounts, SiteFeedbackEntry } from '@/types/genome';
 
-type VisibilityMode = 'public' | 'private';
 type FeedbackCategory = 'general' | 'issue' | 'idea' | 'data' | 'collaboration';
 type ReactionType = 'like' | 'bookmark';
 
@@ -13,6 +11,12 @@ interface FeedbackResponse {
   entries: SiteFeedbackEntry[];
   summary: FeedbackSummary;
   isAdmin?: boolean;
+}
+
+interface SiteFeedbackProps {
+  accessToken?: string | null;
+  creatorLogin?: string | null;
+  refreshSignal?: number;
 }
 
 const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
@@ -50,42 +54,24 @@ function buildVisitorFingerprint() {
   return parts.join('|');
 }
 
-export default function SiteFeedback() {
+export default function SiteFeedback({ accessToken = null, creatorLogin = null, refreshSignal = 0 }: SiteFeedbackProps) {
   const [entries, setEntries] = useState<SiteFeedbackEntry[]>([]);
   const [summary, setSummary] = useState<FeedbackSummary>({ totalComments: 0, averageRating: 0 });
   const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({ like: 0, bookmark: 0 });
   const [activeReactions, setActiveReactions] = useState<Record<ReactionType, boolean>>({ like: false, bookmark: false });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [replyError, setReplyError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [replyingId, setReplyingId] = useState<string | null>(null);
-  const [adminToken, setAdminToken] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({
-    displayName: '',
-    visitorEmail: '',
-    affiliation: '',
-    category: 'general' as FeedbackCategory,
-    rating: 5,
-    visibility: 'public' as VisibilityMode,
-    message: '',
-  });
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(SiteConfig.feedback.adminTokenStorageKey) || '';
-    setAdminToken(stored);
-  }, []);
 
   const fetchFeedback = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/feedback', {
-        headers: adminToken ? { [ADMIN_TOKEN_HEADER]: adminToken } : {},
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       });
       const data = (await response.json()) as FeedbackResponse & { error?: string };
       if (!response.ok) {
@@ -99,7 +85,7 @@ export default function SiteFeedback() {
     } finally {
       setLoading(false);
     }
-  }, [adminToken]);
+  }, [accessToken]);
 
   const fetchReactions = useCallback(async () => {
     try {
@@ -115,7 +101,7 @@ export default function SiteFeedback() {
 
   useEffect(() => {
     void fetchFeedback();
-  }, [fetchFeedback]);
+  }, [fetchFeedback, refreshSignal]);
 
   useEffect(() => {
     void fetchReactions();
@@ -165,43 +151,6 @@ export default function SiteFeedback() {
     }
   }, []);
 
-  const handleSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit feedback.');
-      }
-      setForm({
-        displayName: '',
-        visitorEmail: '',
-        affiliation: '',
-        category: 'general',
-        rating: 5,
-        visibility: 'public',
-        message: '',
-      });
-      await fetchFeedback();
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to submit feedback.');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [fetchFeedback, form]);
-
-  const handleAdminTokenSave = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(SiteConfig.feedback.adminTokenStorageKey, adminToken.trim());
-    void fetchFeedback();
-  }, [adminToken, fetchFeedback]);
-
   const handleReply = useCallback(async (entryId: string) => {
     const draft = replyDrafts[entryId]?.trim() || '';
     if (!draft) {
@@ -212,11 +161,14 @@ export default function SiteFeedback() {
     setReplyingId(entryId);
     setReplyError(null);
     try {
+      if (!accessToken) {
+        throw new Error('Sign in with the creator GitHub account to reply.');
+      }
       const response = await fetch('/api/feedback', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          [ADMIN_TOKEN_HEADER]: adminToken,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ id: entryId, creatorReply: draft }),
       });
@@ -231,7 +183,7 @@ export default function SiteFeedback() {
     } finally {
       setReplyingId(null);
     }
-  }, [adminToken, fetchFeedback, replyDrafts]);
+  }, [accessToken, fetchFeedback, replyDrafts]);
 
   const renderEntry = (entry: SiteFeedbackEntry) => (
     <article key={entry.id} className="border border-gray-200 bg-white p-4">
@@ -259,6 +211,7 @@ export default function SiteFeedback() {
         <div className="text-sm font-medium text-gray-700">Rating {entry.rating}/5</div>
       </div>
 
+      <h4 className="mt-3 text-base font-semibold text-gray-900">{entry.title || 'Untitled message'}</h4>
       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-700">{entry.message}</p>
 
       {entry.creator_reply ? (
@@ -336,140 +289,24 @@ export default function SiteFeedback() {
               <div className="mt-1 text-2xl font-semibold text-gray-900">{completedEntries.length}</div>
             </div>
           </div>
-
-          <div className="space-y-3 border border-gray-200 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-gray-900">Creator access</h3>
-              {isAdmin && <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">Admin mode</span>}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                type="password"
-                value={adminToken}
-                onChange={(event) => setAdminToken(event.target.value)}
-                placeholder="Enter admin reply token"
-                className="min-w-0 flex-1 border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-              />
-              <button
-                type="button"
-                onClick={handleAdminTokenSave}
-                className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-              >
-                Save token
-              </button>
-            </div>
+          <div className="border border-gray-200 bg-white p-4 text-sm text-gray-600">
+            Review public threads, creator-only progress, timestamps, and reply status here. New messages are submitted from the header feedback button.
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4 border border-gray-200 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-gray-900">Leave a message</h3>
-              <div className="text-xs text-gray-500">Public or creator-only</div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Name or nickname</span>
-                <input
-                  value={form.displayName}
-                  onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
-                  className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  maxLength={80}
-                  required
-                />
-              </label>
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Email</span>
-                <input
-                  type="email"
-                  value={form.visitorEmail}
-                  onChange={(event) => setForm((current) => ({ ...current, visitorEmail: event.target.value }))}
-                  className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  maxLength={160}
-                  required
-                />
-              </label>
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Affiliation</span>
-                <input
-                  value={form.affiliation}
-                  onChange={(event) => setForm((current) => ({ ...current, affiliation: event.target.value }))}
-                  className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  maxLength={160}
-                />
-              </label>
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Category</span>
-                <select
-                  value={form.category}
-                  onChange={(event) => setForm((current) => ({ ...current, category: event.target.value as FeedbackCategory }))}
-                  className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                >
-                  {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Visibility</span>
-                <select
-                  value={form.visibility}
-                  onChange={(event) => setForm((current) => ({ ...current, visibility: event.target.value as VisibilityMode }))}
-                  className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                >
-                  <option value="public">Public</option>
-                  <option value="private">Creator only</option>
-                </select>
-              </label>
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Rating</span>
-                <select
-                  value={String(form.rating)}
-                  onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
-                  className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                >
-                  {[5, 4, 3, 2, 1].map((value) => (
-                    <option key={value} value={value}>{value}/5</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <label className="block space-y-1 text-sm text-gray-700">
-              <span>Message</span>
-              <textarea
-                value={form.message}
-                onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-                rows={6}
-                className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                minLength={10}
-                maxLength={2000}
-                required
-              />
-            </label>
-
-            {submitError && <div className="text-sm text-red-600">{submitError}</div>}
-
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-xs text-gray-500">
-                Public messages are shown on the site. Creator-only messages stay hidden from other visitors.
-              </div>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="inline-flex items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
-              >
-                {submitting ? 'Submitting...' : 'Submit'}
-              </button>
-            </div>
-          </form>
         </div>
 
         <div className="space-y-6">
           {error && <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
           {replyError && <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{replyError}</div>}
+          {isAdmin && (
+            <div className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              Creator reply access is active{creatorLogin ? ` for @${creatorLogin}` : ''}.
+            </div>
+          )}
+          {accessToken && !isAdmin && !loading && (
+            <div className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              This signed-in GitHub account does not have creator reply access.
+            </div>
+          )}
 
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3">
