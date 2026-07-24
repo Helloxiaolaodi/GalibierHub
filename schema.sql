@@ -1,5 +1,5 @@
 -- ============================================================
--- SeqEdge — Supabase Database Schema
+-- SeqEdge â€” Supabase Database Schema
 -- ============================================================
 -- Run this SQL in your Supabase SQL Editor to create all
 -- required tables, indexes, and sample data.
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS genome_samples (
   assembly_version TEXT NOT NULL,
   total_variants INTEGER DEFAULT 0,
   coverage NUMERIC DEFAULT 0,
-  -- Phenotype / cohort metadata — optional, drives the metadata filter panel
+  -- Phenotype / cohort metadata â€” optional, drives the metadata filter panel
   cohort TEXT,
   bmi NUMERIC,
   age INTEGER,
@@ -212,13 +212,22 @@ CREATE POLICY "Public read site_reactions"      ON site_reactions      FOR SELEC
 CREATE POLICY "Public insert site_reactions"    ON site_reactions      FOR INSERT TO anon WITH CHECK (true);
 
 -- ============================================================
--- Supabase Storage bucket for feedback images (optional)
--- Run this block separately in the Supabase SQL Editor
--- if image uploads are needed.
+-- Supabase Storage bucket for feedback images (REQUIRED)
+-- Run this block in the Supabase SQL Editor to enable image uploads.
 -- ============================================================
--- INSERT INTO storage.buckets (id, name, public) VALUES ('feedback-images', 'feedback-images', true)
--- ON CONFLICT (id) DO NOTHING;
--- CREATE POLICY "Public read feedback images" ON storage.objects
---   FOR SELECT USING (bucket_id = 'feedback-images');
--- CREATE POLICY "Anyone can upload feedback images" ON storage.objects
---   FOR INSERT WITH CHECK (bucket_id = 'feedback-images');
+INSERT INTO storage.buckets (id, name, public) VALUES ('feedback-images', 'feedback-images', true)
+ON CONFLICT (id) DO NOTHING;
+DROP POLICY IF EXISTS "Public read feedback images" ON storage.objects;
+CREATE POLICY "Public read feedback images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'feedback-images');
+DROP POLICY IF EXISTS "Anyone can upload feedback images" ON storage.objects;
+CREATE POLICY "Anyone can upload feedback images" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'feedback-images');
+
+-- ============================================================
+-- DELETE policies for reactions and feedback entries
+-- ============================================================
+DROP POLICY IF EXISTS "Public delete site_reactions" ON site_reactions;
+CREATE POLICY "Public delete site_reactions" ON site_reactions FOR DELETE TO anon USING (true);
+DROP POLICY IF EXISTS "Service delete site_feedback" ON site_feedback;
+CREATE POLICY "Service delete site_feedback" ON site_feedback FOR DELETE TO authenticated USING (true);

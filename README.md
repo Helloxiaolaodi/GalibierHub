@@ -1,13 +1,30 @@
-﻿# SeqEdge
+# SeqEdge
 
 ![SeqEdge Screenshot](./seqedge-github-img-readme.jpg)
 
-SeqEdge is a lightweight template for building a public genomics site with searchable metadata, an embedded JBrowse view, and direct dataset downloads.
+Edge-Native Genomics Database Template
+
+An open-source template for coordinate-based genomics portals that combine searchable metadata, genome browser views, charts, and storage-decoupled deployment.
 
 Primary: [https://seq-edge.vercel.app](https://seq-edge.vercel.app)
 Mirror: [https://seqedge.pages.dev](https://seqedge.pages.dev)
+GitHub: [https://github.com/Helloxiaolaodi/SeqEdge](https://github.com/Helloxiaolaodi/SeqEdge)
 
-Chinese README: [README.zh-CN.md](./README.zh-CN.md)
+Language: English | [Simplified Chinese](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/SeqEdge/issues)
+
+Detailed build guide: [SeqEdge Developer Notes](https://www.cnblogs.com/Helloxiaolaodi/p/21776736)
+
+Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts
+
+![License](https://img.shields.io/github/license/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Stars](https://img.shields.io/github/stars/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Forks](https://img.shields.io/github/forks/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Issues](https://img.shields.io/github/issues/Helloxiaolaodi/SeqEdge?style=flat-square)
+![Next.js](https://img.shields.io/badge/Next.js-15.5.21-black?style=flat-square&logo=next.js)
+![Supabase](https://img.shields.io/badge/Supabase-2.110.7-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=flat-square&logo=vercel)
+
+![SeqEdge Architecture](./docs/architecture.gif)
 
 ## What Users Can Do
 
@@ -201,13 +218,13 @@ To let the site owner sign in and reply from the browser:
 
 ### 1. Enable GitHub Auth in Supabase
 
-In Supabase Dashboard, go to **Authentication** → **Sign In / Providers** (under CONFIGURATION, not OAuth Server). Find **GitHub** in the provider list, expand it, and enable **Sign in with GitHub**.
+In Supabase Dashboard, go to **Authentication** ? **Sign In / Providers** (under CONFIGURATION, not OAuth Server). Find **GitHub** in the provider list, expand it, and enable **Sign in with GitHub**.
 
 ### 2. Configure Supabase Auth URLs (critical for production)
 
 After enabling GitHub Auth, update the URL configuration so OAuth redirects land on your production site instead of localhost:
 
-1. In Supabase Dashboard, go to **Authentication** → **URL Configuration**
+1. In Supabase Dashboard, go to **Authentication** ? **URL Configuration**
 2. Set **Site URL** to your production domain, e.g. https://seq-edge.vercel.app
 3. Under **Redirect URLs**, add all deployed domains (one per line):
    - https://seq-edge.vercel.app
@@ -220,11 +237,11 @@ If the Site URL is left as the default http://localhost:3000, OAuth sign-in will
 
 ### 3. Get GitHub OAuth Credentials
 
-1. Go to GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**
+1. Go to GitHub ? **Settings** ? **Developer settings** ? **OAuth Apps** ? **New OAuth App**
 2. **Application name**: e.g. `SeqEdge Auth`
 3. **Homepage URL**: `https://seq-edge.vercel.app` (or `http://localhost:3000` for local dev)
 4. **Authorization callback URL**: `https://<your-project>.supabase.co/auth/v1/callback`
-5. Click **Register application**, then **Generate a new client secret** (save immediately — shown only once)
+5. Click **Register application**, then **Generate a new client secret** (save immediately � shown only once)
 6. Copy the **Client ID** and **Client Secret** back into Supabase and click **Save**
 
 ### 4. Configure Environment
@@ -233,7 +250,7 @@ Set `GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the 
 
 then sign in from the top-right `Log in with GitHub` button on the site.
 
-﻿## Email Notification Setup (Resend)
+?## Email Notification Setup (Resend)
 
 SeqEdge uses [Resend](https://resend.com) to deliver feedback notification emails to the site creator.
 
@@ -243,7 +260,7 @@ Resend provides a free test mode that works without DNS domain verification:
 
 1. Sign up at [resend.com](https://resend.com) and go to **API Keys**
 2. Create a new API key and copy it
-3. The test sender address is `onboarding@resend.dev` — no domain verification needed
+3. The test sender address is `onboarding@resend.dev` � no domain verification needed
 4. In test mode, emails are only delivered to your own verified email address
 
 ### Environment Variables
@@ -254,9 +271,9 @@ FEEDBACK_EMAIL_API_KEY=re_xxxxxxxxxxxx
 FEEDBACK_EMAIL_TO=1641454426@qq.com
 ```
 
-- `FEEDBACK_EMAIL_API_URL` — Resend API endpoint (always `https://api.resend.com/emails`)
-- `FEEDBACK_EMAIL_API_KEY` — Your Resend API key (starts with `re_`)
-- `FEEDBACK_EMAIL_TO` — The email address that receives feedback notifications
+- `FEEDBACK_EMAIL_API_URL` � Resend API endpoint (always `https://api.resend.com/emails`)
+- `FEEDBACK_EMAIL_API_KEY` � Your Resend API key (starts with `re_`)
+- `FEEDBACK_EMAIL_TO` � The email address that receives feedback notifications
 
 ### Getting an API Key
 
@@ -264,7 +281,7 @@ FEEDBACK_EMAIL_TO=1641454426@qq.com
 2. Click **Create API Key**
 3. Give it a name (e.g. `SeqEdge`)
 4. Set permission to **Sending access**
-5. Copy the key immediately — it is shown only once
+5. Copy the key immediately � it is shown only once
 
 ### Moving to Production (requires your own domain)
 
@@ -276,12 +293,12 @@ Test mode only delivers to your own verified email. To send reply emails to any 
 2. Click **Add Domain**
 3. Enter a sending subdomain, e.g. `mail.yourdomain.com` (Resend recommends a subdomain, not the root)
 4. Choose your region (`us-east-1` unless you are in Europe)
-5. Click **Add** — Resend generates three DNS records:
-   - **DKIM TXT record** — host: `resend._domainkey.mail`, value: a long TXT string (unique to your domain)
-   - **SPF TXT record** — host: `mail`, value: `v=spf1 include:spf.resend.io ~all`
-   - **Return-path MX record** — host: `mail`, value: `feedback.resend.io`, priority: `10`
+5. Click **Add** � Resend generates three DNS records:
+   - **DKIM TXT record** � host: `resend._domainkey.mail`, value: a long TXT string (unique to your domain)
+   - **SPF TXT record** � host: `mail`, value: `v=spf1 include:spf.resend.io ~all`
+   - **Return-path MX record** � host: `mail`, value: `feedback.resend.io`, priority: `10`
 6. Go to your DNS provider (Cloudflare, Namecheap, Alibaba Cloud DNS, etc.)
-7. Add each record exactly as shown — leave TTL at default or 3600
+7. Add each record exactly as shown � leave TTL at default or 3600
 8. Return to the Resend Domains page and click **Verify DNS Records**
 9. DNS propagation may take a few minutes; Resend shows green checkmarks when done
 10. Once verified, update your sender address from `onboarding@resend.dev` to `seqedge@mail.yourdomain.com`
@@ -290,8 +307,8 @@ Test mode only delivers to your own verified email. To send reply emails to any 
 
 **Recommended sender setup:**
 
-- **Plan A (production):** Own domain + verified Resend domain → can send to anyone
-- **Plan B (test, current):** No domain needed → `onboarding@resend.dev` sender → only delivers to `FEEDBACK_EMAIL_TO`
+- **Plan A (production):** Own domain + verified Resend domain ? can send to anyone
+- **Plan B (test, current):** No domain needed ? `onboarding@resend.dev` sender ? only delivers to `FEEDBACK_EMAIL_TO`
 
 If you are just starting out, Plan B is all you need. Switch to Plan A when you have a custom domain.
 
