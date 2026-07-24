@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SiteConfig } from '@/site-config';
@@ -336,6 +336,39 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
     }
   }, [accessToken, fetchFeedback, replyDrafts]);
 
+
+  const handleToggleHidden = async (entryId: string, currentHidden: boolean) => {
+    if (!accessToken) return;
+    setHideToggling(entryId);
+    try {
+      await fetch('/api/feedback', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ id: entryId, hidden: !currentHidden }),
+      });
+      await fetchFeedback();
+  } catch { /* ignore */ }
+  finally { setHideToggling(null); }
+  };
+
+  const handleDelete = async (entryId: string) => {
+    if (!accessToken) return;
+    if (!window.confirm('Permanently delete this feedback entry?')) return;
+    setDeletingId(entryId);
+    try {
+      const response = await fetch(`/api/feedback?id=${encodeURIComponent(entryId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error || 'Failed to delete entry.');
+      await fetchFeedback();
+    } catch { /* ignore */ }
+    finally { setDeletingId(null); }
+ };
   const renderEntry = (entry: SiteFeedbackEntry) => {
     const isExpanded = Boolean(expandedEntries[entry.id]);
     const comments = entryComments[entry.id] || [];
@@ -606,39 +639,6 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
       await fetchFeedback();
     } catch { /* ignore */ }
     finally { setPinToggling(null); }
-  };
-
-  const handleToggleHidden = async (entryId: string, currentHidden: boolean) => {
-    if (!accessToken) return;
-    setHideToggling(entryId);
-    try {
-      await fetch('/api/feedback', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ id: entryId, hidden: !currentHidden }),
-      });
-      await fetchFeedback();
-    } catch { /* ignore */ }
-    finally { setHideToggling(null); }
-
-  const handleDelete = async (entryId: string) => {
-    if (!accessToken) return;
-    if (!window.confirm('Permanently delete this feedback entry?')) return;
-    setDeletingId(entryId);
-    try {
-      const response = await fetch(`/api/feedback?id=${encodeURIComponent(entryId)}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const data = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(data.error || 'Failed to delete entry.');
-      await fetchFeedback();
-    } catch { /* ignore */ }
-    finally { setDeletingId(null); }
-  };
   };
 
   return (
