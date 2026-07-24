@@ -116,12 +116,37 @@ async function sendReplyEmail(payload: {
   }
 }
 
+const COMMENTS_SELECT = "id, feedback_id, author_name, author_email, message, image_url, created_at";
+
+async function getFeedbackComments(feedbackId: string) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from("feedback_comments")
+    .select(COMMENTS_SELECT)
+    .eq("feedback_id", feedbackId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
 export async function GET(request: NextRequest) {
   if (!isSupabaseConfigured) {
     return NextResponse.json(
       { error: "Supabase is not configured. Public feedback requires a real data source." },
       { status: 503 },
     );
+  }
+
+  const feedbackId = request.nextUrl.searchParams.get('feedback_id');
+  if (feedbackId) {
+    const sbComments = getSupabase();
+    const { data: comments, error: commentsError } = await sbComments
+      .from("feedback_comments")
+      .select(COMMENTS_SELECT)
+      .eq("feedback_id", feedbackId)
+      .order("created_at", { ascending: true });
+    if (commentsError) return NextResponse.json({ error: formatFeedbackStorageError(commentsError.message) }, { status: 500 });
+    return NextResponse.json({ comments: comments || [] });
   }
 
   const sb = getSupabase();
@@ -179,6 +204,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
+  // Handle comment submission (POST to a specific feedback entry)
+  const feedbackId = typeof (body as { feedbackId?: unknown }).feedbackId === 'string'
+    ? (body as { feedbackId: string }).feedbackId.trim() : '';
+  if (feedbackId) {
+    const commentMessage = typeof (body as { message?: unknown }).message === 'string'
+      ? (body as { message: string }).message.trim() : '';
+    const commentAuthor = typeof (body as { authorName?: unknown }).authorName === 'string'
+      ? (body as { authorName: string }).authorName.trim() : 'Visitor';
+    if (!commentMessage || commentMessage.length < 1 || commentMessage.length > 2000) {
+      return NextResponse.json({ error: "Comment message must be between 1 and 2000 characters." }, { status: 400 });
+    }
+    const sbComments = getSupabase();
+    const { data: comment, error: commentErr } = await sbComments
+      .from("feedback_comments")
+      .insert({ feedback_id: feedbackId, author_name: commentAuthor, message: commentMessage })
+      .select("id, feedback_id, author_name, author_email, message, image_url, created_at")
+      .single();
+    if (commentErr) {
+      return NextResponse.json({ error: formatFeedbackStorageError(commentErr.message) }, { status: 500 });
+    }
+    return NextResponse.json({ comment }, { status: 201 });
+  }
+
   const displayName = typeof (body as { displayName?: unknown }).displayName === "string"
     ? (body as { displayName: string }).displayName.trim()
     : "";
@@ -187,21 +235,24 @@ export async function POST(request: Request) {
     : "";
   const affiliation = typeof (body as { affiliation?: unknown }).affiliation === "string"
     ? (body as { affiliation: string }).affiliation.trim()
-    : "";
-  const category = typeof (body as { category?: unknown }).category === "string"
+  : "";
+  let category = typeof (body as { category?: unknown }).category === "string"
     ? (body as { category: string }).category.trim()
     : "";
   const message = typeof (body as { message?: unknown }).message === "string"
     ? (body as { message: string }).message.trim()
     : "";
-  const visitorEmail = typeof (body as { visitorEmail?: unknown }).visitorEmail === "string"
-    ? (body as { visitorEmail: string }).visitorEmail.trim()
+ const visitorEmail = typeof (body as { visitorEmail?: unknown }).visitorEmail === "string"
+   ? (body as { visitorEmail: string }).visitorEmail.trim()
+   : "";
+  const imageUrl = typeof (body as { imageUrl?: unknown }).imageUrl === "string"
+    ? (body as { imageUrl: string }).imageUrl.trim()
     : "";
-  const visibility = typeof (body as { visibility?: unknown }).visibility === "string"
-    ? (body as { visibility: string }).visibility.trim()
-    : "public";
+ const visibility = typeof (body as { visibility?: unknown }).visibility === "string"
+   ? (body as { visibility: string }).visibility.trim()
+  : "public";
   const ratingRaw = (body as { rating?: unknown }).rating;
-  const rating = typeof ratingRaw === "number" ? ratingRaw : Number(ratingRaw);
+  let rating = typeof ratingRaw === "number" ? ratingRaw : Number(ratingRaw);
 
   if (!displayName || displayName.length > 80) {
     return NextResponse.json({ error: "Display name is required and must be 80 characters or less." }, { status: 400 });
@@ -224,17 +275,17 @@ export async function POST(request: Request) {
     }
   }
 
-  if (!VALID_CATEGORIES.has(category)) {
-    return NextResponse.json({ error: "Invalid feedback category." }, { status: 400 });
-  }
+ if (!VALID_CATEGORIES.has(category)) {
+    category = "general";
+ }
 
   if (visibility !== "public" && visibility !== "private") {
     return NextResponse.json({ error: "Visibility must be public or private." }, { status: 400 });
   }
 
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-    return NextResponse.json({ error: "Rating must be an integer between 1 and 5." }, { status: 400 });
-  }
+ if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    rating = 5;
+ }
 
   if (!message || message.length < 3 || message.length > 2000) {
     return NextResponse.json({ error: "Message must be between 3 and 2000 characters." }, { status: 400 });
@@ -243,18 +294,19 @@ export async function POST(request: Request) {
   const sb = getSupabase();
   const { data, error } = await sb
     .from("site_feedback")
-    .insert({
-      title,
-      display_name: displayName,
-      visitor_email: visitorEmail,
-      affiliation: affiliation || null,
-      category,
-      rating,
-      visibility,
-      message,
-    })
-    .select("id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden")
-    .single();
+   .insert({
+     title,
+     display_name: displayName,
+     visitor_email: visitorEmail,
+     affiliation: affiliation || null,
+     category,
+     rating,
+     visibility,
+     message,
+      image_url: imageUrl || null,
+   })
+   .select("id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden")
+   .single();
 
   if (error) {
     return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
@@ -359,17 +411,20 @@ export async function PATCH(request: NextRequest) {
     updatePayload.hidden = hidden;
   }
 
-  const { data, error } = await sb
-    .from("site_feedback")
-    .update(updatePayload)
-    .eq("id", id)
-    .select("id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden")
-    .single();
+ const { data, error } = await sb
+   .from("site_feedback")
+   .update(updatePayload)
+   .eq("id", id)
+   .select("id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden")
+    .maybeSingle();
 
-  if (error) {
-    return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
+ if (error) {
+   return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
+ }
+
+  if (!data) {
+    return NextResponse.json({ error: "Feedback entry not found." }, { status: 404 });
   }
-
   // Only send reply email when creatorReply was provided
   if (creatorReply !== undefined && data.visitor_email) {
     void sendReplyEmail({

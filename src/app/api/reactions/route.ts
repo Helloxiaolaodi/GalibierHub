@@ -31,7 +31,7 @@ export async function GET() {
   const sb = getSupabase();
   const { data, error } = await sb
     .from('site_reactions')
-    .select('reaction_type');
+    .select('reaction_type, entry_id');
 
   if (error) {
     return NextResponse.json({ error: formatReactionStorageError(error.message) }, { status: 500 });
@@ -41,13 +41,20 @@ export async function GET() {
     like: 0,
     bookmark: 0,
   };
+  const entries: Record<string, { like: number; bookmark: number }> = {};
 
   for (const row of data || []) {
     if (row.reaction_type === 'like') counts.like += 1;
     if (row.reaction_type === 'bookmark') counts.bookmark += 1;
+    if (row.entry_id) {
+      const entryKey = row.entry_id as string;
+      if (!entries[entryKey]) entries[entryKey] = { like: 0, bookmark: 0 };
+      if (row.reaction_type === 'like') entries[entryKey].like += 1;
+      if (row.reaction_type === 'bookmark') entries[entryKey].bookmark += 1;
+    }
   }
 
-  return NextResponse.json({ counts });
+  return NextResponse.json({ counts, entries });
 }
 
 export async function POST(request: NextRequest) {
@@ -68,9 +75,12 @@ export async function POST(request: NextRequest) {
   const reactionType = typeof (body as { reactionType?: unknown }).reactionType === 'string'
     ? (body as { reactionType: string }).reactionType.trim()
     : '';
-  const fingerprint = typeof (body as { fingerprint?: unknown }).fingerprint === 'string'
-    ? (body as { fingerprint: string }).fingerprint.trim()
-    : '';
+ const fingerprint = typeof (body as { fingerprint?: unknown }).fingerprint === 'string'
+   ? (body as { fingerprint: string }).fingerprint.trim()
+   : '';
+  const entryId = typeof (body as { entryId?: unknown }).entryId === 'string'
+    ? (body as { entryId: string }).entryId.trim()
+    : null;
 
   if (!isReactionType(reactionType)) {
     return NextResponse.json({ error: 'Reaction type must be like or bookmark.' }, { status: 400 });
@@ -83,12 +93,19 @@ export async function POST(request: NextRequest) {
   const fingerprintHash = hashVisitorFingerprint(fingerprint);
   const sb = getSupabase();
 
-  const { data: existing, error: existingError } = await sb
+  let existingQuery = sb
     .from('site_reactions')
     .select('id')
     .eq('reaction_type', reactionType)
-    .eq('fingerprint_hash', fingerprintHash)
-    .maybeSingle();
+    .eq('fingerprint_hash', fingerprintHash);
+
+  if (entryId) {
+    existingQuery = existingQuery.eq('entry_id', entryId);
+  } else {
+    existingQuery = existingQuery.is('entry_id', null);
+  }
+
+  const { data: existing, error: existingError } = await existingQuery.maybeSingle();
 
   if (existingError) {
     return NextResponse.json({ error: formatReactionStorageError(existingError.message) }, { status: 500 });
@@ -109,7 +126,7 @@ export async function POST(request: NextRequest) {
 
   const { error: insertError } = await sb
     .from('site_reactions')
-    .insert({ reaction_type: reactionType, fingerprint_hash: fingerprintHash });
+    .insert({ reaction_type: reactionType, fingerprint_hash: fingerprintHash, entry_id: entryId || null });
 
   if (insertError) {
     return NextResponse.json({ error: formatReactionStorageError(insertError.message) }, { status: 500 });

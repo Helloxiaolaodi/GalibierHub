@@ -35,7 +35,7 @@ const JBrowseViewer = dynamic(() => import('./jbrowse-viewer'), {
   ),
 });
 
-const REACHABILITY_TIMEOUT_MS = 3000;
+const REACHABILITY_TIMEOUT_MS = 2000;
 
 async function isReachable(url: string): Promise<boolean> {
   const controller = new AbortController();
@@ -69,24 +69,18 @@ function getTrackRequiredUrls(track: DemoTrack): string[] {
   ].filter((value): value is string => Boolean(value));
 }
 
-async function getReachableTracks(baseUrl: string, tracks: readonly DemoTrack[]): Promise<DemoTrack[]> {
-  const checks = await Promise.all(
-    tracks.map(async (track) => {
-      const requiredUrls = getTrackRequiredUrls(track);
-      const results = await Promise.all(
-        requiredUrls.map((path) => isReachable(buildStorageUrl(baseUrl, path))),
-      );
-      return results.every(Boolean) ? track : null;
-    }),
+async function checkTrackReachable(baseUrl: string, track: DemoTrack): Promise<boolean> {
+  const requiredUrls = getTrackRequiredUrls(track);
+  if (requiredUrls.length === 0) return true;
+  const results = await Promise.all(
+    requiredUrls.map((path) => isReachable(buildStorageUrl(baseUrl, path))),
   );
-
-  return checks.filter((track): track is DemoTrack => track !== null);
+  return results.every(Boolean);
 }
 
 export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }: GenomeBrowserProps) {
   const configuredBase = SiteConfig.jbrowse.storageBaseUrl;
   const candidateBases = useMemo(() => getCandidateStorageBaseUrls(configuredBase), [configuredBase]);
-  const effectiveBase = candidateBases[0] || '';
   const storageMode = useMemo(() => getStorageAccessMode(configuredBase), [configuredBase]);
   const assemblies = SiteConfig.jbrowse.assemblies as Record<string, AssemblyConfig>;
   const defaultAssembly = SiteConfig.jbrowse.defaultAssembly;
@@ -113,18 +107,18 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
   }, [allConfiguredTracks, availableTracks]);
 
   useEffect(() => {
-    if (!effectiveBase) {
+    if (!candidateBases || candidateBases.length === 0) {
       setDataBase('');
       setResolvedAssembly(defaultAssembly);
       setAvailableTracks([]);
       setProbe('missing-data');
     }
-  }, [defaultAssembly, effectiveBase]);
+  }, [defaultAssembly, candidateBases]);
 
   useEffect(() => {
     let cancelled = false;
 
-    if (!effectiveBase) {
+    if (!candidateBases || candidateBases.length === 0) {
       setProbe('missing-data');
       return () => {
         cancelled = true;
@@ -134,30 +128,38 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
     setProbe('checking');
 
     (async () => {
-      for (const name of assemblyNames) {
-        const assembly = assemblies[name];
-
-        for (const base of candidateBases) {
+      const probeTasks = assemblyNames.flatMap((name) =>
+        candidateBases.map(async (base) => {
+          const assembly = assemblies[name];
           const fastaIndexUrl = buildStorageUrl(base, assembly.fastaIndex);
           if (!(await isReachable(fastaIndexUrl))) {
-            continue;
+            return null;
           }
 
-          const tracks = await getReachableTracks(base, assembly.tracks);
-          if (cancelled) {
-            return;
-          }
+          const trackResults = await Promise.all(
+            assembly.tracks.map((track) => checkTrackReachable(base, track)),
+          );
+          const reachableTracks = assembly.tracks.filter((_, idx) => trackResults[idx]);
 
-          setDataBase(base);
-          setResolvedAssembly(name);
-          setAvailableTracks(tracks);
+          if (cancelled) return null;
+          return { base, name, tracks: reachableTracks };
+        }),
+      );
+
+      for (const task of probeTasks) {
+        if (cancelled) return;
+        const result = await task;
+        if (result) {
+          setDataBase(result.base);
+          setResolvedAssembly(result.name);
+          setAvailableTracks(result.tracks);
           setProbe('ready');
           return;
         }
       }
 
       if (!cancelled) {
-        setDataBase(effectiveBase);
+        setDataBase(candidateBases[0] || '');
         setResolvedAssembly(defaultAssembly);
         setAvailableTracks([]);
         setProbe('missing-data');
@@ -167,7 +169,7 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
     return () => {
       cancelled = true;
     };
-  }, [assemblies, assemblyNames, candidateBases, configuredBase, defaultAssembly, effectiveBase]);
+  }, [assemblies, assemblyNames, candidateBases, defaultAssembly]);
 
   if (probe === 'checking' || probe === 'idle') {
     return (
@@ -176,7 +178,7 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
           Genome Browser - Checking data availability...
         </div>
         <div className="p-6 text-center text-gray-400 text-sm animate-pulse">
-          Probing {assemblyNames.length} assembly(s) across available storage bases...
+          Probing {assemblyNames.length} assembly(s) across {candidateBases.length} storage base(s) in parallel...
         </div>
       </div>
     );
@@ -184,7 +186,7 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
 
   if (probe === 'missing-data') {
     const firstFai = assemblies[defaultAssembly].fastaIndex;
-    const probeUrl = getStorageUrl(firstFai, effectiveBase || configuredBase, { preferProxy: false });
+    const probeUrl = getStorageUrl(firstFai, candidateBases[0] || configuredBase, { preferProxy: false });
     const accessHint =
       storageMode === 'unset'
         ? 'No real genome storage base is configured. Replace the placeholder NEXT_PUBLIC_STORAGE_BASE_URL or NEXT_PUBLIC_R2_PUBLIC_URL value with a reachable public object-storage or HF proxy URL.'

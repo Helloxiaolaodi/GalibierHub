@@ -296,93 +296,59 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
                <span>Title (required)</span>
                <input
                  value={form.title}
-                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                 minLength={3}
-                 maxLength={120}
-               />
-                {validationErrors.title && <span className="text-xs text-red-600">{validationErrors.title}</span>}
+                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+              />
+               {validationErrors.title && <span className="text-xs text-red-600">{validationErrors.title}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
                <span>Name or nickname (required)</span>
                <input
                  value={form.displayName}
-                 onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
-                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                 maxLength={80}
-               />
-                {validationErrors.displayName && <span className="text-xs text-red-600">{validationErrors.displayName}</span>}
+                onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+              />
+               {validationErrors.displayName && <span className="text-xs text-red-600">{validationErrors.displayName}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
-               <span>Email (optional)</span>
-               <input
-                 type="email"
-                 value={form.visitorEmail}
-                 onChange={(event) => setForm((current) => ({ ...current, visitorEmail: event.target.value }))}
-                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                 maxLength={160}
-               />
+              <span>Email (optional)</span>
+              <input
+                value={form.visitorEmail}
+                onChange={(event) => setForm((current) => ({ ...current, visitorEmail: event.target.value }))}
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+              />
               </label>
               <label className="space-y-1 text-sm text-gray-700">
                 <span>Affiliation</span>
                 <input
                   value={form.affiliation}
-                  onChange={(event) => setForm((current) => ({ ...current, affiliation: event.target.value }))}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  maxLength={160}
-                />
-              </label>
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Category</span>
-                <select
-                  value={form.category}
-                  onChange={(event) => setForm((current) => ({ ...current, category: event.target.value as FeedbackCategory }))}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                >
-                  {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-              </label>
+               onChange={(event) => setForm((current) => ({ ...current, affiliation: event.target.value }))}
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+              />
+             </label>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Visibility</span>
-                <select
-                  value={form.visibility}
-                  onChange={(event) => setForm((current) => ({ ...current, visibility: event.target.value as VisibilityMode }))}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                >
-                  <option value="public">Public</option>
-                  <option value="private">Creator only</option>
-                </select>
-              </label>
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Rating</span>
-                <select
-                  value={String(form.rating)}
-                  onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                >
-                  {[5, 4, 3, 2, 1].map((value) => (
-                    <option key={value} value={value}>{value}/5</option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            <label className="space-y-1 text-sm text-gray-700">
+              <span>Visibility</span>
+              <select
+                value={form.visibility}
+                onChange={(event) => setForm((current) => ({ ...current, visibility: event.target.value as VisibilityMode }))}
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+              >
+                <option value="public">Public</option>
+                <option value="private">Creator only</option>
+              </select>
+            </label>
 
             <label className="block space-y-1 text-sm text-gray-700">
               <span>Message (required)</span>
               <textarea
                 value={form.message}
                 onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-                rows={6}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-               minLength={3}
-               maxLength={2000}
-             />
-              {validationErrors.message && <span className="text-xs text-red-600">{validationErrors.message}</span>}
+              rows={6}
+              className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+            />
+             {validationErrors.message && <span className="text-xs text-red-600">{validationErrors.message}</span>}
             </label>
 
             {submitError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</div>}
