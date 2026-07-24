@@ -15,7 +15,7 @@ English README: [README.md](./README.md)
 - Open the embedded genome browser and jump directly from a promoter record to the matching region.
 - Inspect promoter details in a floating, resizable panel without hiding the browser.
 - Download reference bundles, release archives, and sample-level files from public storage.
-- Submit public or creator-only messages via the `Community Feedback` tab, then review thread status on the same page.
+- Submit public or creator-only messages via the `Discussion` tab, then review thread status on the same page.
 - Sign in with the allowed GitHub creator account to publish official replies.
 - Check the site uptime counter at the bottom of the page.
 
@@ -44,7 +44,7 @@ Recommended production layout:
 2. Cloudflare Pages for the mirror site
 3. Cloudflare Worker for Hugging Face proxying
 
-The main interface has three tabs: **Overview**, **Promoters** (promoter table + genome browser), and **Community Feedback**.
+The main interface has three tabs: **Overview**, **Promoters** (promoter table + genome browser), and **Discussion**.
 
 ## Quick Start
 
@@ -174,19 +174,19 @@ The in-app User Guide covers four sections:
 
 1. Browsing Data
 2. Downloading Data
-3. Community Feedback
+3. Discussion
 4. For Site Creators
 
 This is where end users can learn the difference between browser downloads and CLI downloads for large files, and how to use the built-in feedback channel.
 
-## Community Feedback
+## Discussion
 
 SeqEdge includes a lightweight interaction area for research communication:
 
-- Click the `Community Feedback` tab to browse threads and open the floating composer.
+- Click the `Discussion` tab to browse threads and open the floating composer. Anyone can sign in with GitHub to post.
 - Messages support a title, name or nickname, email, optional affiliation, category, rating, and visibility.
 - Messages can be `Public` or `Creator only` (private).
-- The `Community Feedback` tab shows threads split into `In progress` and `Completed`.
+- The `Discussion` tab shows threads split into `In progress` and `Completed`.
 - Creator replies appear on the site and can also be emailed when the email API is configured.
 - The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`.
 - Posted and replied timestamps are displayed for each thread.
@@ -231,7 +231,7 @@ If the Site URL is left as the default http://localhost:3000, OAuth sign-in will
 
 Set `GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the GitHub login that may reply. Any other signed-in GitHub account can read but cannot send creator replies.
 
-Then sign in from the top-right `Creator Sign In` button on the site.
+Then sign in from the top-right `Log in with GitHub` button on the site.
 
 ﻿## 邮件通知配置（Resend）
 
