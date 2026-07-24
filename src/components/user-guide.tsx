@@ -128,6 +128,8 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
             <ul className="space-y-2">
               <li><span className="font-medium text-gray-900">Integrated JBrowse 2:</span> Interactive viewer for reference genomes and multi-track annotations.</li>
               <li><span className="font-medium text-gray-900">Synchronized Navigation:</span> Selecting a feature automatically jumps the browser view to a +/-2 kb window around the target locus.</li>
+              <li><span className="font-medium text-gray-900">Selection Highlight:</span> The active promoter remains highlighted in JBrowse, and browser-side navigation now keeps the page locus in sync.</li>
+              <li><span className="font-medium text-gray-900">Default Track Activation:</span> SeqEdge opens the first reachable annotation track automatically so the browser does not start in a blank `No tracks active` state.</li>
             </ul>
           </section>
 
@@ -136,10 +138,34 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
             <ul className="space-y-2">
               <li><span className="font-medium text-gray-900">Metadata &amp; Tables:</span> Structured datasets are served via cloud databases with secure read access.</li>
               <li><span className="font-medium text-gray-900">Genomic Files:</span> Large tracks (FASTA, BAM, VCF, GFF3) are hosted via object storage with range-request acceleration for fast streaming.</li>
+              <li><span className="font-medium text-gray-900">Direct Downloads:</span> Download buttons point directly to the public file host with `?download=true`, so bulk transfers do not traverse the JBrowse proxy path.</li>
             </ul>
             <p className="mt-3 text-xs leading-5 text-gray-500">
               For local validation or reproducible setup, download <span className="font-medium text-gray-700">seqedge-test-data.zip</span> from the repository Releases page, upload the extracted files to your object storage, and point the deployment to those real files.
             </p>
+          </section>
+
+          <section>
+            <h3 className="mb-2 font-semibold text-gray-900">5. Downloading Data</h3>
+            <ul className="space-y-2">
+              <li><span className="font-medium text-gray-900">Small files:</span> Use the visible <span className="font-medium text-gray-900">Download</span> button. These links open the public storage target directly in a new tab or browser download flow.</li>
+              <li><span className="font-medium text-gray-900">Large files:</span> When a dataset is marked as CLI-friendly, SeqEdge also shows <span className="font-medium text-gray-900">Copy wget</span> and <span className="font-medium text-gray-900">Copy curl</span> buttons beside the normal download button.</li>
+              <li><span className="font-medium text-gray-900">Overview bundles:</span> The top-level archive cards on the Overview page can expose both browser download and command-line copy actions, which is the recommended free-tier pattern for multi-GB releases.</li>
+              <li><span className="font-medium text-gray-900">Promoter sample files:</span> In the promoter detail panel, VCF and FASTA downloads follow the same rule. Small files stay button-only; large files can also expose CLI copy actions.</li>
+            </ul>
+            <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs leading-5 text-gray-600">
+              SeqEdge separates browser streaming from bulk download traffic. JBrowse reads indexed assets through the configured proxy or fallback chain, while user-triggered downloads go directly to the public storage host for better speed and lower free-tier resource usage.
+            </div>
+          </section>
+
+          <section>
+            <h3 className="mb-2 font-semibold text-gray-900">6. Community Feedback</h3>
+            <ul className="space-y-2">
+              <li><span className="font-medium text-gray-900">Public and private messages:</span> Choose <span className="font-medium text-gray-900">Public</span> to show your message on the site, or <span className="font-medium text-gray-900">Creator only</span> to keep it visible only to the site maintainer.</li>
+              <li><span className="font-medium text-gray-900">Contact-ready submissions:</span> Add your name or nickname and email address so the creator can reply on-site and, when email delivery is configured, send a reply to your inbox.</li>
+              <li><span className="font-medium text-gray-900">Thread status:</span> Messages are separated into <span className="font-medium text-gray-900">In progress</span> and <span className="font-medium text-gray-900">Completed</span> sections, with posted and replied timestamps shown for each thread.</li>
+              <li><span className="font-medium text-gray-900">Lightweight reactions:</span> Visitors can leave a like or bookmark to signal usefulness without opening a full discussion thread.</li>
+            </ul>
           </section>
 
           <section>

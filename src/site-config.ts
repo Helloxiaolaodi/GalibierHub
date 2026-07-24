@@ -15,6 +15,15 @@ export const SiteConfig = {
     'Interactive database for browsing predicted promoters, whole genome annotations, and genomic data - powered by serverless edge infrastructure.',
   keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation', 'seqedge'],
   contactEmail: 'lab@university.edu',
+  feedback: {
+    sectionTitle: 'Community Feedback',
+    sectionDescription:
+      'Collect public comments, private messages, quick reactions, and reply status in one place for research communication.',
+    adminTokenStorageKey: 'seqedge-admin-reply-token',
+  },
+  uptime: {
+    startAt: '2025-01-01T00:00:00+08:00',
+  },
 
   colors: {
     primary: '#1E3A8A',
@@ -60,6 +69,31 @@ export const SiteConfig = {
         ],
       },
     },
+  },
+
+  downloads: {
+    featured: [
+      {
+        id: 'release-archive',
+        label: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL || 'Download Release Archive',
+        description:
+          process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION ||
+          'Versioned bundle for offline analysis, mirroring, or reproducible local setup.',
+        href: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_URL || '',
+        sizeLabel: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE || '',
+        mode: (process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_MODE || 'cli') as 'direct' | 'cli',
+      },
+      {
+        id: 'reference-bundle',
+        label: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_LABEL || 'Download Reference Bundle',
+        description:
+          process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_DESCRIPTION ||
+          'Reference FASTA and annotation files used by the embedded genome browser.',
+        href: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_URL || '',
+        sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_SIZE || '',
+        mode: (process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_MODE || 'direct') as 'direct' | 'cli',
+      },
+    ],
   },
 
   // Chinese adult BMI classification (kg/m^2)

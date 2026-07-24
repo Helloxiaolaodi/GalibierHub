@@ -10,6 +10,8 @@ export interface GenomeSample {
   coverage: number;
   vcf_download_url: string | null;
   fasta_download_url: string | null;
+  vcf_download_mode?: 'direct' | 'cli' | null;
+  fasta_download_mode?: 'direct' | 'cli' | null;
   created_at: string;
 }
 
@@ -53,6 +55,10 @@ export interface SampleMetadata {
   bmi: number | null;
   age: number | null;
   sex: string | null;
+  vcf_download_url: string | null;
+  fasta_download_url: string | null;
+  vcf_download_mode?: 'direct' | 'cli' | null;
+  fasta_download_mode?: 'direct' | 'cli' | null;
 }
 
 // Stats for dashboard overview
@@ -62,4 +68,30 @@ export interface DashboardStats {
   total_variants: number;
   species_distribution: Record<string, number>;
   score_distribution: { range: string; count: number }[];
+}
+
+export type FeedbackCategory = 'general' | 'issue' | 'idea' | 'data' | 'collaboration';
+
+export interface SiteFeedbackEntry {
+  id: string;
+  display_name: string;
+  visitor_email?: string | null;
+  affiliation: string | null;
+  category: FeedbackCategory;
+  rating: number;
+  visibility: 'public' | 'private';
+  message: string;
+  creator_reply: string | null;
+  replied_at: string | null;
+  created_at: string;
+}
+
+export interface FeedbackSummary {
+  totalComments: number;
+  averageRating: number;
+}
+
+export interface ReactionCounts {
+  like: number;
+  bookmark: number;
 }

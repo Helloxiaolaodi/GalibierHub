@@ -9,6 +9,12 @@ import type { AssemblyData, DemoTrack, DemoTrackAdapter } from './jbrowse-viewer
 interface GenomeBrowserProps {
   locus?: string;
   onLocusChange?: (locus: string) => void;
+  highlightRegion?: {
+    refName: string;
+    start: number;
+    end: number;
+    name?: string;
+  } | null;
 }
 
 type Probe = 'idle' | 'checking' | 'ready' | 'missing-data';
@@ -77,7 +83,7 @@ async function getReachableTracks(baseUrl: string, tracks: readonly DemoTrack[])
   return checks.filter((track): track is DemoTrack => track !== null);
 }
 
-export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
+export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }: GenomeBrowserProps) {
   const configuredBase = SiteConfig.jbrowse.storageBaseUrl;
   const candidateBases = useMemo(() => getCandidateStorageBaseUrls(configuredBase), [configuredBase]);
   const effectiveBase = candidateBases[0] || '';
@@ -217,6 +223,8 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
       )}
       <JBrowseViewer
         locus={locus}
+        onLocusChange={onLocusChange}
+        highlightRegion={highlightRegion}
         dataBase={dataBase}
         assemblyName={resolvedAssembly}
         assemblyData={assemblyData}

@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { SiteConfig } from '@/site-config';
+import { getDirectDownloadUrl } from '@/lib/storage';
 import type { Promoter, SampleMetadata } from '@/types/genome';
+import DownloadActions from './download-actions';
 
 interface PromoterDetailProps {
   promoter: Promoter | null;
@@ -169,6 +171,10 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
   const strandColor = promoter.strand === '+' ? 'text-blue-600' : 'text-red-600';
   const length = promoter.end_pos - promoter.start;
   const bmi = sample && sample !== null ? bmiClass(sample.bmi) : null;
+  const vcfDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.vcf_download_url) : '';
+  const fastaDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.fasta_download_url) : '';
+  const showVcfCli = sample?.vcf_download_mode === 'cli';
+  const showFastaCli = sample?.fasta_download_mode === 'cli';
 
   const handleCopyBed = () => {
     const bed = `${promoter.chrom}\t${promoter.start}\t${promoter.end_pos}\t${promoter.gene_symbol || 'NA'}\t${promoter.score}\t${promoter.strand}`;
@@ -415,6 +421,29 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
               </button>
             )}
           </div>
+
+          {(vcfDownloadUrl || fastaDownloadUrl) && (
+            <Card title="Sample file downloads">
+              <div className="space-y-4">
+                {vcfDownloadUrl && (
+                  <DownloadActions
+                    url={vcfDownloadUrl}
+                    label="Download VCF"
+                    description="Direct sample-level variant file download from the public storage host."
+                    showCli={showVcfCli}
+                  />
+                )}
+                {fastaDownloadUrl && (
+                  <DownloadActions
+                    url={fastaDownloadUrl}
+                    label="Download FASTA"
+                    description="Direct sample-level FASTA download from the public storage host."
+                    showCli={showFastaCli}
+                  />
+                )}
+              </div>
+            </Card>
+          )}
         </div>
 
         <button

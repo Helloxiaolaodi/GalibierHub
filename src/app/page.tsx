@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Promoter, DashboardStats } from '@/types/genome';
+import { getDirectDownloadUrl } from '@/lib/storage';
 import { SiteConfig } from '@/site-config';
 import SearchFilters, { type SearchFilters as FiltersType } from '@/components/search-filters';
 import StatsChart from '@/components/stats-chart';
@@ -9,12 +10,28 @@ import PromoterTable from '@/components/promoter-table';
 import PromoterDetail from '@/components/promoter-detail';
 import GenomeBrowser from '@/components/genome-browser';
 import UserGuide from '@/components/user-guide';
+import DownloadActions from '@/components/download-actions';
+import SiteFeedback from '@/components/site-feedback';
+import SiteUptime from '@/components/site-uptime';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
 
 function buildPromoterLocus(promoter: Promoter) {
   return `${promoter.chrom}:${Math.max(0, promoter.start - 2000)}-${promoter.end_pos + 2000}`;
+}
+
+function buildHighlightRegion(promoter: Promoter | null) {
+  if (!promoter) {
+    return null;
+  }
+
+  return {
+    refName: promoter.chrom,
+    start: promoter.start,
+    end: promoter.end_pos,
+    name: promoter.gene_symbol || promoter.sample_id,
+  };
 }
 
 const EMPTY_FILTERS: FiltersType = {
@@ -45,6 +62,16 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome'>('overview');
   const [guideOpen, setGuideOpen] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
+  const featuredDownloads = useMemo(
+    () => SiteConfig.downloads.featured
+      .map((item) => ({
+        ...item,
+        href: getDirectDownloadUrl(item.href),
+        showCli: item.mode === 'cli',
+      }))
+      .filter((item) => Boolean(item.href)),
+    [],
+  );
 
   const configurationHints = useMemo(() => {
     if (!dataError) return [] as string[];
@@ -184,6 +211,11 @@ export default function HomePage() {
     };
   }, [promoters]);
 
+  const highlightedPromoterRegion = useMemo(
+    () => buildHighlightRegion(selectedPromoter),
+    [selectedPromoter],
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-40">
@@ -259,14 +291,35 @@ export default function HomePage() {
         {activeTab === 'overview' && (
           <>
             <StatsChart stats={stats} />
+            {featuredDownloads.length > 0 && (
+              <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                <div className="border-b bg-gray-50 px-4 py-3">
+                  <h2 className="text-sm font-semibold text-gray-900">Dataset Downloads</h2>
+                </div>
+                <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
+                  {featuredDownloads.map((item) => (
+                    <div key={item.id} className="flex min-h-28 flex-col justify-between gap-3 border border-gray-200 bg-white p-4">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-semibold text-gray-900">{item.label}</h3>
+                      </div>
+                      <DownloadActions
+                        url={item.href}
+                        label="Download"
+                        sizeLabel={item.sizeLabel}
+                        description={item.description}
+                        showCli={item.showCli}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+            <SiteFeedback />
             <SearchFilters onSearch={handleSearch} loading={loading} />
             <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} visibleCount={pageSummary.visibleCount} sortMode={sortMode} summaryMode={summaryMode} onSortModeChange={(nextMode) => {
                 setSortMode(nextMode);
                 setPageIndex(0);
-              }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={(p) => {
-                setSelectedPromoter(p);
-                setBrowserLocus(buildPromoterLocus(p));
-              }}
+              }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick}
             />
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
@@ -275,6 +328,7 @@ export default function HomePage() {
               <GenomeBrowser
                 locus={browserLocus}
                 onLocusChange={setBrowserLocus}
+                highlightRegion={highlightedPromoterRegion}
               />
             </div>
           </>
@@ -296,6 +350,7 @@ export default function HomePage() {
             <GenomeBrowser
               locus={browserLocus}
               onLocusChange={setBrowserLocus}
+              highlightRegion={highlightedPromoterRegion}
             />
             <div className="text-sm text-gray-500">
               Showing {promoters.length} promoter records in the current result set. Select a real record to synchronize the browser view.
@@ -314,6 +369,7 @@ export default function HomePage() {
           onClose={() => setSelectedPromoter(null)}
         />
       )}
+      <SiteUptime startAt={SiteConfig.uptime.startAt} />
     </div>
   );
 }
