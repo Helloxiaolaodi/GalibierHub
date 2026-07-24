@@ -7,59 +7,6 @@ interface UserGuideProps {
   onClose: () => void;
 }
 
-const REFERENCES = [
-  {
-    name: 'Next.js 15.5.21',
-    href: 'https://nextjs.org/docs',
-    note: 'Official documentation',
-  },
-  {
-    name: 'React 19.2.4',
-    href: 'https://react.dev/learn',
-    note: 'Official learning resources',
-  },
-  {
-    name: '@supabase/supabase-js ^2.110.7',
-    href: 'https://supabase.com/docs/reference/javascript/introduction',
-    note: 'Official JavaScript client documentation',
-  },
-  {
-    name: '@jbrowse/product-core ^4.3.0',
-    href: 'https://jbrowse.org/jb2/',
-    note: 'JBrowse 2 official documentation',
-  },
-  {
-    name: '@jbrowse/react-linear-genome-view ^3.1.0',
-    href: 'https://www.npmjs.com/package/@jbrowse/react-linear-genome-view',
-    note: 'Package documentation',
-  },
-  {
-    name: 'JBrowse 2',
-    href: 'https://www.nature.com/articles/s41587-023-01780-9',
-    note: 'Buels R, et al. JBrowse 2: a modular genome browser with views of synteny and structural variation. Nature Biotechnology. 2023.',
-  },
-  {
-    name: '@tanstack/react-table ^8.21.3',
-    href: 'https://tanstack.com/table/latest/docs/guide/introduction',
-    note: 'Official documentation',
-  },
-  {
-    name: 'echarts ^6.1.0',
-    href: 'https://echarts.apache.org/handbook/en/get-started/',
-    note: 'Official handbook',
-  },
-  {
-    name: '@opennextjs/cloudflare ^1.20.2',
-    href: 'https://opennext.js.org/cloudflare',
-    note: 'OpenNext Cloudflare documentation',
-  },
-  {
-    name: 'wrangler ^4.113.0',
-    href: 'https://developers.cloudflare.com/workers/wrangler/',
-    note: 'Cloudflare Workers CLI documentation',
-  },
-];
-
 export default function UserGuide({ open, onClose }: UserGuideProps) {
   useEffect(() => {
     if (!open) {
@@ -142,23 +89,11 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
             </ul>
           </section>
 
-          <section>
-            <h3 className="mb-2 font-semibold text-gray-900">Open-source References &amp; Thanks</h3>
-            <div className="space-y-3">
-              {REFERENCES.map((item) => (
-                <div key={item.name} className="border-t border-gray-100 pt-3 first:border-t-0 first:pt-0">
-                  <a
-                    href={item.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-medium text-blue-700 underline underline-offset-2"
-                  >
-                    {item.name}
-                  </a>
-                  <p className="mt-1 text-xs leading-5 text-gray-500">{item.note}</p>
-                </div>
-              ))}
-            </div>
+         <section>
+            <h3 className="mb-2 font-semibold text-gray-900">Open-source Stack</h3>
+            <p className="text-xs text-gray-500">
+              Built with Next.js 15, React 19, Supabase, JBrowse 2, TanStack Table, ECharts, and OpenNext.
+            </p>
           </section>
         </div>
       </aside>

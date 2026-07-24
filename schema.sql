@@ -33,6 +33,9 @@ ALTER TABLE genome_samples ADD COLUMN IF NOT EXISTS age INTEGER;
 ALTER TABLE genome_samples ADD COLUMN IF NOT EXISTS sex TEXT;
 ALTER TABLE genome_samples ADD COLUMN IF NOT EXISTS vcf_download_mode TEXT;
 ALTER TABLE genome_samples ADD COLUMN IF NOT EXISTS fasta_download_mode TEXT;
+ALTER TABLE genome_samples ADD COLUMN IF NOT EXISTS gb_download_url TEXT;
+ALTER TABLE genome_samples ADD COLUMN IF NOT EXISTS bed_download_url TEXT;
+ALTER TABLE genome_samples ADD COLUMN IF NOT EXISTS gff3_download_url TEXT;
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'genome_samples_sex_check'

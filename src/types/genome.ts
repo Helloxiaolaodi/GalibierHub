@@ -9,8 +9,11 @@ export interface GenomeSample {
   total_variants: number;
   coverage: number;
   vcf_download_url: string | null;
-  fasta_download_url: string | null;
-  vcf_download_mode?: 'direct' | 'cli' | null;
+ fasta_download_url: string | null;
+  gb_download_url: string | null;
+  bed_download_url: string | null;
+  gff3_download_url: string | null;
+ vcf_download_mode?: 'direct' | 'cli' | null;
   fasta_download_mode?: 'direct' | 'cli' | null;
   created_at: string;
 }
@@ -56,8 +59,11 @@ export interface SampleMetadata {
   age: number | null;
   sex: string | null;
   vcf_download_url: string | null;
-  fasta_download_url: string | null;
-  vcf_download_mode?: 'direct' | 'cli' | null;
+ fasta_download_url: string | null;
+  gb_download_url: string | null;
+  bed_download_url: string | null;
+  gff3_download_url: string | null;
+ vcf_download_mode?: 'direct' | 'cli' | null;
   fasta_download_mode?: 'direct' | 'cli' | null;
 }
 
