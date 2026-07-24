@@ -205,16 +205,6 @@ export default function HomePage() {
     setActiveTab('promoters');
   }, []);
 
-  useEffect(() => {
-    if (activeTab !== 'genome' || selectedPromoter || promoters.length === 0) {
-      return;
-    }
-
-    const firstPromoter = promoters[0];
-    setSelectedPromoter(firstPromoter);
-    setBrowserLocus(buildPromoterLocus(firstPromoter));
-  }, [activeTab, promoters, selectedPromoter]);
-
   const filterSummary = useMemo(() => {
     const items: Array<{ label: string; value: string }> = [];
     if (currentFilters.chrom) items.push({ label: 'Chromosome', value: currentFilters.chrom });
