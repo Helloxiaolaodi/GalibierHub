@@ -39,6 +39,8 @@ export const STORAGE_BASE_URL =
  *  guide in cloudflare-templates/hf-proxy/README.md. */
 export const HF_PROXY_BASE_URL = process.env.NEXT_PUBLIC_HF_PROXY_URL || '';
 
+export const LOCAL_HF_PROXY_PATH = '/api/hf-proxy';
+
 function isPlaceholderStorageValue(value: string): boolean {
   return !value || /your-(bucket|r2-bucket)|example\.com|<user>|<repo>/i.test(value);
 }
@@ -51,10 +53,19 @@ function getResolvedStorageBaseUrl(baseUrl: string, preferProxy: boolean): strin
   return baseUrl;
 }
 
+function getLocalProxyBaseUrl(baseUrl: string): string {
+  if (typeof window === 'undefined') return '';
+  if (isPlaceholderStorageValue(baseUrl) || !isHuggingFaceUrl(baseUrl)) return '';
+  return LOCAL_HF_PROXY_PATH;
+}
+
 export function getCandidateStorageBaseUrls(baseUrl: string = STORAGE_BASE_URL): string[] {
-  const primary = getResolvedStorageBaseUrl(baseUrl, true);
-  const fallback = getResolvedStorageBaseUrl(baseUrl, false);
-  return [primary, fallback].filter((value, index, all): value is string => Boolean(value) && all.indexOf(value) === index);
+  const workerPreferred = getResolvedStorageBaseUrl(baseUrl, true);
+  const localProxy = getLocalProxyBaseUrl(baseUrl);
+  const direct = getResolvedStorageBaseUrl(baseUrl, false);
+  return [workerPreferred, localProxy, direct].filter(
+    (value, index, all): value is string => Boolean(value) && all.indexOf(value) === index,
+  );
 }
 
 export function getEffectiveStorageBaseUrl(baseUrl: string = STORAGE_BASE_URL): string {

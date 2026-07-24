@@ -99,7 +99,7 @@ If your files live under a subfolder such as `test-data/` or `sars-cov-2-lite/`,
 
 The Genome Browser currently probes the file declared by `NEXT_PUBLIC_REFERENCE_FASTA_INDEX` with `Range: bytes=0-0` before rendering. If that `.fai` path is wrong or unreachable, the browser stops immediately with `Genome Browser - Reference data unreachable`.
 
-When `NEXT_PUBLIC_HF_PROXY_URL` is configured and `NEXT_PUBLIC_STORAGE_BASE_URL` points at Hugging Face `resolve/main`, SeqEdge now prefers the Worker first but automatically falls back to direct Hugging Face reads if the Worker is unreachable. This keeps the browser usable during proxy outages, while the Worker remains the recommended production path for range and CORS stability.
+When `NEXT_PUBLIC_STORAGE_BASE_URL` points at Hugging Face `resolve/main`, SeqEdge now probes storage in three stages on the browser side: your external `NEXT_PUBLIC_HF_PROXY_URL` Worker when configured, the built-in same-origin `/api/hf-proxy/<file>` route exposed by the app itself, and finally direct Hugging Face reads. This keeps the browser usable on Vercel or Pages even when the external Worker is down, while the Worker remains the recommended production path for range and CORS stability.
 
 ### 3.4 Initialize the database
 
@@ -234,7 +234,7 @@ NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 
 5. Verify the required reference index through the Worker before shipping the site. For the default SARS-CoV-2 example, `https://seqedge-hf-proxy.your-account.workers.dev/scov2.fa.fai` should return `200` or `206`. If it does not, fix `HF_REPO_BASE`, the storage subdirectory, or the uploaded filenames before debugging JBrowse itself.
 
-If the Worker is temporarily unreachable but the original Hugging Face `resolve/main` files are public and range-readable, the current browser build can still fall back to direct HF reads. Treat that as a resilience path, not as the preferred final deployment state.
+If the Worker is temporarily unreachable but the original Hugging Face `resolve/main` files are public and range-readable, the current browser build can still fall back through the app's own `/api/hf-proxy` route and then to direct HF reads. Treat those as resilience paths, not as the preferred final deployment state.
 
 ## 6. Feature Modules
 
@@ -270,7 +270,7 @@ If Cloudflare Pages or Vercel shows an empty browser panel or `Genome Browser - 
 - the configured filenames in environment variables match the deployed object keys exactly
 - if `NEXT_PUBLIC_HF_PROXY_URL` is enabled, the exact probe URL `https://<your-worker>/<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` returns `200` or `206`
 - `cloudflare-templates/hf-proxy/wrangler.toml` uses the same dataset path in `HF_REPO_BASE`
-- if the Worker is down, confirm the original Hugging Face `resolve/main/.../<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` URL is also public and range-readable so the fallback path can work
+- if the Worker is down, confirm the app's own `/api/hf-proxy/<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` route and the original Hugging Face `resolve/main/.../<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` URL are both reachable so the fallback chain can work
 - Supabase contains only real rows intended for publication
 
 ### 7.3 Object storage checks
