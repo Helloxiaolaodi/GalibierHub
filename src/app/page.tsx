@@ -342,7 +342,7 @@ export default function HomePage() {
             <button type="button" onClick={() => setFeedbackComposerOpen(true)}
               className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 border border-gray-200 text-gray-700 hover:bg-gray-100"
             >
-              Leave Feedback
+              Feedback
             </button>
             {creatorSession ? (
               <>

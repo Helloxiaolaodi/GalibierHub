@@ -61,6 +61,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
     visibility: 'public' as VisibilityMode,
     message: '',
   });
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -122,6 +123,94 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
     setSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(null);
+
+    // Validation
+    const errors: Record<string, string> = {};
+    if (!form.title.trim()) {
+      errors.title = 'This field is required';
+    } else if (form.title.trim().length < 3) {
+      errors.title = 'Title must be at least 3 characters';
+    } else if (form.title.trim().length > 120) {
+      errors.title = 'Title must be 120 characters or less';
+    }
+
+    if (!form.displayName.trim()) {
+      errors.displayName = 'This field is required';
+    } else if (form.displayName.trim().length > 80) {
+      errors.displayName = 'Name must be 80 characters or less';
+    }
+
+    if (!form.visitorEmail.trim()) {
+      errors.visitorEmail = 'This field is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.visitorEmail.trim())) {
+      errors.visitorEmail = 'Please enter a valid email address';
+    } else if (form.visitorEmail.trim().length > 160) {
+      errors.visitorEmail = 'Email must be 160 characters or less';
+    }
+
+    if (form.affiliation.trim().length > 160) {
+      errors.affiliation = 'Affiliation must be 160 characters or less';
+    }
+
+    if (!form.message.trim()) {
+      errors.message = 'This field is required';
+    } else if (form.message.trim().length < 3) {
+      errors.message = 'Message must be at least 3 characters';
+    } else if (form.message.trim().length > 2000) {
+      errors.message = 'Message must be 2000 characters or less';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setSubmitting(false);
+      return;
+    }
+
+    setValidationErrors({});
+
+    // Validation
+    const errors: Record<string, string> = {};
+    if (!form.title.trim()) {
+      errors.title = 'This field is required';
+    } else if (form.title.trim().length < 3) {
+      errors.title = 'Title must be at least 3 characters';
+    } else if (form.title.trim().length > 120) {
+      errors.title = 'Title must be 120 characters or less';
+    }
+
+    if (!form.displayName.trim()) {
+      errors.displayName = 'This field is required';
+    } else if (form.displayName.trim().length > 80) {
+      errors.displayName = 'Name must be 80 characters or less';
+    }
+
+    if (!form.visitorEmail.trim()) {
+      errors.visitorEmail = 'This field is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.visitorEmail.trim())) {
+      errors.visitorEmail = 'Please enter a valid email address';
+    } else if (form.visitorEmail.trim().length > 160) {
+      errors.visitorEmail = 'Email must be 160 characters or less';
+    }
+
+    if (form.affiliation.trim().length > 160) {
+      errors.affiliation = 'Affiliation must be 160 characters or less';
+    }
+
+    if (!form.message.trim()) {
+      errors.message = 'This field is required';
+    } else if (form.message.trim().length < 3) {
+      errors.message = 'Message must be at least 3 characters';
+    } else if (form.message.trim().length > 2000) {
+      errors.message = 'Message must be 2000 characters or less';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setSubmitting(false);
+      return;
+    }
+
+    setValidationErrors({});
 
     try {
       const response = await fetch('/api/feedback', {
@@ -258,6 +347,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
                   maxLength={120}
                   required
                 />
+                {validationErrors.title && <span className="text-xs text-red-600">{validationErrors.title}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
                 <span>Name or nickname</span>
@@ -268,6 +358,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
                   maxLength={80}
                   required
                 />
+                {validationErrors.displayName && <span className="text-xs text-red-600">{validationErrors.displayName}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
                 <span>Email</span>
