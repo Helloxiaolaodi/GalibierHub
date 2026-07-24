@@ -1,24 +1,93 @@
-import { NextResponse } from 'next/server';
-import { EXCLUDED_SAMPLE_IDS, EXCLUDED_SAMPLE_IDS_FILTER } from '@/lib/sample-exclusions';
-import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
+import { NextResponse } from "next/server";
+import { EXCLUDED_SAMPLE_IDS, EXCLUDED_SAMPLE_IDS_FILTER } from "@/lib/sample-exclusions";
+import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
 
 const SCORE_BINS = [
-  { range: '0.0-0.1', min: 0, max: 0.1 },
-  { range: '0.1-0.2', min: 0.1, max: 0.2 },
-  { range: '0.2-0.3', min: 0.2, max: 0.3 },
-  { range: '0.3-0.4', min: 0.3, max: 0.4 },
-  { range: '0.4-0.5', min: 0.4, max: 0.5 },
-  { range: '0.5-0.6', min: 0.5, max: 0.6 },
-  { range: '0.6-0.7', min: 0.6, max: 0.7 },
-  { range: '0.7-0.8', min: 0.7, max: 0.8 },
-  { range: '0.8-0.9', min: 0.8, max: 0.9 },
-  { range: '0.9-1.0', min: 0.9, max: 1.0 },
+  { range: "0.0-0.1", min: 0, max: 0.1 },
+  { range: "0.1-0.2", min: 0.1, max: 0.2 },
+  { range: "0.2-0.3", min: 0.2, max: 0.3 },
+  { range: "0.3-0.4", min: 0.3, max: 0.4 },
+  { range: "0.4-0.5", min: 0.4, max: 0.5 },
+  { range: "0.5-0.6", min: 0.5, max: 0.6 },
+  { range: "0.6-0.7", min: 0.6, max: 0.7 },
+  { range: "0.7-0.8", min: 0.7, max: 0.8 },
+  { range: "0.8-0.9", min: 0.8, max: 0.9 },
+  { range: "0.9-1.0", min: 0.9, max: 1.0 },
 ] as const;
+
+async function computeSpeciesDistribution(sb: ReturnType<typeof getSupabase>) {
+  const { data: sampleData, error: sampleDataError } = await sb
+    .from("genome_samples")
+    .select("species, sample_id")
+    .not("sample_id", "in", EXCLUDED_SAMPLE_IDS_FILTER);
+
+  if (sampleDataError) {
+    return { error: sampleDataError.message };
+  }
+
+  const speciesDistribution: Record<string, number> = {};
+  if (sampleData) {
+    for (const row of sampleData) {
+      if (EXCLUDED_SAMPLE_IDS.includes(row.sample_id)) {
+        continue;
+      }
+      const sp = row.species || "Unknown";
+      speciesDistribution[sp] = (speciesDistribution[sp] || 0) + 1;
+    }
+  }
+
+  return { speciesDistribution };
+}
+
+async function computeScoreDistribution(sb: ReturnType<typeof getSupabase>) {
+  try {
+    const { data, error } = await sb.rpc("compute_score_distribution", {
+      exclusion_list: EXCLUDED_SAMPLE_IDS_FILTER,
+    });
+
+    if (!error && data) {
+      return { scoreDistribution: data };
+    }
+  } catch {
+    // RPC not available, fall back to client-side binning
+  }
+
+  const { data: scores, error: fetchErr } = await sb
+    .from("predicted_promoters")
+    .select("score")
+    .not("sample_id", "in", EXCLUDED_SAMPLE_IDS_FILTER);
+
+  if (fetchErr) {
+    return { error: fetchErr.message };
+  }
+
+  const bins: Record<string, number> = {};
+  for (const bin of SCORE_BINS) {
+    bins[bin.range] = 0;
+  }
+
+  for (const row of scores || []) {
+    const s = row.score as number;
+    for (const bin of SCORE_BINS) {
+      if (s >= bin.min && s < bin.max) {
+        bins[bin.range] = (bins[bin.range] || 0) + 1;
+        break;
+      }
+    }
+  }
+
+  const scoreDistribution = SCORE_BINS.map((bin) => ({
+    range: bin.range,
+    count: bins[bin.range] || 0,
+  }));
+
+  return { scoreDistribution };
+}
 
 export async function GET() {
   if (!isSupabaseConfigured) {
     return NextResponse.json(
-      { error: 'Supabase is not configured. Dashboard statistics require a real data source.' },
+      { error: "Supabase is not configured. Dashboard statistics require a real data source." },
       { status: 503 },
     );
   }
@@ -28,75 +97,47 @@ export async function GET() {
     { count: totalSamples, error: samplesError },
     { count: totalPromoters, error: promotersError },
     { count: totalVariants, error: variantsError },
-    { data: sampleData, error: sampleDataError },
   ] = await Promise.all([
-    sb.from('genome_samples').select('*', { count: 'exact', head: true }).not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER),
-    sb.from('predicted_promoters').select('*', { count: 'exact', head: true }).not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER),
-    sb.from('variant_index').select('*', { count: 'exact', head: true }),
-    sb.from('genome_samples').select('species, sample_id').not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER),
+    sb.from("genome_samples").select("*", { count: "exact", head: true }).not("sample_id", "in", EXCLUDED_SAMPLE_IDS_FILTER),
+    sb.from("predicted_promoters").select("*", { count: "exact", head: true }).not("sample_id", "in", EXCLUDED_SAMPLE_IDS_FILTER),
+    sb.from("variant_index").select("*", { count: "exact", head: true }),
   ]);
 
-  const statsQueryErrors = [samplesError, promotersError, variantsError, sampleDataError]
+  const statsQueryErrors = [samplesError, promotersError, variantsError]
     .filter((error) => Boolean(error))
     .map((error) => error!.message);
 
   if (statsQueryErrors.length > 0) {
     return NextResponse.json(
-      {
-        error: `Failed to load dashboard statistics from Supabase: ${statsQueryErrors.join(' | ')}`,
-      },
+      { error: `Failed to load dashboard statistics from Supabase: ${statsQueryErrors.join(" | ")}` },
       { status: 500 },
     );
   }
 
-  const speciesDistribution: Record<string, number> = {};
-  if (sampleData) {
-    for (const row of sampleData) {
-      if (EXCLUDED_SAMPLE_IDS.includes(row.sample_id)) {
-        continue;
-      }
-      const sp = row.species || 'Unknown';
-      speciesDistribution[sp] = (speciesDistribution[sp] || 0) + 1;
-    }
-  }
+  const [speciesResult, scoreResult] = await Promise.all([
+    computeSpeciesDistribution(sb),
+    computeScoreDistribution(sb),
+  ]);
 
-  const scoreDistributionResults = await Promise.all(
-    SCORE_BINS.map(async (bin, index) => {
-      let query = sb
-        .from('predicted_promoters')
-        .select('*', { count: 'exact', head: true })
-        .not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER)
-        .gte('score', bin.min);
-
-      query = index === SCORE_BINS.length - 1 ? query.lte('score', bin.max) : query.lt('score', bin.max);
-
-      const { count, error } = await query;
-      return {
-        range: bin.range,
-        count: count ?? 0,
-        error,
-      };
-    }),
-  );
-
-  const scoreDataError = scoreDistributionResults.find((result) => result.error)?.error;
-
-  if (scoreDataError) {
+  if (speciesResult.error) {
     return NextResponse.json(
-      {
-        error: `Failed to load promoter score distribution from Supabase: ${scoreDataError.message}`,
-      },
+      { error: `Failed to load species distribution from Supabase: ${speciesResult.error}` },
       { status: 500 },
     );
   }
 
-  const scoreDistribution = scoreDistributionResults.map(({ range, count }) => ({ range, count }));
+  if (scoreResult.error) {
+    return NextResponse.json(
+      { error: `Failed to load promoter score distribution from Supabase: ${scoreResult.error}` },
+      { status: 500 },
+    );
+  }
 
   return NextResponse.json({
     total_samples: totalSamples ?? 0,
     total_promoters: totalPromoters ?? 0,
     total_variants: totalVariants ?? 0,
-    species_distribution: speciesDistribution,
-    score_distribution: scoreDistribution,
+    species_distribution: speciesResult.speciesDistribution,
+    score_distribution: scoreResult.scoreDistribution,
   });
 }

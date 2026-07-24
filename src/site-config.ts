@@ -16,7 +16,7 @@ export const SiteConfig = {
   keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation', 'seqedge'],
   contactEmail: 'lab@university.edu',
   feedback: {
-    sectionTitle: 'Community Feedback',
+    sectionTitle: 'Discussion',
     sectionDescription:
       'Collect public comments, private messages, quick reactions, and reply status in one place for research communication.',
   },

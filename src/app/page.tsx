@@ -61,7 +61,7 @@ export default function HomePage() {
   const [currentFilters, setCurrentFilters] = useState<FiltersType>(EMPTY_FILTERS);
   const [sortMode, setSortMode] = useState<PromoterSortMode>('score_desc');
   const [summaryMode, setSummaryMode] = useState<SummaryMode>('overview');
-  const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'feedback'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'discussion'>('overview');
   const [creatorSignInError, setCreatorSignInError] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
   const [feedbackRefreshSignal, setFeedbackRefreshSignal] = useState(0);
@@ -318,7 +318,7 @@ export default function HomePage() {
             </div>
           </div>
           <nav className="flex flex-wrap items-center gap-1">
-            {(['overview', 'promoters', 'feedback'] as const).map((tab) => (
+            {(['overview', 'promoters', 'discussion'] as const).map((tab) => (
               <button type="button" key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -331,7 +331,7 @@ export default function HomePage() {
                   ? 'Overview'
                   : tab === 'promoters'
                     ? 'Promoters'
-                    : 'Community Feedback'}
+                    : 'Discussion'}
               </button>
             ))}
             <div className="w-px h-5 bg-gray-200 mx-1" />
@@ -341,14 +341,14 @@ export default function HomePage() {
                 <button type="button" onClick={() => void handleCreatorSignOut()}
                   className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
                 >
-                  Creator Sign Out
+                  Log out
                 </button>
               </>
             ) : (
               <button type="button" onClick={() => void handleCreatorSignIn()}
                 className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
               >
-                Creator Sign In
+                Log in with GitHub
               </button>
             )}
             <button type="button" onClick={() => setGuideOpen((v) => !v)}
@@ -451,7 +451,7 @@ export default function HomePage() {
             </div>
           </>
         )}
-        {activeTab === 'feedback' && (
+        {activeTab === 'discussion' && (
           <SiteFeedback accessToken={creatorAccessToken} creatorLogin={creatorLogin} refreshSignal={feedbackRefreshSignal} onFeedbackSubmitted={() => setFeedbackRefreshSignal((current) => current + 1)} />
         )}
       </main>

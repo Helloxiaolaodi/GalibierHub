@@ -1,0 +1,66 @@
+'use client';
+
+import { useCallback, useState } from 'react';
+
+interface CommentEntry {
+  id: string;
+  author_name: string;
+  author_email: string | null;
+  message: string;
+  image_url: string | null;
+  created_at: string;
+}
+
+export function useDiscussionComments() {
+  const [entryComments, setEntryComments] = useState<Record<string, CommentEntry[]>>({});
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [commentSubmitting, setCommentSubmitting] = useState<Record<string, boolean>>({});
+  const [commentError, setCommentError] = useState<Record<string, string | null>>({});
+
+  const fetchEntryComments = useCallback(async (entryId: string) => {
+    try {
+      const response = await fetch(`/api/feedback?feedback_id=${encodeURIComponent(entryId)}`);
+      const data = await response.json() as { comments?: CommentEntry[]; error?: string };
+      if (!response.ok) return;
+      setEntryComments((c) => ({ ...c, [entryId]: data.comments || [] }));
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleSubmitComment = useCallback(async (entryId: string) => {
+    const draft = (commentDrafts[entryId] || '').trim();
+    if (!draft || draft.length < 1) return;
+    setCommentSubmitting((s) => ({ ...s, [entryId]: true }));
+    setCommentError((e) => ({ ...e, [entryId]: null }));
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedbackId: entryId,
+          message: draft,
+          authorName: 'Visitor',
+        }),
+      });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error || 'Failed to post comment.');
+      setCommentDrafts((c) => ({ ...c, [entryId]: '' }));
+      await fetchEntryComments(entryId);
+    } catch (err) {
+      setCommentError((e) => ({ ...e, [entryId]: err instanceof Error ? err.message : 'Failed to post comment.' }));
+    } finally {
+      setCommentSubmitting((s) => ({ ...s, [entryId]: false }));
+    }
+  }, [commentDrafts, fetchEntryComments]);
+
+  return {
+    entryComments,
+    setEntryComments,
+    commentDrafts,
+    setCommentDrafts,
+    commentSubmitting,
+    commentError,
+    setCommentError,
+    fetchEntryComments,
+    handleSubmitComment,
+  };
+}

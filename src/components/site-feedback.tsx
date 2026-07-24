@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SiteConfig } from '@/site-config';
+import { useDiscussionComments } from './discussion-comments';
 import type { FeedbackSummary, ReactionCounts, SiteFeedbackEntry } from '@/types/genome';
 
 type FeedbackCategory = 'general' | 'issue' | 'idea' | 'data' | 'collaboration';
@@ -61,8 +62,9 @@ const FEEDBACK_PAGE_SIZE = 5;
 export default function SiteFeedback({ accessToken = null, creatorLogin = null, refreshSignal = 0, onFeedbackSubmitted }: SiteFeedbackProps) {
   const [entries, setEntries] = useState<SiteFeedbackEntry[]>([]);
   const [summary, setSummary] = useState<FeedbackSummary>({ totalComments: 0, averageRating: 0 });
-  const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({ like: 0, bookmark: 0 });
-  const [activeReactions, setActiveReactions] = useState<Record<ReactionType, boolean>>({ like: false, bookmark: false });
+ const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({ like: 0, bookmark: 0 });
+  const [entryReactionCounts, setEntryReactionCounts] = useState<Record<string, { like: number; bookmark: number }>>({});
+  const [entryActiveReactions, setEntryActiveReactions] = useState<Record<string, Record<string, boolean>>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [replyError, setReplyError] = useState<string | null>(null);
@@ -88,6 +90,16 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
   const [composerErrors, setComposerErrors] = useState<Record<string, string>>({});
   const [pinToggling, setPinToggling] = useState<string | null>(null);
   const [hideToggling, setHideToggling] = useState<string | null>(null);
+  const [expandedEntries, setExpandedEntries] = useState<Record<string, boolean>>({});
+  const {
+    entryComments,
+    commentDrafts,
+    setCommentDrafts,
+    commentSubmitting,
+    commentError,
+    fetchEntryComments,
+    handleSubmitComment,
+  } = useDiscussionComments();
 
   const fetchFeedback = useCallback(async () => {
     setLoading(true);
@@ -113,11 +125,12 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
   const fetchReactions = useCallback(async () => {
     try {
       const response = await fetch('/api/reactions');
-      const data = (await response.json()) as { counts?: ReactionCounts; error?: string };
+      const data = (await response.json()) as { counts?: ReactionCounts; entries?: Record<string, { like: number; bookmark: number }>; error?: string };
       if (!response.ok) {
         throw new Error(data.error || 'Failed to load reactions.');
       }
       setReactionCounts(data.counts || { like: 0, bookmark: 0 });
+      setEntryReactionCounts(data.entries || {});
     } catch {
     }
   }, []);
@@ -132,9 +145,18 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const like = window.localStorage.getItem('seqedge-reaction-like') === '1';
-    const bookmark = window.localStorage.getItem('seqedge-reaction-bookmark') === '1';
-    setActiveReactions({ like, bookmark });
+    const saved: Record<string, Record<string, boolean>> = {};
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (key && key.startsWith('seqedge-reaction-like-')) {
+        const entryId = key.replace('seqedge-reaction-like-', '');
+        saved[entryId] = {
+          like: window.localStorage.getItem(`seqedge-reaction-like-${entryId}`) === '1',
+          bookmark: window.localStorage.getItem(`seqedge-reaction-bookmark-${entryId}`) === '1',
+        };
+      }
+    }
+    setEntryActiveReactions(saved);
   }, []);
 
   const inProgressEntries = useMemo(
@@ -171,25 +193,36 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
     setCompletedPage(0);
   }, [refreshSignal]);
 
-  const handleReaction = useCallback(async (reactionType: ReactionType) => {
+  const handleReaction = useCallback(async (reactionType: ReactionType, entryId: string) => {
     const fingerprint = buildVisitorFingerprint();
     try {
       const response = await fetch('/api/reactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reactionType, fingerprint }),
+        body: JSON.stringify({ reactionType, fingerprint, entryId }),
       });
       const data = (await response.json()) as { active?: boolean; error?: string };
       if (!response.ok) {
         throw new Error(data.error || 'Failed to update reaction.');
       }
-      setActiveReactions((current) => {
-        const next = { ...current, [reactionType]: Boolean(data.active) };
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(`seqedge-reaction-${reactionType}`, data.active ? '1' : '0');
-        }
-        return next;
-      });
+
+      setEntryActiveReactions((current) => ({
+        ...current,
+        [entryId]: { ...current[entryId], [reactionType]: Boolean(data.active) },
+      }));
+
+      setEntryReactionCounts((current) => ({
+        ...current,
+        [entryId]: {
+          ...current[entryId] || { like: 0, bookmark: 0 },
+          [reactionType]: Math.max(0, (current[entryId]?.[reactionType] || 0) + (data.active ? 1 : -1)),
+        },
+      }));
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(`seqedge-reaction-${reactionType}-${entryId}`, data.active ? '1' : '0');
+      }
+
       setReactionCounts((current) => ({
         ...current,
         [reactionType]: Math.max(0, current[reactionType] + (data.active ? 1 : -1)),
@@ -232,17 +265,19 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
     }
   }, [accessToken, fetchFeedback, replyDrafts]);
 
-  const renderEntry = (entry: SiteFeedbackEntry) => (
+  const renderEntry = (entry: SiteFeedbackEntry) => {
+    const isExpanded = Boolean(expandedEntries[entry.id]);
+    const comments = entryComments[entry.id] || [];
+    return (
     <article key={entry.id} className="border border-gray-200 bg-white p-4">
+      {/* HEADER BUTTON - wraps only the clickable header */}
+      <button type="button" onClick={() => { setExpandedEntries((c) => ({ ...c, [entry.id]: !c[entry.id] })); void fetchEntryComments(entry.id); }} className="w-full text-left focus:outline-none">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1 flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="font-semibold text-gray-900">{entry.title || 'Untitled message'}</span>
             <span className={`rounded px-2 py-0.5 text-xs font-medium ${entry.visibility === 'private' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
               {entry.visibility === 'private' ? 'Creator only' : 'Public'}
-            </span>
-            <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-              {CATEGORY_LABELS[entry.category]}
             </span>
           </div>
           <div className="text-xs text-gray-600">By {entry.display_name}</div>
@@ -258,7 +293,7 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => handleTogglePin(entry.id, Boolean(entry.pinned))}
+                onClick={(e) => { e.stopPropagation(); void handleTogglePin(entry.id, Boolean(entry.pinned)); }}
                 disabled={pinToggling === entry.id}
                 className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium transition-colors ${
                   entry.pinned
@@ -274,7 +309,7 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
               </button>
               <button
                 type="button"
-                onClick={() => handleToggleHidden(entry.id, Boolean(entry.hidden))}
+                onClick={(e) => { e.stopPropagation(); void handleToggleHidden(entry.id, Boolean(entry.hidden)); }}
                 disabled={hideToggling === entry.id}
                 className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium transition-colors ${
                   entry.hidden
@@ -295,62 +330,115 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
               </button>
             </div>
           )}
-          <div className="text-sm font-medium text-gray-700">Rating {entry.rating}/5</div>
+          {/* Expand/collapse chevron */}
+          <div className="shrink-0">
+            {isExpanded ? (
+              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            )}
+          </div>
         </div>
       </div>
+      </button>
 
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{entry.message}</p>
+      {/* EXPANDED CONTENT - outside the header button */}
+      {isExpanded && (
+        <>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{entry.message}</p>
 
-      {entry.creator_reply ? (
-        <div className="mt-4 border-l-2 border-blue-500 bg-blue-50 px-4 py-3">
-          <div className="text-sm font-semibold text-blue-900">Creator reply</div>
-          <div className="mt-1 whitespace-pre-wrap text-sm text-blue-900">{entry.creator_reply}</div>
-          <div className="mt-2 text-xs text-blue-700">Replied: {formatDateTime(entry.replied_at)}</div>
-        </div>
-      ) : isAdmin ? (
-        <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
-          <textarea
-            value={replyDrafts[entry.id] || ''}
-            onChange={(event) => setReplyDrafts((current) => ({ ...current, [entry.id]: event.target.value }))}
-            rows={4}
-            className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-            placeholder="Write a reply that will be shown here and emailed to the visitor."
-          />
-          <button
-            type="button"
-            onClick={() => void handleReply(entry.id)}
-            disabled={replyingId === entry.id}
-            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-          >
-            {replyingId === entry.id ? 'Sending reply...' : 'Send reply'}
-          </button>
-        </div>
-      ) : null}
+          {entry.creator_reply ? (
+            <div className="mt-4 border-l-2 border-blue-500 bg-blue-50 px-4 py-3">
+              <div className="text-sm font-semibold text-blue-900">Creator reply</div>
+              <div className="mt-1 whitespace-pre-wrap text-sm text-blue-900">{entry.creator_reply}</div>
+              <div className="mt-2 text-xs text-blue-700">Replied: {formatDateTime(entry.replied_at)}</div>
+            </div>
+          ) : isAdmin ? (
+            <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
+              <textarea
+                value={replyDrafts[entry.id] || ''}
+                onChange={(event) => setReplyDrafts((current) => ({ ...current, [entry.id]: event.target.value }))}
+                rows={4}
+                className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                placeholder="Write a reply that will be shown here and emailed to the visitor."
+              />
+              <button
+                type="button"
+                onClick={() => void handleReply(entry.id)}
+                disabled={replyingId === entry.id}
+                className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+              >
+                {replyingId === entry.id ? 'Sending reply...' : 'Send reply'}
+              </button>
+            </div>
+          ) : null}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
-        <button
-          type="button"
-          onClick={(event) => { event.stopPropagation(); void handleReaction('like'); }}
-          className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium ${activeReactions.like ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-600'}`}
-        >
-          <svg className="h-3.5 w-3.5" fill={activeReactions.like ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-          </svg>
-          Like {reactionCounts.like}
-        </button>
-        <button
-          type="button"
-          onClick={(event) => { event.stopPropagation(); void handleReaction('bookmark'); }}
-          className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium ${activeReactions.bookmark ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-gray-300 bg-white text-gray-600'}`}
-        >
-          <svg className="h-3.5 w-3.5" fill={activeReactions.bookmark ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
-          Bookmark {reactionCounts.bookmark}
-        </button>
-      </div>
+          {/* Like/Bookmark buttons - visible to all */}
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+            <button
+              type="button"
+              onClick={(event) => { event.stopPropagation(); void handleReaction('like', entry.id); }}
+              className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium ${entryActiveReactions[entry.id]?.like ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-600'}`}
+            >
+              <svg className="h-3.5 w-3.5" fill={entryActiveReactions[entry.id]?.like ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+              </svg>
+              Like {entryReactionCounts[entry.id]?.like || 0}
+            </button>
+            <button
+              type="button"
+              onClick={(event) => { event.stopPropagation(); void handleReaction('bookmark', entry.id); }}
+              className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium ${entryActiveReactions[entry.id]?.bookmark ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-gray-300 bg-white text-gray-600'}`}
+            >
+              <svg className="h-3.5 w-3.5" fill={entryActiveReactions[entry.id]?.bookmark ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+              Bookmark {entryReactionCounts[entry.id]?.bookmark || 0}
+            </button>
+          </div>
+
+          {/* Thread comments */}
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <div className="text-xs font-semibold text-gray-700 mb-2">Comments</div>
+            {comments.length > 0 ? (
+              comments.map((c) => (
+                <div key={c.id} className="mb-2 pl-3 border-l-2 border-gray-200">
+                  <div className="text-xs font-medium text-gray-700">{c.author_name}</div>
+                  <div className="text-xs text-gray-600 mt-0.5">{c.message}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(c.created_at)}</div>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-gray-400">No comments yet.</div>
+            )}
+            <div className="mt-2 flex gap-2">
+              <input
+                value={commentDrafts[entry.id] || ''}
+                onChange={(e) => setCommentDrafts((c) => ({ ...c, [entry.id]: e.target.value }))}
+                placeholder="Add a comment..."
+                className="flex-1 border border-gray-300 px-2 py-1 text-xs text-gray-900 outline-none focus:border-blue-500"
+              />
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); void handleSubmitComment(entry.id); }}
+                disabled={commentSubmitting[entry.id]}
+                className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:bg-blue-300"
+              >
+                {commentSubmitting[entry.id] ? '...' : 'Send'}
+              </button>
+            </div>
+            {commentError[entry.id] && <div className="mt-1 text-xs text-red-600">{commentError[entry.id]}</div>}
+          </div>
+        </>
+      )}
     </article>
   );
+
+  };
 
   const handleComposerSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -504,8 +592,6 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
                   value={composerForm.title}
                   onChange={(e) => setComposerForm((c) => ({ ...c, title: e.target.value }))}
                   className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  minLength={3}
-                  maxLength={120}
                 />
                 {composerErrors.title && <span className="text-xs text-red-600">{composerErrors.title}</span>}
               </label>
@@ -515,18 +601,15 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
                   value={composerForm.displayName}
                   onChange={(e) => setComposerForm((c) => ({ ...c, displayName: e.target.value }))}
                   className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  maxLength={80}
                 />
                 {composerErrors.displayName && <span className="text-xs text-red-600">{composerErrors.displayName}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
                 <span>Email (optional)</span>
                 <input
-                  type="email"
                   value={composerForm.visitorEmail}
                   onChange={(e) => setComposerForm((c) => ({ ...c, visitorEmail: e.target.value }))}
                   className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  maxLength={160}
                 />
                 {composerErrors.visitorEmail && <span className="text-xs text-red-600">{composerErrors.visitorEmail}</span>}
               </label>
@@ -536,47 +619,20 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
                   value={composerForm.affiliation}
                   onChange={(e) => setComposerForm((c) => ({ ...c, affiliation: e.target.value }))}
                   className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  maxLength={160}
                 />
               </label>
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Category</span>
-                <select
-                  value={composerForm.category}
-                  onChange={(e) => setComposerForm((c) => ({ ...c, category: e.target.value }))}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                >
-                  {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-              </label>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Visibility</span>
-                <select
-                  value={composerForm.visibility}
-                  onChange={(e) => setComposerForm((c) => ({ ...c, visibility: e.target.value }))}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                >
-                  <option value="public">Public</option>
-                  <option value="private">Creator only</option>
-                </select>
-              </label>
-              <label className="space-y-1 text-sm text-gray-700">
-                <span>Rating</span>
-                <select
-                  value={String(composerForm.rating)}
-                  onChange={(e) => setComposerForm((c) => ({ ...c, rating: Number(e.target.value) }))}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                >
-                  {[5, 4, 3, 2, 1].map((v) => (
-                    <option key={v} value={v}>{v}/5</option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            <label className="space-y-1 text-sm text-gray-700">
+              <span>Visibility</span>
+              <select
+                value={composerForm.visibility}
+                onChange={(e) => setComposerForm((c) => ({ ...c, visibility: e.target.value }))}
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+              >
+                <option value="public">Public</option>
+                <option value="private">Creator only</option>
+              </select>
+            </label>
             <label className="block space-y-1 text-sm text-gray-700">
               <span>Message (required)</span>
               <textarea
@@ -584,8 +640,6 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
                 onChange={(e) => setComposerForm((c) => ({ ...c, message: e.target.value }))}
                 rows={4}
                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                minLength={3}
-                maxLength={2000}
               />
               {composerErrors.message && <span className="text-xs text-red-600">{composerErrors.message}</span>}
             </label>
