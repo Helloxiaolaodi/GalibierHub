@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect } from 'react';
 
@@ -109,36 +109,36 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
             <h3 className="mb-2 font-semibold text-gray-900">1. Browsing Data</h3>
             <ul className="space-y-2">
               <li><span className="font-medium text-gray-900">Overview:</span> Dashboard with live metric counts and interactive charts for species and score distributions.</li>
-              <li><span className="font-medium text-gray-900">Promoters:</span> Filter by chromosome, gene, score, sample ID, species, tissue, cohort, or BMI class. Click any row to inspect sequence details and copy as BED/FASTA.</li>
-              <li><span className="font-medium text-gray-900">Genome Browser:</span> Embedded JBrowse 2 viewer synced with the selected promoter. Navigating the browser updates the locus across the page.</li>
+              <li><span className="font-medium text-gray-900">Promoters:</span> Filter by chromosome, gene, score, sample ID, species, tissue, cohort, or BMI class. Click any row to inspect sequence details, copy as BED/FASTA, and view in the embedded genome browser.</li>
             </ul>
           </section>
 
           <section>
             <h3 className="mb-2 font-semibold text-gray-900">2. Downloading Data</h3>
             <ul className="space-y-2">
-              <li><span className="font-medium text-gray-900">Browser download:</span> Click <span className="font-medium text-gray-900">Download</span> on any file card. Links point directly to the public storage host with <code>?download=true</code> to avoid proxy overhead.</li>
-              <li><span className="font-medium text-gray-900">CLI download:</span> For large files, use <span className="font-medium text-gray-900">Copy wget</span> or <span className="font-medium text-gray-900">Copy curl</span> to paste a ready-made command into your terminal. Supports resumable transfers via <code>aria2c</code> or similar tools.</li>
-              <li><span className="font-medium text-gray-900">Free-tier note:</span> JBrowse streaming uses the configured proxy; user-triggered downloads go directly to Hugging Face or R2 for better speed at zero cost.</li>
+              <li><span className="font-medium text-gray-900">Web download:</span> Click <span className="font-medium text-gray-900">Download</span> on any file card. Links go directly to the public storage host with <code>?download=true</code> for maximum speed.</li>
+              <li><span className="font-medium text-gray-900">CLI download (recommended for large files):</span> Use <span className="font-medium text-gray-900">Copy wget</span> or <span className="font-medium text-gray-900">Copy curl</span> for resumable terminal downloads.</li>
+              <li><span className="font-medium text-gray-900">Overview bundles:</span> Download complete dataset archives from the Dataset Downloads section on the Overview tab.</li>
             </ul>
           </section>
 
           <section>
             <h3 className="mb-2 font-semibold text-gray-900">3. Community Feedback</h3>
             <ul className="space-y-2">
-              <li>Click <span className="font-medium text-gray-900">Community Feedback</span> in the top nav to open the floating composer and browse public threads.</li>
-              <li>Messages support a title, public/private visibility, rating, and optional affiliation. The creator can reply after signing in with GitHub.</li>
-              <li>Threads are organized into <span className="font-medium text-gray-900">In progress</span> and <span className="font-medium text-gray-900">Completed</span> sections with posted and replied timestamps.</li>
+              <li>Navigate to the <span className="font-medium text-gray-900">Community Feedback</span> tab and click <span className="font-medium text-gray-900">Leave Feedback</span> to submit a message.</li>
+              <li>Each message includes a title, category, rating, and public/private visibility. Email is optional.</li>
+              <li>Threads are grouped into <span className="font-medium text-gray-900">In progress</span> and <span className="font-medium text-gray-900">Completed</span> sections with timestamps.</li>
+              <li>Like and bookmark entries to show support and save for later.</li>
             </ul>
           </section>
 
           <section>
             <h3 className="mb-2 font-semibold text-gray-900">4. For Site Creators</h3>
             <ul className="space-y-2">
-              <li><span className="font-medium text-gray-900">Customization:</span> Edit <code>src/site-config.ts</code> to set your title, description, JBrowse tracks, and download links.</li>
-              <li><span className="font-medium text-gray-900">Data sources:</span> Metadata lives in Supabase; genomic tracks can come from R2, Hugging Face, or any Range-request-capable object store.</li>
-              <li><span className="font-medium text-gray-900">Deployment:</span> See README.md for Vercel, Cloudflare Pages, and Wrangler deployment guides.</li>
-              <li><span className="font-medium text-gray-900">Proxy setup:</span> See <code>cloudflare-templates/hf-proxy/README.md</code> for the Hugging Face proxy Worker that accelerates JBrowse streaming.</li>
+              <li><span className="font-medium text-gray-900">Reply:</span> Sign in with GitHub (Creator Sign In) to reply to feedback. Replies are emailed to visitors who provided an email address.</li>
+              <li><span className="font-medium text-gray-900">Moderate:</span> Pin important entries to the top of Completed (max 3) or hide entries from public view.</li>
+              <li><span className="font-medium text-gray-900">Customize:</span> Edit <code>src/site-config.ts</code> to set branding, tracks, and download links.</li>
+              <li><span className="font-medium text-gray-900">Deploy:</span> See README for Vercel, Cloudflare Pages, and Wrangler deployment guides.</li>
             </ul>
           </section>
 

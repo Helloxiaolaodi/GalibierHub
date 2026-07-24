@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 
@@ -140,9 +140,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
       errors.displayName = 'Name must be 80 characters or less';
     }
 
-    if (!form.visitorEmail.trim()) {
-      errors.visitorEmail = 'This field is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.visitorEmail.trim())) {
+    if (form.visitorEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.visitorEmail.trim())) {
       errors.visitorEmail = 'Please enter a valid email address';
     } else if (form.visitorEmail.trim().length > 160) {
       errors.visitorEmail = 'Email must be 160 characters or less';
@@ -280,6 +278,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
           </div>
           <button
             type="button"
+            onPointerDown={(event) => event.stopPropagation()}
             onClick={onClose}
             className="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
             aria-label="Close feedback composer"
@@ -294,7 +293,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1 text-sm text-gray-700 md:col-span-2">
-               <span>Title</span>
+               <span>Title (required)</span>
                <input
                  value={form.title}
                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
@@ -305,7 +304,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
                 {validationErrors.title && <span className="text-xs text-red-600">{validationErrors.title}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
-               <span>Name or nickname</span>
+               <span>Name or nickname (required)</span>
                <input
                  value={form.displayName}
                  onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
@@ -315,7 +314,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
                 {validationErrors.displayName && <span className="text-xs text-red-600">{validationErrors.displayName}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
-               <span>Email</span>
+               <span>Email (optional)</span>
                <input
                  type="email"
                  value={form.visitorEmail}
@@ -374,24 +373,23 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
             </div>
 
             <label className="block space-y-1 text-sm text-gray-700">
-              <span>Message</span>
+              <span>Message (required)</span>
               <textarea
                 value={form.message}
                 onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-                rows={8}
+                rows={6}
                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
                minLength={3}
                maxLength={2000}
              />
+              {validationErrors.message && <span className="text-xs text-red-600">{validationErrors.message}</span>}
             </label>
 
             {submitError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</div>}
             {submitSuccess && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{submitSuccess}</div>}
 
             <div className="flex items-center justify-between gap-3 pt-2">
-              <div className="text-xs text-gray-500">
-                Public messages appear on the site. Creator-only messages stay private.
-              </div>
+              <div className="text-xs text-gray-500" />
               <button
                 type="submit"
                 disabled={submitting}
