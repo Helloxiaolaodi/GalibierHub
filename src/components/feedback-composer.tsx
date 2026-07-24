@@ -294,38 +294,35 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1 text-sm text-gray-700 md:col-span-2">
-                <span>Title</span>
-                <input
-                  value={form.title}
-                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  minLength={3}
-                  maxLength={120}
-                  required
-                />
+               <span>Title</span>
+               <input
+                 value={form.title}
+                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                 minLength={3}
+                 maxLength={120}
+               />
                 {validationErrors.title && <span className="text-xs text-red-600">{validationErrors.title}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
-                <span>Name or nickname</span>
-                <input
-                  value={form.displayName}
-                  onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  maxLength={80}
-                  required
-                />
+               <span>Name or nickname</span>
+               <input
+                 value={form.displayName}
+                 onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
+                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                 maxLength={80}
+               />
                 {validationErrors.displayName && <span className="text-xs text-red-600">{validationErrors.displayName}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
-                <span>Email</span>
-                <input
-                  type="email"
-                  value={form.visitorEmail}
-                  onChange={(event) => setForm((current) => ({ ...current, visitorEmail: event.target.value }))}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                  maxLength={160}
-                  required
-                />
+               <span>Email</span>
+               <input
+                 type="email"
+                 value={form.visitorEmail}
+                 onChange={(event) => setForm((current) => ({ ...current, visitorEmail: event.target.value }))}
+                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                 maxLength={160}
+               />
               </label>
               <label className="space-y-1 text-sm text-gray-700">
                 <span>Affiliation</span>
@@ -383,10 +380,9 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
                 onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
                 rows={8}
                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                minLength={3}
-                maxLength={2000}
-                required
-              />
+               minLength={3}
+               maxLength={2000}
+             />
             </label>
 
             {submitError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</div>}

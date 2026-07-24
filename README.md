@@ -1,4 +1,4 @@
-# SeqEdge
+﻿# SeqEdge
 
 ![SeqEdge Screenshot](./seqedge-github-img-readme.jpg)
 
@@ -15,7 +15,7 @@ Chinese README: [README.zh-CN.md](./README.zh-CN.md)
 - Open the embedded genome browser and jump directly from a promoter record to the matching region.
 - Inspect promoter details in a floating, resizable panel without hiding the browser.
 - Download reference bundles, release archives, and sample-level files from public storage.
-- Submit public or creator-only messages from the top-right `Leave Feedback` button, then review thread status on the `Community Feedback` page.
+- Submit public or creator-only messages via the `Community Feedback` tab, then review thread status on the same page.
 - Sign in with the allowed GitHub creator account to publish official replies.
 - Check the site uptime counter at the bottom of the page.
 
@@ -44,6 +44,8 @@ Recommended production layout:
 2. Cloudflare Pages for the mirror site
 3. Cloudflare Worker for Hugging Face proxying
 
+The main interface has three tabs: **Overview**, **Promoters** (promoter table + genome browser), and **Community Feedback**.
+
 ## Quick Start
 
 ### 1. Install
@@ -66,7 +68,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
 
-Required storage variables:
+Required genome storage variables:
 
 ```bash
 NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/<optional-subdir>
@@ -90,7 +92,7 @@ NEXT_PUBLIC_REFERENCE_BUNDLE_SIZE=180 MB
 NEXT_PUBLIC_REFERENCE_BUNDLE_MODE=direct
 ```
 
-Optional creator-reply variables:
+Optional creator-reply and email variables:
 
 ```bash
 GITHUB_ADMIN_USERNAME=your-github-login
@@ -104,11 +106,11 @@ Notes:
 - `SUPABASE_SERVICE_ROLE_KEY` is recommended for production API routes.
 - If files live in a subfolder, include that prefix in `NEXT_PUBLIC_STORAGE_BASE_URL`.
 - Direct Hugging Face reads are supported, but the Worker is the most reliable JBrowse path.
-- To enable creator replies, turn on the GitHub auth provider in Supabase and set `GITHUB_ADMIN_USERNAME` to the single GitHub login allowed to reply.
+- To enable creator replies: enable GitHub auth provider in Supabase (see [Creator Reply Setup](#creator-reply-setup)) and set `GITHUB_ADMIN_USERNAME` to the single GitHub login allowed to reply.
 
 ### 3. Initialize the database
 
-Run `schema.sql` in Supabase, then import your real metadata into at least:
+Run `schema.sql` in Supabase SQL Editor, then import your real metadata into at least:
 
 - `genome_samples`
 - `predicted_promoters`
@@ -145,7 +147,7 @@ Cloudflare Pages:
 
 ## Genome Browser Notes
 
-SeqEdge now probes browser storage in this order:
+For best JBrowse performance, configure a Cloudflare Worker proxy. SeqEdge probes in order:
 
 1. External `NEXT_PUBLIC_HF_PROXY_URL`
 2. Built-in `/api/hf-proxy/<file>` route
@@ -168,48 +170,119 @@ SeqEdge also opens the first reachable annotation track automatically so the vie
 
 ## User Guide Content
 
-The in-app User Guide now includes:
+The in-app User Guide covers four sections:
 
-1. Overview
-2. Promoters & Features
-3. Genome Browser
-4. Data & Storage
-5. Downloading Data
-6. Community Feedback
+1. Browsing Data
+2. Downloading Data
+3. Community Feedback
+4. For Site Creators
 
 This is where end users can learn the difference between browser downloads and CLI downloads for large files, and how to use the built-in feedback channel.
 
 ## Community Feedback
 
-SeqEdge now includes a lightweight interaction area for research communication:
+SeqEdge includes a lightweight interaction area for research communication:
 
-- Visitors open the top-right `Leave Feedback` button to submit a titled message with name or nickname, email, optional affiliation, category, rating, and visibility.
-- Messages can be `Public` or `Creator only`.
-- The `Community Feedback` page is the fourth main page and focuses on browsing, status tracking, reactions, and creator replies.
-- Threads are split into `In progress` and `Completed`.
-- Creator replies are shown on the site and can also trigger an email reply when the email API is configured.
-- The reply action is restricted to the GitHub account whose login matches `GITHUB_ADMIN_USERNAME`.
+- Click the `Community Feedback` tab to browse threads and open the floating composer.
+- Messages support a title, name or nickname, email, optional affiliation, category, rating, and visibility.
+- Messages can be `Public` or `Creator only` (private).
+- The `Community Feedback` tab shows threads split into `In progress` and `Completed`.
+- Creator replies appear on the site and can also be emailed when the email API is configured.
+- The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`.
 - Posted and replied timestamps are displayed for each thread.
 - Visitors can also leave `Like` and `Bookmark` reactions.
 
 Required database objects for this feature are included in `schema.sql`.
-
-Supabase GitHub OAuth and optional feedback email variables are listed in `.env.example`.
+Required environment variables are listed in `.env.example`.
 
 ## Creator Reply Setup
 
-To let the site owner reply from the browser:
+To let the site owner sign in and reply from the browser:
 
-1. Enable GitHub as an Auth provider in Supabase.
-2. Configure the GitHub OAuth app callback URL in Supabase Auth.
-3. Set `GITHUB_ADMIN_USERNAME` in the deployment environment.
-4. Sign in from the top-right `Creator Sign In` button.
+### 1. Enable GitHub Auth in Supabase
 
-Any other signed-in GitHub account can read the page but cannot send creator replies.
+In Supabase Dashboard, go to **Authentication** → **Sign In / Providers** (under CONFIGURATION, not OAuth Server). Find **GitHub** in the provider list, expand it, and enable **Sign in with GitHub**.
+
+### 2. Get GitHub OAuth Credentials
+
+1. Go to GitHub → **Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**
+2. **Application name**: e.g. `SeqEdge Auth`
+3. **Homepage URL**: `https://seq-edge.vercel.app` (or `http://localhost:3000` for local dev)
+4. **Authorization callback URL**: `https://<your-project>.supabase.co/auth/v1/callback`
+5. Click **Register application**, then **Generate a new client secret** (save immediately — shown only once)
+6. Copy the **Client ID** and **Client Secret** back into Supabase and click **Save**
+
+### 3. Configure Environment
+
+Set `GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the GitHub login that may reply. Any other signed-in GitHub account can read but cannot send creator replies.
+
+Then sign in from the top-right `Creator Sign In` button on the site.
+
+﻿## Email Notification Setup (Resend)
+
+SeqEdge uses [Resend](https://resend.com) to deliver feedback notification emails to the site creator.
+
+### Test Mode (no domain required)
+
+Resend provides a free test mode that works without DNS domain verification:
+
+1. Sign up at [resend.com](https://resend.com) and go to **API Keys**
+2. Create a new API key and copy it
+3. The test sender address is `onboarding@resend.dev` — no domain verification needed
+4. In test mode, emails are only delivered to your own verified email address
+
+### Environment Variables
+
+```bash
+FEEDBACK_EMAIL_API_URL=https://api.resend.com/emails
+FEEDBACK_EMAIL_API_KEY=re_xxxxxxxxxxxx
+FEEDBACK_EMAIL_TO=1641454426@qq.com
+```
+
+- `FEEDBACK_EMAIL_API_URL` — Resend API endpoint (always `https://api.resend.com/emails`)
+- `FEEDBACK_EMAIL_API_KEY` — Your Resend API key (starts with `re_`)
+- `FEEDBACK_EMAIL_TO` — The email address that receives feedback notifications
+
+### Getting an API Key
+
+1. Go to [resend.com/api-keys](https://resend.com/api-keys)
+2. Click **Create API Key**
+3. Give it a name (e.g. `SeqEdge`)
+4. Set permission to **Sending access**
+5. Copy the key immediately — it is shown only once
+
+### Moving to Production (requires your own domain)
+
+Test mode only delivers to your own verified email. To send reply emails to any visitor, you need a verified custom domain.
+
+**Step-by-step domain verification:**
+
+1. Go to [resend.com/domains](https://resend.com/domains)
+2. Click **Add Domain**
+3. Enter a sending subdomain, e.g. `mail.yourdomain.com` (Resend recommends a subdomain, not the root)
+4. Choose your region (`us-east-1` unless you are in Europe)
+5. Click **Add** — Resend generates three DNS records:
+   - **DKIM TXT record** — host: `resend._domainkey.mail`, value: a long TXT string (unique to your domain)
+   - **SPF TXT record** — host: `mail`, value: `v=spf1 include:spf.resend.io ~all`
+   - **Return-path MX record** — host: `mail`, value: `feedback.resend.io`, priority: `10`
+6. Go to your DNS provider (Cloudflare, Namecheap, Alibaba Cloud DNS, etc.)
+7. Add each record exactly as shown — leave TTL at default or 3600
+8. Return to the Resend Domains page and click **Verify DNS Records**
+9. DNS propagation may take a few minutes; Resend shows green checkmarks when done
+10. Once verified, update your sender address from `onboarding@resend.dev` to `seqedge@mail.yourdomain.com`
+
+**Limitation for free domains:** If you deploy on `pages.dev` or `vercel.app`, you cannot add DNS records for these domains because you do not own them. You need your own registered domain to use production mode. Until then, test mode works perfectly for receiving feedback notifications.
+
+**Recommended sender setup:**
+
+- **Plan A (production):** Own domain + verified Resend domain → can send to anyone
+- **Plan B (test, current):** No domain needed → `onboarding@resend.dev` sender → only delivers to `FEEDBACK_EMAIL_TO`
+
+If you are just starting out, Plan B is all you need. Switch to Plan A when you have a custom domain.
 
 ## Site Uptime
 
-The footer now shows a live uptime counter:
+The footer shows a live uptime counter:
 
 `This site has been running: X d X h X m X s`
 
@@ -223,13 +296,12 @@ Keep these for the current feature set:
 - `schema.sql`
 - `README.md`
 - `README.zh-CN.md`
-- `docs/data-compression-guide.md`
 - `cloudflare-templates/hf-proxy/`
-- `scripts/build-cloudflare.mjs`
+- `scripts/`
 - `public/demo-data/`
 - `public/seqedge-github-img-readme.jpg`
 
-The default template SVG assets under `public/` are not used by the current UI and can be removed safely.
+Default template SVG assets under `public/` (file, globe, etc.) are unused and can be removed.
 
 ## Validation
 
