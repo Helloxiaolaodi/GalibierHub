@@ -188,9 +188,9 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
   const renderEntry = (entry: SiteFeedbackEntry) => (
     <article key={entry.id} className="border border-gray-200 bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
+        <div className="space-y-1 flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-semibold text-gray-900">{entry.display_name}</span>
+            <span className="font-semibold text-gray-900">{entry.title || 'Untitled message'}</span>
             <span className={`rounded px-2 py-0.5 text-xs font-medium ${entry.visibility === 'private' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
               {entry.visibility === 'private' ? 'Creator only' : 'Public'}
             </span>
@@ -198,9 +198,7 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
               {CATEGORY_LABELS[entry.category]}
             </span>
           </div>
-          <div className="text-xs text-gray-500">
-            {entry.affiliation || 'No affiliation provided'}
-          </div>
+          <div className="text-xs text-gray-600">By {entry.display_name}</div>
           <div className="text-xs text-gray-500">
             Posted: {formatDateTime(entry.created_at)}
           </div>
@@ -212,7 +210,7 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
       </div>
 
       <h4 className="mt-3 text-base font-semibold text-gray-900">{entry.title || 'Untitled message'}</h4>
-      <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-700">{entry.message}</p>
+      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{entry.message}</p>
 
       {entry.creator_reply ? (
         <div className="mt-4 border-l-2 border-blue-500 bg-blue-50 px-4 py-3">

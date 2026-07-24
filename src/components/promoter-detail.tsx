@@ -22,7 +22,7 @@ const PANEL_MARGIN = 16;
 const DESKTOP_HEADER_OFFSET = 88;
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && Boolean(target.closest('button, a, input, textarea, select, [role="button"]'));
+  return target instanceof Element && Boolean(target.closest('button, a, input, textarea, select, [role="button"]'));
 }
 
 function clamp(value: number, min: number, max: number): number {

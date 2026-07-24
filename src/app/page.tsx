@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -62,8 +62,9 @@ export default function HomePage() {
   const [currentFilters, setCurrentFilters] = useState<FiltersType>(EMPTY_FILTERS);
   const [sortMode, setSortMode] = useState<PromoterSortMode>('score_desc');
   const [summaryMode, setSummaryMode] = useState<SummaryMode>('overview');
-  const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome' | 'feedback'>('overview');
-  const [guideOpen, setGuideOpen] = useState(false);
+ const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'genome' | 'feedback'>('overview');
+  const [creatorSignInError, setCreatorSignInError] = useState<string | null>(null);
+ const [guideOpen, setGuideOpen] = useState(false);
   const [feedbackComposerOpen, setFeedbackComposerOpen] = useState(false);
   const [feedbackRefreshSignal, setFeedbackRefreshSignal] = useState(0);
   const [creatorSession, setCreatorSession] = useState<Session | null>(null);
@@ -200,10 +201,10 @@ export default function HomePage() {
   }, [pageSize]);
 
   const handleRowClick = useCallback((promoter: Promoter) => {
-    setSelectedPromoter(promoter);
-    setBrowserLocus(buildPromoterLocus(promoter));
-    setActiveTab('genome');
-  }, []);
+   setSelectedPromoter(promoter);
+   setBrowserLocus(buildPromoterLocus(promoter));
+    setActiveTab('promoters');
+ }, []);
 
   useEffect(() => {
     if (activeTab !== 'genome' || selectedPromoter || promoters.length === 0) {
@@ -269,19 +270,27 @@ export default function HomePage() {
 
   const creatorAccessToken = creatorSession?.access_token || null;
 
-  const handleCreatorSignIn = useCallback(async () => {
-    const supabase = getBrowserSupabase();
-    if (!supabase || typeof window === 'undefined') {
-      return;
-    }
+ const handleCreatorSignIn = useCallback(async () => {
+   const supabase = getBrowserSupabase();
+   if (!supabase || typeof window === 'undefined') {
+     return;
+   }
 
-    await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: `${window.location.origin}${window.location.pathname}`,
-      },
-    });
-  }, []);
+    setCreatorSignInError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+     provider: 'github',
+     options: {
+       redirectTo: `${window.location.origin}${window.location.pathname}`,
+     },
+   });
+    if (error) {
+      if (error.message.includes('provider is not enabled') || error.message.includes('Unsupported provider')) {
+        setCreatorSignInError('GitHub OAuth is not enabled for this project. Enable it in your Supabase dashboard under Authentication → Providers.');
+      } else {
+        setCreatorSignInError(error.message);
+      }
+    }
+ }, []);
 
   const handleCreatorSignOut = useCallback(async () => {
     const supabase = getBrowserSupabase();
@@ -320,46 +329,44 @@ export default function HomePage() {
             </div>
           </div>
           <nav className="flex flex-wrap items-center gap-1">
-           {(['overview', 'promoters', 'genome', 'feedback'] as const).map((tab) => (
+            {(['overview', 'promoters', 'feedback'] as const).map((tab) => (
              <button type="button" key={tab}
-                onClick={() => {
-                  setActiveTab(tab);
-                  if (tab === 'feedback') {
-                    setFeedbackComposerOpen(true);
-                  }
-                }}
+               onClick={() => {
+                 setActiveTab(tab);
+                 if (tab === 'feedback') {
+                   setFeedbackComposerOpen(true);
+                 }
+               }}
                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === tab
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {tab === 'overview'
-                  ? 'Overview'
-                  : tab === 'promoters'
-                    ? 'Promoters'
-                    : tab === 'genome'
-                      ? 'Genome Browser'
-                      : 'Community Feedback'}
-              </button>
-            ))}
+                 activeTab === tab
+                   ? 'bg-blue-600 text-white'
+                   : 'text-gray-600 hover:bg-gray-100'
+               }`}
+             >
+               {tab === 'overview'
+                 ? 'Overview'
+                 : tab === 'promoters'
+                   ? 'Promoters'
+                     : 'Community Feedback'}
+             </button>
+           ))}
             <div className="w-px h-5 bg-gray-200 mx-1" />
-            {creatorSession ? (
-              <>
-                <span className="px-2 py-1 text-xs text-gray-500">@{creatorLogin || 'creator'}</span>
-                <button type="button" onClick={() => void handleCreatorSignOut()}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
-                >
-                  Creator Sign Out
-                </button>
-              </>
-            ) : (
-              <button type="button" onClick={() => void handleCreatorSignIn()}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
-              >
-                Creator Sign In
-              </button>
-            )}
+           {creatorSession ? (
+             <>
+               <span className="px-2 py-1 text-xs text-gray-500">@{creatorLogin || 'creator'}</span>
+               <button type="button" onClick={() => void handleCreatorSignOut()}
+                 className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
+               >
+                 Creator Sign Out
+               </button>
+             </>
+           ) : (
+             <button type="button" onClick={() => void handleCreatorSignIn()}
+               className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
+             >
+               Creator Sign In
+             </button>
+           )}
             <button type="button" onClick={() => setGuideOpen((v) => !v)}
               aria-expanded={guideOpen}
               aria-controls="seqedge-user-guide"
@@ -377,8 +384,14 @@ export default function HomePage() {
       </header>
       <UserGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {dataError && (
+     <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {creatorSignInError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start justify-between gap-3">
+            <span>{creatorSignInError}</span>
+            <button type="button" onClick={() => setCreatorSignInError(null)} aria-label="Dismiss" className="shrink-0 text-red-400 hover:text-red-600">✕</button>
+          </div>
+        )}
+       {dataError && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-2">
             <div>{dataError}</div>
             {configurationHints.length > 0 && (
@@ -435,44 +448,26 @@ export default function HomePage() {
           </>
         )}
 
-        {activeTab === 'promoters' && (
-          <>
-            <SearchFilters onSearch={handleSearch} loading={loading} />
-            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} visibleCount={pageSummary.visibleCount} sortMode={sortMode} summaryMode={summaryMode} onSortModeChange={(nextMode) => {
-                setSortMode(nextMode);
-                setPageIndex(0);
-              }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick} />
-          </>
-        )}
-
-        {activeTab === 'genome' && (
-          <>
-            <SearchFilters onSearch={handleSearch} loading={loading} />
-            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
-              {selectedPromoter ? (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <span className="font-semibold text-gray-900">Current focus</span>
-                  <span>{selectedPromoter.gene_symbol || selectedPromoter.sample_id}</span>
-                  <span className="font-mono text-xs text-gray-500">
-                    {selectedPromoter.chrom}:{selectedPromoter.start.toLocaleString()}-{selectedPromoter.end_pos.toLocaleString()}
-                  </span>
-                </div>
-              ) : (
-                <span>No promoter is selected yet. The browser will focus on the first record in the current result set.</span>
-              )}
-            </div>
-            <GenomeBrowser
-              locus={browserLocus}
-              onLocusChange={setBrowserLocus}
-              highlightRegion={highlightedPromoterRegion}
-            />
-            <div className="text-sm text-gray-500">
-              Showing {promoters.length} promoter records in the current result set. For the current SARS-CoV-2 dataset, all promoters belong to the same reference sequence `NC_045512.2`, so the key change is the coordinate window rather than the chromosome name.
+       {activeTab === 'promoters' && (
+         <>
+           <SearchFilters onSearch={handleSearch} loading={loading} />
+           <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} visibleCount={pageSummary.visibleCount} sortMode={sortMode} summaryMode={summaryMode} onSortModeChange={(nextMode) => {
+               setSortMode(nextMode);
+               setPageIndex(0);
+             }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick} />
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
+                Genome Browser - Real-data reference view
+              </div>
+              <GenomeBrowser
+                locus={browserLocus}
+                onLocusChange={setBrowserLocus}
+                highlightRegion={highlightedPromoterRegion}
+              />
             </div>
           </>
         )}
-
-        {activeTab === 'feedback' && (
+       {activeTab === 'feedback' && (
           <SiteFeedback accessToken={creatorAccessToken} creatorLogin={creatorLogin} refreshSignal={feedbackRefreshSignal} />
         )}
       </main>
@@ -488,10 +483,10 @@ export default function HomePage() {
       {selectedPromoter && (
         <PromoterDetail
           promoter={selectedPromoter}
-          onViewInBrowser={(promoter) => {
-            setBrowserLocus(buildPromoterLocus(promoter));
-            setActiveTab('genome');
-          }}
+         onViewInBrowser={(promoter) => {
+           setBrowserLocus(buildPromoterLocus(promoter));
+            setActiveTab('promoters');
+         }}
           onClose={() => setSelectedPromoter(null)}
         />
       )}
