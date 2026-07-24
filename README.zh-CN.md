@@ -1,4 +1,4 @@
-# SeqEdge
+ï»¿# SeqEdge
 
 ![SeqEdge Screenshot](./seqedge-github-img-readme.jpg)
 
@@ -241,7 +241,7 @@ If the Site URL is left as the default http://localhost:3000, OAuth sign-in will
 2. **Application name**: e.g. `SeqEdge Auth`
 3. **Homepage URL**: `https://seq-edge.vercel.app` (or `http://localhost:3000` for local dev)
 4. **Authorization callback URL**: `https://<your-project>.supabase.co/auth/v1/callback`
-5. Click **Register application**, then **Generate a new client secret** (save immediately — shown only once)
+5. Click **Register application**, then **Generate a new client secret** (save immediately â€” shown only once)
 6. Copy the **Client ID** and **Client Secret** back into Supabase and click **Save**
 
 ### 4. Configure Environment
@@ -250,20 +250,20 @@ Set `GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the 
 
 Then sign in from the top-right `Log in with GitHub` button on the site.
 
-?## ??????(Resend)
+## Email Notification Setup (Resend)
 
-SeqEdge ?? [Resend](https://resend.com) ???????????????
+SeqEdge uses [Resend](https://resend.com) to deliver feedback notification emails to the site creator.
 
-### ????(????)
+### Test Mode (no domain required)
 
-Resend ????????,?? DNS ????????:
+Resend provides a free test mode that works without DNS domain verification:
 
-1. ? [resend.com](https://resend.com) ????? **API Keys**
-2. ???? API ?????
-3. ??????? `onboarding@resend.dev`,??????
-4. ???????????????????????(`FEEDBACK_EMAIL_TO`)
+1. Sign up at [resend.com](https://resend.com) and go to **API Keys**
+2. Create a new API key and copy it
+3. The test sender address is `onboarding@resend.dev` â€” no domain verification needed
+4. In test mode, emails are only delivered to your own verified email address
 
-### ????
+### Environment Variables
 
 ```bash
 FEEDBACK_EMAIL_API_URL=https://api.resend.com/emails
@@ -271,46 +271,46 @@ FEEDBACK_EMAIL_API_KEY=re_xxxxxxxxxxxx
 FEEDBACK_EMAIL_TO=1641454426@qq.com
 ```
 
-- `FEEDBACK_EMAIL_API_URL` — Resend API ??(??? `https://api.resend.com/emails`)
-- `FEEDBACK_EMAIL_API_KEY` — ?? Resend API ??(? `re_` ??)
-- `FEEDBACK_EMAIL_TO` — ???????????
+- `FEEDBACK_EMAIL_API_URL` â€” Resend API endpoint (always `https://api.resend.com/emails`)
+- `FEEDBACK_EMAIL_API_KEY` â€” Your Resend API key (starts with `re_`)
+- `FEEDBACK_EMAIL_TO` â€” The email address that receives feedback notifications
 
-### ?? API ??
+### Getting an API Key
 
-1. ?? [resend.com/api-keys](https://resend.com/api-keys)
-2. ?? **Create API Key**
-3. ??(?? `SeqEdge`)
-4. ???? **Sending access**
-5. ?????? — ?????,??????
+1. Go to [resend.com/api-keys](https://resend.com/api-keys)
+2. Click **Create API Key**
+3. Give it a name (e.g. `SeqEdge`)
+4. Set permission to **Sending access**
+5. Copy the key immediately â€” it is shown only once
 
-### ????(???????)
+### Moving to Production (requires your own domain)
 
-?????????????????????????????????,???????????
+Test mode only delivers to your own verified email. To send reply emails to any visitor, you need a verified custom domain.
 
-**????????:**
+**Step-by-step domain verification:**
 
-1. ?? [resend.com/domains](https://resend.com/domains)
-2. ?? **Add Domain**
-3. ???????,?? `mail.yourdomain.com`(Resend ????????????)
-4. ????(?????? `us-east-1`)
-5. ?? **Add** — Resend ???? DNS ??:
-   - **DKIM TXT ??** — ??: `resend._domainkey.mail`,?: ??? TXT ???(??????)
-   - **SPF TXT ??** — ??: `mail`,?: `v=spf1 include:spf.resend.io ~all`
-   - **Return-path MX ??** — ??: `mail`,?: `feedback.resend.io`,???: `10`
-6. ???? DNS ???(Cloudflare???? DNS?Namecheap ?)
-7. ?????? DNS ??,TTL ??????? 3600
-8. ?? Resend Domains ??,?? **Verify DNS Records**
-9. DNS ???????,????? Resend ??????
-10. ?????,?????? `onboarding@resend.dev` ?? `seqedge@mail.yourdomain.com`
+1. Go to [resend.com/domains](https://resend.com/domains)
+2. Click **Add Domain**
+3. Enter a sending subdomain, e.g. `mail.yourdomain.com` (Resend recommends a subdomain, not the root)
+4. Choose your region (`us-east-1` unless you are in Europe)
+5. Click **Add** â€” Resend generates three DNS records:
+   - **DKIM TXT record** â€” host: `resend._domainkey.mail`, value: a long TXT string (unique to your domain)
+   - **SPF TXT record** â€” host: `mail`, value: `v=spf1 include:spf.resend.io ~all`
+   - **Return-path MX record** â€” host: `mail`, value: `feedback.resend.io`, priority: `10`
+6. Go to your DNS provider (Cloudflare, Namecheap, Alibaba Cloud DNS, etc.)
+7. Add each record exactly as shown â€” leave TTL at default or 3600
+8. Return to the Resend Domains page and click **Verify DNS Records**
+9. DNS propagation may take a few minutes; Resend shows green checkmarks when done
+10. Once verified, update your sender address from `onboarding@resend.dev` to `seqedge@mail.yourdomain.com`
 
-**???????:** ?????? `pages.dev` ? `vercel.app` ?,????????? DNS ??(????????)????????????????????????,?????????
+**Limitation for free domains:** If you deploy on `pages.dev` or `vercel.app`, you cannot add DNS records for these domains because you do not own them. You need your own registered domain to use production mode. Until then, test mode works perfectly for receiving feedback notifications.
 
-**??????:**
+**Recommended sender setup:**
 
-- **?? A(????):** ???? + Resend ???? ? ????????
-- **?? B(????,??):** ???? ? `onboarding@resend.dev` ?? ? ???? `FEEDBACK_EMAIL_TO`
+- **Plan A (production):** Own domain + verified Resend domain ? can send to anyone
+- **Plan B (test, current):** No domain needed ? `onboarding@resend.dev` sender ? only delivers to `FEEDBACK_EMAIL_TO`
 
-??????,?? B ???????????????????? A?
+If you are just starting out, Plan B is all you need. Switch to Plan A when you have a custom domain.
 
 ## Site Uptime
 
