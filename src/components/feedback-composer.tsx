@@ -31,7 +31,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && Boolean(target.closest('button, a, input, textarea, select, [role="button"]'));
+  return target instanceof Element && Boolean(target.closest('button, a, input, textarea, select, [role="button"]'));
 }
 
 export default function FeedbackComposer({ open, onClose, onSubmitted }: FeedbackComposerProps) {
@@ -168,51 +168,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
 
     setValidationErrors({});
 
-    // Validation
-    const errors: Record<string, string> = {};
-    if (!form.title.trim()) {
-      errors.title = 'This field is required';
-    } else if (form.title.trim().length < 3) {
-      errors.title = 'Title must be at least 3 characters';
-    } else if (form.title.trim().length > 120) {
-      errors.title = 'Title must be 120 characters or less';
-    }
-
-    if (!form.displayName.trim()) {
-      errors.displayName = 'This field is required';
-    } else if (form.displayName.trim().length > 80) {
-      errors.displayName = 'Name must be 80 characters or less';
-    }
-
-    if (!form.visitorEmail.trim()) {
-      errors.visitorEmail = 'This field is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.visitorEmail.trim())) {
-      errors.visitorEmail = 'Please enter a valid email address';
-    } else if (form.visitorEmail.trim().length > 160) {
-      errors.visitorEmail = 'Email must be 160 characters or less';
-    }
-
-    if (form.affiliation.trim().length > 160) {
-      errors.affiliation = 'Affiliation must be 160 characters or less';
-    }
-
-    if (!form.message.trim()) {
-      errors.message = 'This field is required';
-    } else if (form.message.trim().length < 3) {
-      errors.message = 'Message must be at least 3 characters';
-    } else if (form.message.trim().length > 2000) {
-      errors.message = 'Message must be 2000 characters or less';
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      setSubmitting(false);
-      return;
-    }
-
-    setValidationErrors({});
-
-    try {
+   try {
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

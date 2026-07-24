@@ -320,10 +320,15 @@ export default function HomePage() {
             </div>
           </div>
           <nav className="flex flex-wrap items-center gap-1">
-            {(['overview', 'promoters', 'genome', 'feedback'] as const).map((tab) => (
-              <button type="button" key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+           {(['overview', 'promoters', 'genome', 'feedback'] as const).map((tab) => (
+             <button type="button" key={tab}
+                onClick={() => {
+                  setActiveTab(tab);
+                  if (tab === 'feedback') {
+                    setFeedbackComposerOpen(true);
+                  }
+                }}
+               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === tab
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
@@ -339,11 +344,6 @@ export default function HomePage() {
               </button>
             ))}
             <div className="w-px h-5 bg-gray-200 mx-1" />
-            <button type="button" onClick={() => setFeedbackComposerOpen(true)}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 border border-gray-200 text-gray-700 hover:bg-gray-100"
-            >
-              Feedback
-            </button>
             {creatorSession ? (
               <>
                 <span className="px-2 py-1 text-xs text-gray-500">@{creatorLogin || 'creator'}</span>
