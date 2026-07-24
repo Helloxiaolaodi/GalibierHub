@@ -90,8 +90,24 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
   const [composerErrors, setComposerErrors] = useState<Record<string, string>>({});
   const [pinToggling, setPinToggling] = useState<string | null>(null);
   const [hideToggling, setHideToggling] = useState<string | null>(null);
-  const [expandedEntries, setExpandedEntries] = useState<Record<string, boolean>>({});
-  const {
+ const [expandedEntries, setExpandedEntries] = useState<Record<string, boolean>>({});
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [replyUploadingImage, setReplyUploadingImage] = useState<Record<string, boolean>>({});
+
+  const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await fetch('/api/upload-image', { method: 'POST', body: formData });
+      const data = await response.json() as { url?: string; error?: string };
+      if (!response.ok) throw new Error(data.error || 'Upload failed');
+      return data.url || null;
+    } catch (err) {
+      setComposerError(err instanceof Error ? err.message : 'Image upload failed.');
+      return null;
+    }
+  }, []);
+ const {
     entryComments,
     commentDrafts,
     setCommentDrafts,
@@ -223,13 +239,14 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
         window.localStorage.setItem(`seqedge-reaction-${reactionType}-${entryId}`, data.active ? '1' : '0');
       }
 
-      setReactionCounts((current) => ({
-        ...current,
-        [reactionType]: Math.max(0, current[reactionType] + (data.active ? 1 : -1)),
-      }));
-    } catch {
-    }
-  }, []);
+     setReactionCounts((current) => ({
+       ...current,
+       [reactionType]: Math.max(0, current[reactionType] + (data.active ? 1 : -1)),
+     }));
+    } catch (err) {
+      console.error('Reaction failed:', err);
+   }
+ }, []);
 
   const handleReply = useCallback(async (entryId: string) => {
     const draft = replyDrafts[entryId]?.trim() || '';
@@ -241,9 +258,9 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
     setReplyingId(entryId);
     setReplyError(null);
     try {
-      if (!accessToken) {
-        throw new Error('Sign in with the creator GitHub account to reply.');
-      }
+     if (!accessToken) {
+        throw new Error('Sign in with GitHub to reply.');
+     }
       const response = await fetch('/api/feedback', {
         method: 'PATCH',
         headers: {
@@ -357,17 +374,25 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
               <div className="mt-1 whitespace-pre-wrap text-sm text-blue-900">{entry.creator_reply}</div>
               <div className="mt-2 text-xs text-blue-700">Replied: {formatDateTime(entry.replied_at)}</div>
             </div>
-          ) : isAdmin ? (
-            <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
-              <textarea
-                value={replyDrafts[entry.id] || ''}
-                onChange={(event) => setReplyDrafts((current) => ({ ...current, [entry.id]: event.target.value }))}
-                rows={4}
-                className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                placeholder="Write a reply that will be shown here and emailed to the visitor."
-              />
-              <button
-                type="button"
+          ) : accessToken ? (
+           <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
+             <textarea
+               value={replyDrafts[entry.id] || ''}
+               onChange={(event) => setReplyDrafts((current) => ({ ...current, [entry.id]: event.target.value }))}
+               rows={4}
+               className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+               placeholder="Write a reply that will be shown here."
+             />
+              <div className="mt-2 flex items-center gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Upload Image
+                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const file = e.target.files?.[0]; if (file) { setReplyUploadingImage((c) => ({ ...c, [entry.id]: true })); const url = await handleImageUpload(file); setReplyUploadingImage((c) => ({ ...c, [entry.id]: false })); if (url) { setReplyDrafts((c) => ({ ...c, [entry.id]: (c[entry.id] || '') + ((c[entry.id] || '') ? '\n' : '') + '![image](' + url + ')' })); } } }} />
+                </label>
+                {replyUploadingImage[entry.id] && <span className="text-xs text-gray-500">Uploading...</span>}
+              </div>
+             <button
+               type="button"
                 onClick={() => void handleReply(entry.id)}
                 disabled={replyingId === entry.id}
                 className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
@@ -635,13 +660,21 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
             </label>
             <label className="block space-y-1 text-sm text-gray-700">
               <span>Message (required)</span>
-              <textarea
-                value={composerForm.message}
-                onChange={(e) => setComposerForm((c) => ({ ...c, message: e.target.value }))}
-                rows={4}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-              />
-              {composerErrors.message && <span className="text-xs text-red-600">{composerErrors.message}</span>}
+             <textarea
+               value={composerForm.message}
+               onChange={(e) => setComposerForm((c) => ({ ...c, message: e.target.value }))}
+               rows={4}
+               className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+             />
+              <div className="mt-2 flex items-center gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Upload Image
+                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const file = e.target.files?.[0]; if (file) { setUploadingImage(true); const url = await handleImageUpload(file); setUploadingImage(false); if (url) { setComposerForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); } } }} />
+                </label>
+                {uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
+              </div>
+             {composerErrors.message && <span className="text-xs text-red-600">{composerErrors.message}</span>}
             </label>
             {composerError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{composerError}</div>}
             {composerSuccess && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{composerSuccess}</div>}
@@ -659,15 +692,11 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
       <div className="grid gap-6 px-4 py-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="border border-gray-200 bg-gray-50 p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-500">Comments</div>
-              <div className="mt-1 text-2xl font-semibold text-gray-900">{summary.totalComments}</div>
-            </div>
-            <div className="border border-gray-200 bg-gray-50 p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-500">Average rating</div>
-              <div className="mt-1 text-2xl font-semibold text-gray-900">{summary.averageRating.toFixed(1)}</div>
-            </div>
-            <div className="border border-gray-200 bg-gray-50 p-4">
+           <div className="border border-gray-200 bg-gray-50 p-4">
+             <div className="text-xs uppercase tracking-wide text-gray-500">Comments</div>
+             <div className="mt-1 text-2xl font-semibold text-gray-900">{summary.totalComments}</div>
+           </div>
+           <div className="border border-gray-200 bg-gray-50 p-4">
               <div className="text-xs uppercase tracking-wide text-gray-500">In progress</div>
               <div className="mt-1 text-2xl font-semibold text-gray-900">{inProgressTotal}</div>
             </div>
@@ -676,9 +705,9 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
               <div className="mt-1 text-2xl font-semibold text-gray-900">{completedTotal}</div>
             </div>
           </div>
-          <div className="border border-gray-200 bg-white p-4 text-sm text-gray-600">
-            Review public threads, creator-only progress, timestamps, and reply status here. Use the Leave Feedback button above to submit a new message.
-          </div>
+         <div className="border border-gray-200 bg-white p-4 text-sm text-gray-600">
+            Browse discussions, track reply status, and use the Leave Feedback button to start a new thread.
+         </div>
         </div>
 
         <div className="space-y-6">
@@ -689,11 +718,11 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
               Creator reply access is active{creatorLogin ? ` for @${creatorLogin}` : ''}.
             </div>
           )}
-          {accessToken && !isAdmin && !loading && (
-            <div className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              This signed-in GitHub account does not have creator reply access.
-            </div>
-          )}
+         {accessToken && !isAdmin && !loading && (
+           <div className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Signed in. You can reply to messages. Admin privileges (pin/hide) are restricted to the site creator.
+           </div>
+         )}
 
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3">

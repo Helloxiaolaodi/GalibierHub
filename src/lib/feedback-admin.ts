@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+﻿import { createHash } from "crypto";
 import type { User } from "@supabase/supabase-js";
 import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
 
@@ -48,7 +48,7 @@ export async function requireCreatorGithubAuth(accessToken: string | null): Prom
   }
 
   if (!accessToken) {
-    return { ok: false, error: "Sign in with the creator GitHub account to reply." };
+    return { ok: false, error: "Sign in with the creator GitHub account to perform admin actions." };
   }
 
   const { data, error } = await getSupabase().auth.getUser(accessToken);
@@ -58,7 +58,7 @@ export async function requireCreatorGithubAuth(accessToken: string | null): Prom
 
   const provider = data.user.app_metadata?.provider;
   if (provider !== "github" && !data.user.identities?.some((identity) => identity.provider === "github")) {
-    return { ok: false, error: "Only GitHub login is allowed for creator replies." };
+    return { ok: false, error: "Only GitHub login is allowed for admin actions." };
   }
 
   const githubLogin = extractGithubLogin(data.user);
@@ -68,7 +68,29 @@ export async function requireCreatorGithubAuth(accessToken: string | null): Prom
   }
 
   if (githubLogin.toLowerCase() !== expectedGithubLogin) {
-    return { ok: false, error: `This GitHub account (@${githubLogin}) does not have creator reply access. Expected: @${process.env.GITHUB_ADMIN_USERNAME || "unknown"}.` };
+    return { ok: false, error: `This GitHub account (@${githubLogin}) does not have admin access. Expected: @${process.env.GITHUB_ADMIN_USERNAME || "unknown"}.` };
+  }
+
+  return { ok: true, githubLogin, user: data.user };
+}
+
+export async function requireGithubAuth(accessToken: string | null): Promise<CreatorAuthResult> {
+  if (!isSupabaseConfigured) {
+    return { ok: false, error: "Supabase is not configured." };
+  }
+
+  if (!accessToken) {
+    return { ok: false, error: "Sign in with GitHub to reply." };
+  }
+
+  const { data, error } = await getSupabase().auth.getUser(accessToken);
+  if (error || !data.user) {
+    return { ok: false, error: "GitHub login could not be verified. Please sign in again." };
+  }
+
+  const githubLogin = extractGithubLogin(data.user);
+  if (!githubLogin) {
+    return { ok: false, error: "Your GitHub account login name could not be read from Supabase Auth." };
   }
 
   return { ok: true, githubLogin, user: data.user };

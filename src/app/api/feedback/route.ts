@@ -1,6 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
-import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
+import { getBearerToken, requireCreatorGithubAuth, requireGithubAuth } from "@/lib/feedback-admin";
 
 const VALID_CATEGORIES = new Set(["general", "issue", "idea", "data", "collaboration"]);
 
@@ -335,27 +335,41 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const adminCheck = await requireCreatorGithubAuth(getBearerToken(request));
-  if (!adminCheck.ok) {
-    return NextResponse.json({ error: adminCheck.error }, { status: 401 });
-  }
+  const token = getBearerToken(request);
+  const githubCheck = await requireGithubAuth(token);
+  const adminCheck = await requireCreatorGithubAuth(token);
 
-  let body: unknown;
+  // For reply, any GitHub user is allowed. For pin/hide, admin is required.
+  let payload: Record<string, unknown> = {};
   try {
-    body = await request.json();
+    payload = await request.json() as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const id = typeof (body as { id?: unknown }).id === "string" ? (body as { id: string }).id.trim() : "";
-  const creatorReply = typeof (body as { creatorReply?: unknown }).creatorReply === "string"
-    ? (body as { creatorReply: string }).creatorReply.trim()
+  const hasReply = typeof payload.creatorReply === "string";
+  const hasPin = typeof payload.pinned === "boolean";
+  const hasHide = typeof payload.hidden === "boolean";
+
+  // Reply: any GitHub user
+  if (hasReply && !githubCheck.ok) {
+    return NextResponse.json({ error: githubCheck.error }, { status: 401 });
+  }
+
+  // Pin/hide: admin only
+  if ((hasPin || hasHide) && !adminCheck.ok) {
+    return NextResponse.json({ error: adminCheck.error }, { status: 401 });
+  }
+
+  const id = typeof payload.id === "string" ? payload.id.trim() : "";
+  const creatorReply = typeof payload.creatorReply === "string"
+    ? payload.creatorReply.trim()
     : undefined;
-  const pinned = typeof (body as { pinned?: unknown }).pinned === "boolean"
-    ? (body as { pinned: boolean }).pinned
+  const pinned = typeof payload.pinned === "boolean"
+    ? payload.pinned
     : undefined;
-  const hidden = typeof (body as { hidden?: unknown }).hidden === "boolean"
-    ? (body as { hidden: boolean }).hidden
+  const hidden = typeof payload.hidden === "boolean"
+    ? payload.hidden
     : undefined;
 
   if (!id) {
