@@ -123,6 +123,36 @@ export function getStorageUrl(
   return cleanBase ? `${cleanBase}/${cleanPath}` : cleanPath;
 }
 
+export function getDirectDownloadUrl(
+  path: string | null | undefined,
+  baseUrl: string = STORAGE_BASE_URL,
+): string {
+  if (!path) return '';
+
+  let resolvedUrl = '';
+
+  if (/^https?:\/\//i.test(path)) {
+    resolvedUrl = path;
+  } else {
+    const directBase = getResolvedStorageBaseUrl(baseUrl, false);
+    const cleanBase = directBase.replace(/\/+$/, '');
+    const cleanPath = path.replace(/^\/+/, '');
+    resolvedUrl = cleanBase ? `${cleanBase}/${cleanPath}` : cleanPath;
+  }
+
+  if (!/^https?:\/\//i.test(resolvedUrl)) {
+    return resolvedUrl;
+  }
+
+  try {
+    const url = new URL(resolvedUrl);
+    url.searchParams.set('download', 'true');
+    return url.toString();
+  } catch {
+    return resolvedUrl.includes('?') ? `${resolvedUrl}&download=true` : `${resolvedUrl}?download=true`;
+  }
+}
+
 // ---- HF proxy helpers -----------------------------------------------
 
 /**

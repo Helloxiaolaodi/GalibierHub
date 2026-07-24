@@ -142,7 +142,10 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
             </button>
             <button
               type="button"
-              onClick={() => setFilters(EMPTY)}
+              onClick={() => {
+                setFilters(EMPTY);
+                onSearch(EMPTY);
+              }}
               className="px-4 py-1.5 border hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
             >
               Reset

@@ -22,7 +22,7 @@ export async function GET(
   const sb = getSupabase();
   const { data, error } = await sb
     .from('genome_samples')
-    .select('sample_id, species, tissue, sequencing_platform, assembly_version, coverage, cohort, bmi, age, sex')
+    .select('sample_id, species, tissue, sequencing_platform, assembly_version, coverage, cohort, bmi, age, sex, vcf_download_url, fasta_download_url, vcf_download_mode, fasta_download_mode')
     .eq('sample_id', id)
     .maybeSingle();
 

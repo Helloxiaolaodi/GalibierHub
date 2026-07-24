@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Promoter } from '@/types/genome';
+import { getDirectDownloadUrl } from '@/lib/storage';
+import type { SampleMetadata } from '@/types/genome';
+import DownloadActions from '@/components/download-actions';
 
 export default function PromoterDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState<string>('');
   const [promoter, setPromoter] = useState<Promoter | null>(null);
+  const [sample, setSample] = useState<SampleMetadata | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,6 +21,14 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
         .then((data) => {
           const match = data?.data?.find((item: Promoter) => item.id === p.id) ?? null;
           setPromoter(match);
+          if (match?.sample_id) {
+            fetch(`/api/samples/${encodeURIComponent(match.sample_id)}`)
+              .then((res) => (res.ok ? res.json() : null))
+              .then((sampleData) => setSample(sampleData && !sampleData.error ? sampleData : null))
+              .catch(() => setSample(null));
+          } else {
+            setSample(null);
+          }
         })
         .catch(() => setPromoter(null))
         .finally(() => setLoading(false));
@@ -34,6 +46,9 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
       </div>
     );
   }
+
+  const vcfDownloadUrl = getDirectDownloadUrl(sample?.vcf_download_url);
+  const fastaDownloadUrl = getDirectDownloadUrl(sample?.fasta_download_url);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -68,6 +83,27 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
           <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">View in Genome Browser</Link>
           <button type="button" onClick={() => navigator.clipboard.writeText([promoter.chrom, promoter.start, promoter.end_pos, promoter.gene_symbol || 'NA', promoter.score, promoter.strand].join('\t'))} className="px-4 py-2 border rounded-lg text-sm">Copy as BED</button>
         </div>
+        {(vcfDownloadUrl || fastaDownloadUrl) && (
+          <section className="bg-white border rounded-lg p-4 space-y-4">
+            <h3 className="text-sm font-semibold text-gray-900">Sample file downloads</h3>
+            {vcfDownloadUrl && (
+              <DownloadActions
+                url={vcfDownloadUrl}
+                label="Download VCF"
+                description="Direct sample-level variant file download from the public storage host."
+                showCli={sample?.vcf_download_mode === 'cli'}
+              />
+            )}
+            {fastaDownloadUrl && (
+              <DownloadActions
+                url={fastaDownloadUrl}
+                label="Download FASTA"
+                description="Direct sample-level FASTA download from the public storage host."
+                showCli={sample?.fasta_download_mode === 'cli'}
+              />
+            )}
+          </section>
+        )}
       </main>
     </div>
   );
