@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { SiteConfig } from '@/site-config';
-import { getEffectiveStorageBaseUrl, getStorageAccessMode, getStorageUrl } from '@/lib/storage';
+import { getCandidateStorageBaseUrls, getStorageAccessMode, getStorageUrl } from '@/lib/storage';
 import type { AssemblyData, DemoTrack, DemoTrackAdapter } from './jbrowse-viewer';
 
 interface GenomeBrowserProps {
@@ -48,7 +48,7 @@ async function isReachable(url: string): Promise<boolean> {
 }
 
 function buildStorageUrl(baseUrl: string, path: string): string {
-  return getStorageUrl(path, baseUrl);
+  return getStorageUrl(path, baseUrl, { preferProxy: false });
 }
 
 function getTrackRequiredUrls(track: DemoTrack): string[] {
@@ -79,7 +79,8 @@ async function getReachableTracks(baseUrl: string, tracks: readonly DemoTrack[])
 
 export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
   const configuredBase = SiteConfig.jbrowse.storageBaseUrl;
-  const effectiveBase = useMemo(() => getEffectiveStorageBaseUrl(configuredBase), [configuredBase]);
+  const candidateBases = useMemo(() => getCandidateStorageBaseUrls(configuredBase), [configuredBase]);
+  const effectiveBase = candidateBases[0] || '';
   const storageMode = useMemo(() => getStorageAccessMode(configuredBase), [configuredBase]);
   const assemblies = SiteConfig.jbrowse.assemblies as Record<string, AssemblyConfig>;
   const defaultAssembly = SiteConfig.jbrowse.defaultAssembly;
@@ -127,8 +128,6 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
     setProbe('checking');
 
     (async () => {
-      const candidateBases = effectiveBase ? [effectiveBase] : [];
-
       for (const name of assemblyNames) {
         const assembly = assemblies[name];
 
@@ -162,7 +161,7 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
     return () => {
       cancelled = true;
     };
-  }, [assemblies, assemblyNames, configuredBase, defaultAssembly, effectiveBase]);
+  }, [assemblies, assemblyNames, candidateBases, configuredBase, defaultAssembly, effectiveBase]);
 
   if (probe === 'checking' || probe === 'idle') {
     return (
@@ -179,12 +178,12 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
 
   if (probe === 'missing-data') {
     const firstFai = assemblies[defaultAssembly].fastaIndex;
-    const probeUrl = getStorageUrl(firstFai, effectiveBase || configuredBase);
+    const probeUrl = getStorageUrl(firstFai, effectiveBase || configuredBase, { preferProxy: false });
     const accessHint =
       storageMode === 'unset'
         ? 'No real genome storage base is configured. Replace the placeholder NEXT_PUBLIC_STORAGE_BASE_URL or NEXT_PUBLIC_R2_PUBLIC_URL value with a reachable public object-storage or HF proxy URL.'
         : storageMode === 'hf-proxy'
-        ? 'SeqEdge is using Hugging Face as the data source through your Cloudflare Worker proxy. Confirm that NEXT_PUBLIC_HF_PROXY_URL is deployed and that the configured reference files exist in the target dataset path.'
+        ? 'SeqEdge is configured to prefer your Cloudflare Worker proxy for Hugging Face assets. If the Worker is unreachable, SeqEdge now falls back to direct Hugging Face reads for the browser probe. Confirm that either NEXT_PUBLIC_HF_PROXY_URL is deployed or the configured reference files are reachable in the target dataset path.'
         : storageMode === 'hf-direct'
           ? 'SeqEdge is reading directly from Hugging Face. This is valid for storage, but browser-range access is more reliable through NEXT_PUBLIC_HF_PROXY_URL.'
           : 'SeqEdge is configured to use only your real genome storage. Set NEXT_PUBLIC_STORAGE_BASE_URL to a public CORS-enabled object store and make sure the configured reference files are reachable.';

@@ -43,7 +43,10 @@ interface JBrowseViewerProps {
 }
 
 export default function JBrowseViewer({ locus, dataBase, assemblyName, assemblyData, tracks }: JBrowseViewerProps) {
-  const buildUrl = useMemo(() => (path: string) => getStorageUrl(path, dataBase), [dataBase]);
+  const buildUrl = useMemo(
+    () => (path: string) => getStorageUrl(path, dataBase, { preferProxy: false }),
+    [dataBase],
+  );
   const lastNavLocus = useRef<string | null>(null);
   const initialLocusRef = useRef(locus || assemblyData.defaultLocus || SiteConfig.jbrowse.defaultLocus);
 

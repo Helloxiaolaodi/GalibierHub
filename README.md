@@ -70,7 +70,7 @@ Create `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
-NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/<optional-subdir>
 NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 NEXT_PUBLIC_REFERENCE_ASSEMBLY=NC_045512.2
 NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS=NC_045512.2:1-5000
@@ -91,10 +91,15 @@ NEXT_PUBLIC_R2_PUBLIC_URL=https://your-bucket.your-account.r2.dev/test-data
 Recommended production strategy:
 
 - store large genomic files in Hugging Face Datasets;
-- expose browser traffic through `NEXT_PUBLIC_HF_PROXY_URL`;
+- keep `NEXT_PUBLIC_STORAGE_BASE_URL` pointed at the dataset's public `resolve/main` base;
+- expose browser traffic through `NEXT_PUBLIC_HF_PROXY_URL` when available;
 - keep Cloudflare R2 as a mirror or fallback for selected files when needed.
 
-If your files live under a bucket prefix such as `test-data/`, include that prefix directly in `NEXT_PUBLIC_STORAGE_BASE_URL`.
+If your files live under a subfolder such as `test-data/` or `sars-cov-2-lite/`, include that prefix directly in `NEXT_PUBLIC_STORAGE_BASE_URL`. If you deploy the HF proxy Worker, set the same full dataset path in `cloudflare-templates/hf-proxy/wrangler.toml` as `HF_REPO_BASE`.
+
+The Genome Browser currently probes the file declared by `NEXT_PUBLIC_REFERENCE_FASTA_INDEX` with `Range: bytes=0-0` before rendering. If that `.fai` path is wrong or unreachable, the browser stops immediately with `Genome Browser - Reference data unreachable`.
+
+When `NEXT_PUBLIC_HF_PROXY_URL` is configured and `NEXT_PUBLIC_STORAGE_BASE_URL` points at Hugging Face `resolve/main`, SeqEdge now prefers the Worker first but automatically falls back to direct Hugging Face reads if the Worker is unreachable. This keeps the browser usable during proxy outages, while the Worker remains the recommended production path for range and CORS stability.
 
 ### 3.4 Initialize the database
 
@@ -110,12 +115,12 @@ npm run dev
 
 Local development requires real environment values. The placeholder values shown in `.env.local` examples are intentionally treated as unconfigured, so `/api/stats`, `/api/promoters`, and related server routes will return explicit errors until `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are replaced with working project values.
 
-If `NEXT_PUBLIC_STORAGE_BASE_URL` or `NEXT_PUBLIC_R2_PUBLIC_URL` still points to a placeholder object-storage address, the Genome Browser now fails fast and shows a direct configuration hint instead of appearing to hang while probing an unreachable host.
+If `NEXT_PUBLIC_STORAGE_BASE_URL` or `NEXT_PUBLIC_R2_PUBLIC_URL` still points to a placeholder object-storage address, the Genome Browser now fails fast and shows a direct configuration hint instead of appearing to hang while probing an unreachable host. The first required storage probe is always the FASTA index declared by `NEXT_PUBLIC_REFERENCE_FASTA_INDEX`.
 
 In practice, local startup issues usually fall into two categories:
 
 - Missing Supabase credentials: the dashboard and promoter APIs return explicit `Supabase is not configured` errors.
-- Missing genome storage base: the Genome Browser shows `Reference data unreachable` or `No real genome storage base is configured` with the expected storage variables called out.
+- Missing or mismatched genome storage path: the Genome Browser shows `Reference data unreachable` or `No real genome storage base is configured` after probing the reference `.fai` file. Common causes are an undeployed `NEXT_PUBLIC_HF_PROXY_URL`, a wrong `HF_REPO_BASE`, a missing dataset subdirectory in `NEXT_PUBLIC_STORAGE_BASE_URL`, or a filename mismatch between `NEXT_PUBLIC_REFERENCE_*` and the uploaded objects.
 
 When verifying a production-style local build, do not mix `npm run dev` and `npm run start` against the same `.next` directory. A clean sequence is:
 
@@ -206,7 +211,7 @@ Direct Hugging Face `resolve/main` links are often slower for JBrowse because re
 
 Deployment procedure:
 
-1. Edit `cloudflare-templates/hf-proxy/wrangler.toml` and set `HF_REPO_BASE` to your Hugging Face `resolve/main` base.
+1. Edit `cloudflare-templates/hf-proxy/wrangler.toml` and set `HF_REPO_BASE` to your exact Hugging Face `resolve/main` base. If the required files live in a subfolder, include that subfolder here as part of the base.
 2. Authenticate Cloudflare:
 
 ```bash
@@ -223,9 +228,13 @@ npx wrangler deploy
 4. Configure SeqEdge:
 
 ```bash
-NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/<optional-subdir>
 NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 ```
+
+5. Verify the required reference index through the Worker before shipping the site. For the default SARS-CoV-2 example, `https://seqedge-hf-proxy.your-account.workers.dev/scov2.fa.fai` should return `200` or `206`. If it does not, fix `HF_REPO_BASE`, the storage subdirectory, or the uploaded filenames before debugging JBrowse itself.
+
+If the Worker is temporarily unreachable but the original Hugging Face `resolve/main` files are public and range-readable, the current browser build can still fall back to direct HF reads. Treat that as a resilience path, not as the preferred final deployment state.
 
 ## 6. Feature Modules
 
@@ -251,21 +260,26 @@ The configured storage targets must be reachable for the deployed site:
 - any BED, GFF3, BAM, VCF, or other track files configured for JBrowse
 - each corresponding index file such as `.fai`, `.bai`, `.tbi`, or `.csi`
 
-If Cloudflare Pages or Vercel shows an empty browser panel, verify:
+The FASTA index is the first required file. SeqEdge probes `NEXT_PUBLIC_REFERENCE_FASTA_INDEX` with `Range: bytes=0-0` before mounting JBrowse, so a missing `.fai` prevents the browser from rendering even if optional tracks exist.
+
+If Cloudflare Pages or Vercel shows an empty browser panel or `Genome Browser - Reference data unreachable`, verify:
 
 - build command is correct for the target platform
 - output directory is `.open-next` for Cloudflare Pages
-- `NEXT_PUBLIC_STORAGE_BASE_URL` points to a public CORS-enabled origin
+- `NEXT_PUBLIC_STORAGE_BASE_URL` points to the intended public origin and already includes any required subfolder such as `test-data/` or `sars-cov-2-lite/`
 - the configured filenames in environment variables match the deployed object keys exactly
+- if `NEXT_PUBLIC_HF_PROXY_URL` is enabled, the exact probe URL `https://<your-worker>/<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` returns `200` or `206`
+- `cloudflare-templates/hf-proxy/wrangler.toml` uses the same dataset path in `HF_REPO_BASE`
+- if the Worker is down, confirm the original Hugging Face `resolve/main/.../<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` URL is also public and range-readable so the fallback path can work
 - Supabase contains only real rows intended for publication
 
 ### 7.3 Object storage checks
 
 - Confirm `NEXT_PUBLIC_STORAGE_BASE_URL` points to a CORS-enabled host.
-- If files live under a subfolder, include that subpath in the base URL.
+- If files live under a subfolder, include that subpath in both `NEXT_PUBLIC_STORAGE_BASE_URL` and the Worker `HF_REPO_BASE`.
 - For Hugging Face, confirm public links use `resolve/main`.
 - If `NEXT_PUBLIC_HF_PROXY_URL` is enabled, confirm the Worker is deployed and reachable.
-- Validate range requests against at least one reference index and one annotation or alignment index.
+- Validate `Range: bytes=0-0` against at least one reference index and one annotation or alignment index.
 
 ## 8. Tech Stack
 
@@ -318,7 +332,7 @@ For local deployment, onboarding, or browser validation, publish a packaged test
   - `sars-cov-2-lite` | SeqEdge deployment validation set for SARS-CoV-2 browser checks | Wu F, Zhao S, Yu B, et al. *A new coronavirus associated with human respiratory disease in China*. Nature. 2020;579(7798):265-269. DOI: `10.1038/s41586-020-2008-3`
   - `volvox-advanced` | GMOD / JBrowse public example-data ecosystem | [JBrowse 2 documentation](https://jbrowse.org/jb2/) and Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023.
 - Important boundary: this archive does not populate Supabase metadata tables. Uploading the files to object storage will not create records in `genome_samples`, `predicted_promoters`, or `variant_index`, so homepage statistics remain empty until real metadata is imported.
-- Setup: extract the archive, upload the contents to your preferred object storage, set `NEXT_PUBLIC_STORAGE_BASE_URL` to that public base, configure `NEXT_PUBLIC_REFERENCE_*` variables to the uploaded filenames, and import real metadata rows into Supabase if you want dashboard counts and searchable tables.
+- Setup: extract the archive, upload the contents to your preferred object storage, set `NEXT_PUBLIC_STORAGE_BASE_URL` to that public base, include the archive subfolder in the base when applicable, configure `NEXT_PUBLIC_REFERENCE_*` variables to the uploaded filenames, and import real metadata rows into Supabase if you want dashboard counts and searchable tables. If you front Hugging Face with the Worker, keep the same path in `HF_REPO_BASE`.
 - Companion metadata bundle: the same release workflow should also publish the CSV import bundle under `deploy-notes/test-data-final/test-csv/`, because object-storage files alone validate JBrowse but do not populate homepage or table content.
 
 For the metadata layer, SeqEdge now also ships a separate real public CSV bundle built from FANTOM5. This bundle is intended for direct import into Supabase so that the homepage metrics, promoter table, and sample detail views show real content rather than an empty state.

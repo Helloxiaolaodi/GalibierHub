@@ -70,7 +70,7 @@ npm install
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
-NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/<optional-subdir>
 NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 NEXT_PUBLIC_REFERENCE_ASSEMBLY=NC_045512.2
 NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS=NC_045512.2:1-5000
@@ -91,10 +91,15 @@ NEXT_PUBLIC_R2_PUBLIC_URL=https://your-bucket.your-account.r2.dev/test-data
 推荐的正式部署策略:
 
 - 将大体积基因组文件存放在 Hugging Face Datasets；
-- 让浏览器访问通过 `NEXT_PUBLIC_HF_PROXY_URL` 指向的 Cloudflare Worker；
+- 让 `NEXT_PUBLIC_STORAGE_BASE_URL` 指向公开的 `resolve/main` 数据集基址；
+- 在可用时让浏览器访问通过 `NEXT_PUBLIC_HF_PROXY_URL` 指向的 Cloudflare Worker；
 - 将 Cloudflare R2 作为镜像或备用入口，而不是默认主链路。
 
-如果文件位于 `test-data/` 等子目录下，请把这个前缀直接写进 `NEXT_PUBLIC_STORAGE_BASE_URL`。
+如果文件位于 `test-data/` 或 `sars-cov-2-lite/` 这类子目录下，请把这个前缀直接写进 `NEXT_PUBLIC_STORAGE_BASE_URL`。如果启用了 HF 代理 Worker，也要在 `cloudflare-templates/hf-proxy/wrangler.toml` 里的 `HF_REPO_BASE` 使用同一条完整数据集路径。
+
+Genome Browser 当前会在渲染前先用 `Range: bytes=0-0` 探测 `NEXT_PUBLIC_REFERENCE_FASTA_INDEX` 指向的文件。如果这个 `.fai` 路径错误或不可达，浏览器会直接停在 `Genome Browser - Reference data unreachable`。
+
+当 `NEXT_PUBLIC_HF_PROXY_URL` 已配置且 `NEXT_PUBLIC_STORAGE_BASE_URL` 指向 Hugging Face `resolve/main` 时，SeqEdge 现在会先尝试 Worker，再在 Worker 不可达时自动回退到 Hugging Face 直连读取。这能降低代理短时故障带来的影响，但正式部署仍然建议以 Worker 作为主链路来保证 Range 与 CORS 的稳定性。
 
 ### 3.4 初始化数据库
 
@@ -110,12 +115,12 @@ npm run dev
 
 本地开发必须使用真实可用的环境变量。`.env.local` 示例里的占位值会被系统视为“未配置”，因此在没有替换成真实 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 之前，`/api/stats`、`/api/promoters` 等服务端路由会直接返回明确的错误信息。
 
-如果 `NEXT_PUBLIC_STORAGE_BASE_URL` 或 `NEXT_PUBLIC_R2_PUBLIC_URL` 仍然指向占位对象存储地址，Genome Browser 现在会快速失败并直接显示配置提示，而不会像之前那样因为探测不可达主机而让页面看起来长时间卡住。
+如果 `NEXT_PUBLIC_STORAGE_BASE_URL` 或 `NEXT_PUBLIC_R2_PUBLIC_URL` 仍然指向占位对象存储地址，Genome Browser 现在会快速失败并直接显示配置提示，而不会像之前那样因为探测不可达主机而让页面看起来长时间卡住。当前第一个必过的存储探测就是 `NEXT_PUBLIC_REFERENCE_FASTA_INDEX` 指向的 FASTA 索引文件。
 
 实际排查本地启动问题时，通常可以先分成两类：
 
 - 缺少 Supabase 凭据：dashboard 与 promoter API 会明确返回 `Supabase is not configured`。
-- 缺少基因组对象存储基地址：Genome Browser 会显示 `Reference data unreachable` 或 `No real genome storage base is configured`，并直接点名相关环境变量。
+- 基因组存储路径缺失或不匹配：Genome Browser 会在探测参考 `.fai` 文件后显示 `Reference data unreachable` 或 `No real genome storage base is configured`。常见原因包括 `NEXT_PUBLIC_HF_PROXY_URL` 对应的 Worker 尚未部署、`HF_REPO_BASE` 写错、`NEXT_PUBLIC_STORAGE_BASE_URL` 缺少数据集子目录前缀，或 `NEXT_PUBLIC_REFERENCE_*` 与实际上传文件名不一致。
 
 如果要在本地验证接近生产环境的运行方式，不要对同一个 `.next` 目录混用 `npm run dev` 和 `npm run start`。推荐按下面的顺序执行：
 
@@ -206,7 +211,7 @@ SeqEdge 支持四种存储模式，无需改业务代码：
 
 部署步骤：
 
-1. 编辑 `cloudflare-templates/hf-proxy/wrangler.toml`，将 `HF_REPO_BASE` 设为你的 Hugging Face `resolve/main` 基地址。
+1. 编辑 `cloudflare-templates/hf-proxy/wrangler.toml`，将 `HF_REPO_BASE` 设为你真正使用的 Hugging Face `resolve/main` 基地址。如果必需文件位于子目录中，也要把子目录直接写进这个基址。
 2. 登录 Cloudflare:
 
 ```bash
@@ -223,9 +228,13 @@ npx wrangler deploy
 4. 在 SeqEdge 中配置:
 
 ```bash
-NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/<optional-subdir>
 NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 ```
+
+5. 在正式发布站点前，先通过 Worker 直接验证必需参考索引文件。以默认 SARS-CoV-2 示例为例，`https://seqedge-hf-proxy.your-account.workers.dev/scov2.fa.fai` 应返回 `200` 或 `206`。如果没有通过，先检查 `HF_REPO_BASE`、数据子目录和上传文件名，而不是先怀疑 JBrowse 本身。
+
+如果 Worker 临时不可达，但原始 Hugging Face `resolve/main` 文件本身是公开且支持 Range 的，当前浏览器构建仍然可以回退到 HF 直连继续读取。这个能力用于提升韧性，不建议把它当成正式部署的首选状态。
 
 ## 6. 功能模块
 
@@ -251,21 +260,26 @@ NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 - JBrowse 配置所用的 BED、GFF3、BAM、VCF 等轨道文件
 - 上述轨道对应的 `.fai`、`.bai`、`.tbi`、`.csi` 等索引文件
 
-如果 Cloudflare Pages 或 Vercel 中的浏览器面板为空，重点检查：
+其中 FASTA 索引是第一个必需文件。SeqEdge 会在挂载 JBrowse 前用 `Range: bytes=0-0` 探测 `NEXT_PUBLIC_REFERENCE_FASTA_INDEX`，所以只要 `.fai` 缺失，即使可选轨道存在，浏览器也不会渲染。
+
+如果 Cloudflare Pages 或 Vercel 中出现空白浏览器面板，或者直接显示 `Genome Browser - Reference data unreachable`，重点检查：
 
 - 对应平台的构建命令是否正确
 - Cloudflare Pages 的输出目录是否为 `.open-next`
-- `NEXT_PUBLIC_STORAGE_BASE_URL` 是否指向支持 CORS 的公开地址
+- `NEXT_PUBLIC_STORAGE_BASE_URL` 是否指向预期的公开地址，并且已经包含 `test-data/` 或 `sars-cov-2-lite/` 这类必需子目录
 - 环境变量中的文件名是否与对象存储中的真实键名完全一致
+- 若启用了 `NEXT_PUBLIC_HF_PROXY_URL`，精确探测地址 `https://<your-worker>/<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` 是否返回 `200` 或 `206`
+- `cloudflare-templates/hf-proxy/wrangler.toml` 里的 `HF_REPO_BASE` 是否与数据集路径保持一致
+- 如果 Worker 不可达，再检查原始 Hugging Face `resolve/main/.../<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` 地址是否公开且支持 Range，以便回退链路可以工作
 - Supabase 中是否只保留需要公开展示的真实记录
 
 ### 7.3 对象存储检查
 
 - 确认 `NEXT_PUBLIC_STORAGE_BASE_URL` 指向支持 CORS 的地址。
-- 如果文件位于子目录下，确认基地址已包含该子路径。
+- 如果文件位于子目录下，确认 `NEXT_PUBLIC_STORAGE_BASE_URL` 和 Worker 的 `HF_REPO_BASE` 都包含同一段子路径。
 - 若使用 Hugging Face，确认公开链接使用 `resolve/main`。
 - 若启用了 `NEXT_PUBLIC_HF_PROXY_URL`，确认对应 Worker 已部署且可访问。
-- 至少验证一个参考序列索引和一个注释或比对索引的 Range 请求。
+- 至少用 `Range: bytes=0-0` 验证一个参考序列索引和一个注释或比对索引。
 
 ## 8. 技术栈
 
@@ -318,7 +332,7 @@ SeqEdge 当前只使用真实配置的数据源。如果对象存储或元数据
   - `sars-cov-2-lite` | SeqEdge 当前部署所用的 SARS-CoV-2 浏览器验证数据 | Wu F, Zhao S, Yu B, et al. *A new coronavirus associated with human respiratory disease in China*. Nature. 2020;579(7798):265-269. DOI: `10.1038/s41586-020-2008-3`
   - `volvox-advanced` | GMOD / JBrowse 公开示例数据生态 | [JBrowse 2 官方文档](https://jbrowse.org/jb2/) 以及 Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023.
 - 重要边界：该压缩包不会自动填充 Supabase 的元数据表。即使你已经把文件上传到对象存储，`genome_samples`、`predicted_promoters`、`variant_index` 仍然需要单独导入真实记录，否则首页统计和检索结果会保持为空。
-- 使用方式：解压后上传到你自己的对象存储，将 `NEXT_PUBLIC_STORAGE_BASE_URL` 设为对应公开基地址，更新相关 `NEXT_PUBLIC_REFERENCE_*` 环境变量，并在需要首页统计与检索结果时把真实元数据导入 Supabase。
+- 使用方式：解压后上传到你自己的对象存储，将 `NEXT_PUBLIC_STORAGE_BASE_URL` 设为对应公开基地址；如果压缩包内容位于子目录中，也要把这段子路径写进基地址。然后更新相关 `NEXT_PUBLIC_REFERENCE_*` 环境变量，并在需要首页统计与检索结果时把真实元数据导入 Supabase。若通过 Worker 代理 Hugging Face，也要在 `HF_REPO_BASE` 中保持同一路径。
 - 配套元数据包：同一套发布流程还应同时提供 `deploy-notes/test-data-final/test-csv/` 下的 CSV 导入包，因为对象存储文件只能验证 JBrowse 链路，不能自动填充首页统计和 Promoter 表格。
 
 对于元数据层，SeqEdge 现在还提供了一套基于 FANTOM5 公开数据整理的真实 CSV 导入包。这个数据包用于直接导入 Supabase，让首页统计卡片、Promoter 表格和 Sample 详情页显示真实内容，而不是空状态。

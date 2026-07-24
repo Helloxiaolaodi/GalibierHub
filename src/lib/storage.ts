@@ -43,11 +43,22 @@ function isPlaceholderStorageValue(value: string): boolean {
   return !value || /your-(bucket|r2-bucket)|example\.com|<user>|<repo>/i.test(value);
 }
 
-export function getEffectiveStorageBaseUrl(baseUrl: string = STORAGE_BASE_URL): string {
+function getResolvedStorageBaseUrl(baseUrl: string, preferProxy: boolean): string {
   if (isPlaceholderStorageValue(baseUrl)) return '';
-  return HF_PROXY_BASE_URL && isHuggingFaceUrl(baseUrl)
-    ? rewriteHfBaseUrl(baseUrl, HF_PROXY_BASE_URL)
-    : baseUrl;
+  if (preferProxy && HF_PROXY_BASE_URL && isHuggingFaceUrl(baseUrl)) {
+    return rewriteHfBaseUrl(baseUrl, HF_PROXY_BASE_URL);
+  }
+  return baseUrl;
+}
+
+export function getCandidateStorageBaseUrls(baseUrl: string = STORAGE_BASE_URL): string[] {
+  const primary = getResolvedStorageBaseUrl(baseUrl, true);
+  const fallback = getResolvedStorageBaseUrl(baseUrl, false);
+  return [primary, fallback].filter((value, index, all): value is string => Boolean(value) && all.indexOf(value) === index);
+}
+
+export function getEffectiveStorageBaseUrl(baseUrl: string = STORAGE_BASE_URL): string {
+  return getCandidateStorageBaseUrls(baseUrl)[0] || '';
 }
 
 export function getStorageAccessMode(baseUrl: string = STORAGE_BASE_URL):
@@ -79,14 +90,16 @@ export function getStorageAccessMode(baseUrl: string = STORAGE_BASE_URL):
 export function getStorageUrl(
   path: string | null | undefined,
   baseUrl: string = STORAGE_BASE_URL,
+  options: { preferProxy?: boolean } = {},
 ): string {
   if (!path) return '';
 
-  const resolvedBase = getEffectiveStorageBaseUrl(baseUrl);
+  const preferProxy = options.preferProxy ?? true;
+  const resolvedBase = getResolvedStorageBaseUrl(baseUrl, preferProxy);
 
   // Absolute URL - check for HF proxy rewriting.
   if (/^https?:\/\//i.test(path)) {
-    if (HF_PROXY_BASE_URL && isHuggingFaceUrl(path)) {
+    if (preferProxy && HF_PROXY_BASE_URL && isHuggingFaceUrl(path)) {
       return rewriteHfUrl(path, HF_PROXY_BASE_URL);
     }
     return path;
