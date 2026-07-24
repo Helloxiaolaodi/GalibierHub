@@ -99,7 +99,7 @@ NEXT_PUBLIC_R2_PUBLIC_URL=https://your-bucket.your-account.r2.dev/test-data
 
 Genome Browser 当前会在渲染前先用 `Range: bytes=0-0` 探测 `NEXT_PUBLIC_REFERENCE_FASTA_INDEX` 指向的文件。如果这个 `.fai` 路径错误或不可达，浏览器会直接停在 `Genome Browser - Reference data unreachable`。
 
-当 `NEXT_PUBLIC_HF_PROXY_URL` 已配置且 `NEXT_PUBLIC_STORAGE_BASE_URL` 指向 Hugging Face `resolve/main` 时，SeqEdge 现在会先尝试 Worker，再在 Worker 不可达时自动回退到 Hugging Face 直连读取。这能降低代理短时故障带来的影响，但正式部署仍然建议以 Worker 作为主链路来保证 Range 与 CORS 的稳定性。
+当 `NEXT_PUBLIC_STORAGE_BASE_URL` 指向 Hugging Face `resolve/main` 时，SeqEdge 现在会按三层顺序探测浏览器侧存储链路：优先使用你配置的外部 `NEXT_PUBLIC_HF_PROXY_URL` Worker，其次使用站点自身提供的同源 `/api/hf-proxy/<file>` 路由，最后才回退到 Hugging Face 直连读取。这能让 Vercel 或 Pages 上的浏览器在外部 Worker 临时不可达时仍保持可用，但正式部署仍然建议把 Worker 作为主链路，以保证 Range 与 CORS 的稳定性。
 
 ### 3.4 初始化数据库
 
@@ -234,7 +234,7 @@ NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 
 5. 在正式发布站点前，先通过 Worker 直接验证必需参考索引文件。以默认 SARS-CoV-2 示例为例，`https://seqedge-hf-proxy.your-account.workers.dev/scov2.fa.fai` 应返回 `200` 或 `206`。如果没有通过，先检查 `HF_REPO_BASE`、数据子目录和上传文件名，而不是先怀疑 JBrowse 本身。
 
-如果 Worker 临时不可达，但原始 Hugging Face `resolve/main` 文件本身是公开且支持 Range 的，当前浏览器构建仍然可以回退到 HF 直连继续读取。这个能力用于提升韧性，不建议把它当成正式部署的首选状态。
+如果 Worker 临时不可达，但原始 Hugging Face `resolve/main` 文件本身是公开且支持 Range 的，当前浏览器构建仍然可以先回退到站点自身的 `/api/hf-proxy` 路由，再继续回退到 HF 直连读取。这个能力用于提升韧性，不建议把它当成正式部署的首选状态。
 
 ## 6. 功能模块
 
@@ -270,7 +270,7 @@ NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
 - 环境变量中的文件名是否与对象存储中的真实键名完全一致
 - 若启用了 `NEXT_PUBLIC_HF_PROXY_URL`，精确探测地址 `https://<your-worker>/<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` 是否返回 `200` 或 `206`
 - `cloudflare-templates/hf-proxy/wrangler.toml` 里的 `HF_REPO_BASE` 是否与数据集路径保持一致
-- 如果 Worker 不可达，再检查原始 Hugging Face `resolve/main/.../<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` 地址是否公开且支持 Range，以便回退链路可以工作
+- 如果 Worker 不可达，再检查站点自身的 `/api/hf-proxy/<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` 路由以及原始 Hugging Face `resolve/main/.../<NEXT_PUBLIC_REFERENCE_FASTA_INDEX>` 地址是否都可访问，以便回退链路可以工作
 - Supabase 中是否只保留需要公开展示的真实记录
 
 ### 7.3 对象存储检查

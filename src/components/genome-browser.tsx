@@ -183,9 +183,9 @@ export default function GenomeBrowser({ locus }: GenomeBrowserProps) {
       storageMode === 'unset'
         ? 'No real genome storage base is configured. Replace the placeholder NEXT_PUBLIC_STORAGE_BASE_URL or NEXT_PUBLIC_R2_PUBLIC_URL value with a reachable public object-storage or HF proxy URL.'
         : storageMode === 'hf-proxy'
-        ? 'SeqEdge is configured to prefer your Cloudflare Worker proxy for Hugging Face assets. If the Worker is unreachable, SeqEdge now falls back to direct Hugging Face reads for the browser probe. Confirm that either NEXT_PUBLIC_HF_PROXY_URL is deployed or the configured reference files are reachable in the target dataset path.'
+        ? 'SeqEdge is configured to prefer your Cloudflare Worker proxy for Hugging Face assets. If the Worker is unreachable, SeqEdge now tries the built-in /api/hf-proxy route and then direct Hugging Face reads for the browser probe. Confirm that NEXT_PUBLIC_HF_PROXY_URL is deployed or that the configured reference files are reachable in the target dataset path.'
         : storageMode === 'hf-direct'
-          ? 'SeqEdge is reading directly from Hugging Face. This is valid for storage, but browser-range access is more reliable through NEXT_PUBLIC_HF_PROXY_URL.'
+          ? 'SeqEdge is reading from Hugging Face storage. The browser now also tries the built-in /api/hf-proxy route before falling back to direct HF reads, but NEXT_PUBLIC_HF_PROXY_URL remains the most reliable production path.'
           : 'SeqEdge is configured to use only your real genome storage. Set NEXT_PUBLIC_STORAGE_BASE_URL to a public CORS-enabled object store and make sure the configured reference files are reachable.';
     return (
       <div className="border rounded-lg overflow-hidden bg-white">

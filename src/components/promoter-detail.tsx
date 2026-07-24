@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { SiteConfig } from '@/site-config';
 import type { Promoter, SampleMetadata } from '@/types/genome';
 
@@ -11,6 +11,21 @@ interface PromoterDetailProps {
 }
 
 type SampleState = SampleMetadata | null | undefined;
+
+const MIN_PANEL_WIDTH = 360;
+const MAX_PANEL_WIDTH = 720;
+const MIN_PANEL_HEIGHT = 420;
+const MAX_PANEL_HEIGHT = 900;
+const PANEL_MARGIN = 16;
+const DESKTOP_HEADER_OFFSET = 88;
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && Boolean(target.closest('button, a, input, textarea, select, [role="button"]'));
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
 function bmiClass(bmi: number | null): { label: string; color: string } | null {
   if (bmi == null) return null;
@@ -56,10 +71,20 @@ function displayValue(value: string | number | null | undefined): string {
 }
 
 export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: PromoterDetailProps) {
+  const initializedPromoterIdRef = useRef<string | null>(null);
   const [sample, setSample] = useState<SampleState>(undefined);
-  const [position, setPosition] = useState({ x: 0, y: 88 });
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const [position, setPosition] = useState({ x: 0, y: DESKTOP_HEADER_OFFSET });
+  const [size, setSize] = useState({ width: 448, height: 720 });
   const [dragging, setDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [resizing, setResizing] = useState(false);
+  const [resizeOrigin, setResizeOrigin] = useState({
+    pointerX: 0,
+    pointerY: 0,
+    width: 448,
+    height: 720,
+  });
 
   useEffect(() => {
     if (!promoter) return;
@@ -73,12 +98,71 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const width = window.innerWidth;
+
+    const syncViewport = () => {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      setViewport({ width: viewportWidth, height: viewportHeight });
+    };
+
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+
+    return () => {
+      window.removeEventListener('resize', syncViewport);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!promoter) {
+      initializedPromoterIdRef.current = null;
+      return;
+    }
+    if (viewport.width === 0 || viewport.height === 0) return;
+    if (initializedPromoterIdRef.current === promoter.id) return;
+
+    const initialWidth = clamp(Math.min(448, viewport.width - PANEL_MARGIN * 2), MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
+    const initialHeight = clamp(
+      viewport.height - PANEL_MARGIN * 2,
+      MIN_PANEL_HEIGHT,
+      Math.min(MAX_PANEL_HEIGHT, viewport.height - PANEL_MARGIN * 2),
+    );
+    setSize({ width: initialWidth, height: initialHeight });
     setPosition({
-      x: 16,
-      y: width >= 1024 ? 88 : 16,
+      x: PANEL_MARGIN,
+      y: viewport.width >= 1024 ? DESKTOP_HEADER_OFFSET : PANEL_MARGIN,
     });
-  }, [promoter]);
+    initializedPromoterIdRef.current = promoter.id;
+  }, [promoter, viewport.height, viewport.width]);
+
+  useEffect(() => {
+    if (viewport.width === 0 || viewport.height === 0) return;
+
+    setPosition((current) => ({
+      x: clamp(current.x, PANEL_MARGIN, Math.max(PANEL_MARGIN, viewport.width - size.width - PANEL_MARGIN)),
+      y: clamp(current.y, PANEL_MARGIN, Math.max(PANEL_MARGIN, viewport.height - size.height - PANEL_MARGIN)),
+    }));
+
+    setSize((current) => {
+      const nextWidth = clamp(
+        current.width,
+        MIN_PANEL_WIDTH,
+        Math.max(MIN_PANEL_WIDTH, Math.min(MAX_PANEL_WIDTH, viewport.width - PANEL_MARGIN * 2)),
+      );
+      const nextHeight = clamp(
+        current.height,
+        MIN_PANEL_HEIGHT,
+        Math.max(MIN_PANEL_HEIGHT, Math.min(MAX_PANEL_HEIGHT, viewport.height - PANEL_MARGIN * 2)),
+      );
+      return nextWidth === current.width && nextHeight === current.height
+        ? current
+        : { width: nextWidth, height: nextHeight };
+    });
+  }, [size.height, size.width, viewport.height, viewport.width]);
+
+  const isDesktop = viewport.width >= 1024;
+  const maxPanelHeight = Math.max(MIN_PANEL_HEIGHT, Math.min(MAX_PANEL_HEIGHT, (viewport.height || MAX_PANEL_HEIGHT) - PANEL_MARGIN * 2));
+  const panelWidthClass = size.width >= 560 ? 'sm:grid-cols-4' : 'sm:grid-cols-2';
 
   if (!promoter) return null;
 
@@ -102,7 +186,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (window.innerWidth < 1024) return;
+    if (!isDesktop || isInteractiveTarget(event.target)) return;
     setDragging(true);
     setDragOffset({
       x: event.clientX - position.x,
@@ -112,17 +196,9 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!dragging || window.innerWidth < 1024) return;
-    const panelWidth = 448;
-    const panelHeight = Math.min(window.innerHeight - 32, 720);
-    const nextX = Math.min(
-      Math.max(16, event.clientX - dragOffset.x),
-      Math.max(16, window.innerWidth - panelWidth - 16),
-    );
-    const nextY = Math.min(
-      Math.max(16, event.clientY - dragOffset.y),
-      Math.max(16, window.innerHeight - panelHeight - 16),
-    );
+    if (!dragging || !isDesktop) return;
+    const nextX = clamp(event.clientX - dragOffset.x, PANEL_MARGIN, Math.max(PANEL_MARGIN, viewport.width - size.width - PANEL_MARGIN));
+    const nextY = clamp(event.clientY - dragOffset.y, PANEL_MARGIN, Math.max(PANEL_MARGIN, viewport.height - size.height - PANEL_MARGIN));
     setPosition({ x: nextX, y: nextY });
   };
 
@@ -134,10 +210,47 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
     }
   };
 
+  const handleResizePointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!isDesktop) return;
+    event.stopPropagation();
+    setResizing(true);
+    setResizeOrigin({
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      width: size.width,
+      height: size.height,
+    });
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleResizePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!resizing || !isDesktop) return;
+    const maxWidth = Math.max(MIN_PANEL_WIDTH, Math.min(MAX_PANEL_WIDTH, viewport.width - position.x - PANEL_MARGIN));
+    const maxHeight = Math.max(MIN_PANEL_HEIGHT, Math.min(MAX_PANEL_HEIGHT, viewport.height - position.y - PANEL_MARGIN));
+    const nextWidth = clamp(resizeOrigin.width + event.clientX - resizeOrigin.pointerX, MIN_PANEL_WIDTH, maxWidth);
+    const nextHeight = clamp(resizeOrigin.height + event.clientY - resizeOrigin.pointerY, MIN_PANEL_HEIGHT, maxHeight);
+    setSize({ width: nextWidth, height: nextHeight });
+  };
+
+  const handleResizePointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!resizing) return;
+    setResizing(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   return (
     <div
-      className="fixed z-50 w-[calc(100vw-2rem)] max-w-[28rem] overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-2xl lg:w-[28rem]"
-      style={{ left: `${position.x}px`, top: `${position.y}px`, maxHeight: 'min(720px, calc(100vh - 2rem))' }}
+      className="fixed z-50 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-2xl"
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        width: isDesktop ? `${size.width}px` : 'calc(100vw - 2rem)',
+        maxWidth: 'calc(100vw - 2rem)',
+        height: isDesktop ? `${size.height}px` : 'auto',
+        maxHeight: `min(${maxPanelHeight}px, calc(100vh - 2rem))`,
+      }}
     >
       <div className="flex max-h-[inherit] flex-col overflow-hidden">
         <div
@@ -147,7 +260,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
         >
-          <div>
+          <div className="min-w-0 pr-4">
             <h2 className="text-lg font-bold text-gray-900">Promoter | {promoter.gene_symbol || 'unnamed'}</h2>
             <p className="mt-0.5 font-mono text-xs text-gray-500">
               {promoter.chrom}:{promoter.start.toLocaleString()}-{promoter.end_pos.toLocaleString()} ({promoter.strand})
@@ -158,6 +271,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
           </div>
           <button
             type="button"
+            onPointerDown={(event) => event.stopPropagation()}
             onClick={onClose}
             aria-label="Close"
             className="rounded-lg p-1.5 transition-colors hover:bg-gray-100"
@@ -171,7 +285,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
         <div className="space-y-4 overflow-y-auto p-5">
           {/* Card 1 - Genomic coordinates */}
           <Card title="Genomic coordinates">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className={`grid grid-cols-2 gap-4 ${panelWidthClass}`}>
               <KV label="Chromosome">{promoter.chrom}</KV>
               <KV label="Start">{promoter.start.toLocaleString()}</KV>
               <KV label="End">{promoter.end_pos.toLocaleString()}</KV>
@@ -242,7 +356,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
             ) : sample === null ? (
               <div className="text-sm text-gray-500">No sample metadata is available for this promoter.</div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <div className={`grid grid-cols-2 gap-4 ${size.width >= 640 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
                 <KV label="Sample ID">{sample.sample_id}</KV>
                 <KV label="Cohort">
                   {sample.cohort ? (
@@ -302,6 +416,20 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
             )}
           </div>
         </div>
+
+        <button
+          type="button"
+          aria-label="Resize promoter detail panel"
+          className={`absolute bottom-1 right-1 hidden h-8 w-8 items-end justify-end rounded-md text-gray-400 transition-colors hover:bg-white hover:text-gray-600 lg:flex ${resizing ? 'cursor-se-resize bg-white text-gray-600' : 'cursor-se-resize'}`}
+          onPointerDown={handleResizePointerDown}
+          onPointerMove={handleResizePointerMove}
+          onPointerUp={handleResizePointerUp}
+          onPointerCancel={handleResizePointerUp}
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16l8-8M12 20l8-8M16 20l4-4" />
+          </svg>
+        </button>
       </div>
     </div>
   );
