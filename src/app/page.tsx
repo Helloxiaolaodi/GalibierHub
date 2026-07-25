@@ -300,9 +300,11 @@ export default function HomePage() {
               <h1 className="text-lg font-bold text-gray-900 leading-tight">
                 {SiteConfig.title}
               </h1>
-              <p className="text-xs text-gray-500">
-                {SiteConfig.subtitle}
-              </p>
+              {SiteConfig.subtitle && (
+                <p className="text-xs text-gray-500">
+                  {SiteConfig.subtitle}
+                </p>
+              )}
               <p className="text-xs text-gray-400">
                 {SiteConfig.creatorCreditPrefix}{' '}
                 <a

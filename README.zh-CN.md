@@ -331,7 +331,7 @@ Cloudflare Pages：
 - 统一下载元数据结构与命令生成：`src/lib/download-info.ts`
 - 单文件下载弹窗与创建者编辑能力：`src/components/download-actions.tsx`
 - 公开文件的批量脚本生成：`src/components/promoter-table.tsx` 与 `/api/samples/batch`
-- 独立的站内下载目录与按路径分组展示：`src/components/download-catalog-panel.tsx` 与 `/api/download-catalog`
+- 独立的站内下载目录与按路径层级逐层浏览展示：`src/components/download-catalog-panel.tsx` 与 `/api/download-catalog`
 - 私有 signed URL 解析：`/api/download-metadata/resolve`，底层依赖 `download_metadata` 表
 
 ## 如何把 Hugging Face 文件接入 SeqEdge
@@ -340,7 +340,7 @@ Cloudflare Pages：
 
 1. 首页精选下载卡片
 2. 样本级下载入口（显示在记录详情浮层和独立详情页中）
-3. 独立的 `Downloads` 标签页，按类似文件夹路径分组展示站内可下载文件，并复用同一套统一下载弹窗
+3. 独立的 `Downloads` 标签页，按路径层级逐层浏览站内可下载文件，并复用同一套统一下载弹窗
 
 ### 1. 先使用正确的直链 URL
 
@@ -363,7 +363,7 @@ NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 ```
 
-这样 Overview 标签页中的精选下载卡片就会显示该文件，并打开统一下载弹窗。只要该文件同时进入站内下载目录，它也可以出现在独立的 `Downloads` 标签页中。
+这样 Overview 标签页中的精选下载卡片就会显示该文件，并打开统一下载弹窗。只要该文件同时进入站内下载目录，它也可以出现在独立的 `Downloads` 标签页中，供访问者从数据集根目录开始逐层浏览。
 
 ### 3. 让同一个文件显示为样本级下载入口
 
