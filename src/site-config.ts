@@ -112,7 +112,7 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
 
 export const SiteConfig = {
   title: 'SeqEdge',
-  subtitle: 'A Modern Edge-Native Portal for Resource Catalogs and Large-File Sharing',
+  subtitle: '',
   creatorCreditPrefix: 'A GitHub open-source project deployed by',
   creatorCreditLabel: '@Helloxiaolaodi',
   creatorCreditUrl: 'https://github.com/Helloxiaolaodi',

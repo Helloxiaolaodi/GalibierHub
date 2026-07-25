@@ -331,7 +331,7 @@ SeqEdge also opens the first reachable annotation track automatically so the vie
 - Unified download metadata model and CLI generation: `src/lib/download-info.ts`
 - Single-file modal behavior and creator edit controls: `src/components/download-actions.tsx`
 - Batch script generation for public entries: `src/components/promoter-table.tsx` and `/api/samples/batch`
-- Dedicated site-wide download catalog and folder grouping: `src/components/download-catalog-panel.tsx` and `/api/download-catalog`
+- Dedicated site-wide download catalog with hierarchical folder browsing: `src/components/download-catalog-panel.tsx` and `/api/download-catalog`
 - Private signed-URL resolution: `/api/download-metadata/resolve` backed by the `download_metadata` table
 
 ## Add a Hugging Face File to SeqEdge
@@ -340,7 +340,7 @@ The current codebase supports three practical Hugging Face integration points:
 
 1. a homepage featured download card
 2. a sample-level download entry shown inside the record detail panel and detail page
-3. the dedicated `Downloads` tab, which groups downloadable files by folder-like path and opens the same unified download modal
+3. the dedicated `Downloads` tab, which lets users browse downloadable files by folder level in the path hierarchy and opens the same unified download modal
 
 ### 1. Use the correct direct file URL
 
@@ -363,7 +363,7 @@ NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 ```
 
-This powers the featured card on the Overview tab and opens the unified download modal. The same file can also appear in the dedicated `Downloads` tab when it is present in the site-wide catalog.
+This powers the featured card on the Overview tab and opens the unified download modal. The same file can also appear in the dedicated `Downloads` tab when it is present in the site-wide catalog, where visitors browse folders level by level from the dataset root.
 
 ### 3. Show the same file as a sample-level download entry
 

@@ -18,15 +18,15 @@ type DownloadCatalogItem = {
   hidden?: boolean;
 };
 
-type DownloadCatalogGroup = {
-  folderPath: string;
+type FolderNode = {
+  name: string;
+  path: string;
+  folders: Map<string, FolderNode>;
   items: DownloadCatalogItem[];
 };
 
-type DownloadSortMode = 'folder_asc' | 'folder_desc' | 'file_asc' | 'file_desc';
-
 function deriveFolderPath(url: string): string {
-  if (!url) return 'Root';
+  if (!url) return '';
   try {
     const parsed = new URL(url);
     const marker = '/resolve/main/';
@@ -34,11 +34,11 @@ function deriveFolderPath(url: string): string {
     const index = pathname.indexOf(marker);
     const relative = index >= 0 ? pathname.slice(index + marker.length) : pathname.replace(/^\/+/, '');
     const segments = relative.split('/').filter(Boolean);
-    if (segments.length <= 1) return 'Root';
+    if (segments.length <= 1) return '';
     return segments.slice(0, -1).join('/');
   } catch {
     const segments = url.split('?')[0].split('/').filter(Boolean);
-    if (segments.length <= 1) return 'Root';
+    if (segments.length <= 1) return '';
     return segments.slice(0, -1).join('/');
   }
 }
@@ -53,10 +53,66 @@ function deriveFileName(url: string): string {
   }
 }
 
+function deriveRootLabel(url: string | undefined): string {
+  if (!url) return 'seqedge-data';
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    const datasetsIndex = parts.indexOf('datasets');
+    if (datasetsIndex !== -1 && parts.length > datasetsIndex + 2) {
+      return decodeURIComponent(parts[datasetsIndex + 2]);
+    }
+    const firstSegment = parts[0];
+    return firstSegment ? decodeURIComponent(firstSegment) : 'seqedge-data';
+  } catch {
+    const parts = url.split('?')[0].split('/').filter(Boolean);
+    return parts[0] || 'seqedge-data';
+  }
+}
+
+function deriveRootLabelFromItems(items: DownloadCatalogItem[]): string {
+  for (const item of items) {
+    if (!item.url) continue;
+    const label = deriveRootLabel(item.url);
+    if (label) return label;
+  }
+  return 'seqedge-data';
+}
+
 function scopeLabel(scope: DownloadCatalogItem['sourceScope']): string {
   if (scope === 'mixed') return 'Overview + records';
   if (scope === 'featured') return 'Overview source';
   return 'Record source';
+}
+
+function buildTree(items: DownloadCatalogItem[]): FolderNode {
+  const root: FolderNode = {
+    name: 'Root',
+    path: '',
+    folders: new Map<string, FolderNode>(),
+    items: [],
+  };
+
+  for (const item of items) {
+    const folderPath = deriveFolderPath(item.url);
+    const segments = folderPath ? folderPath.split('/').filter(Boolean) : [];
+    let current = root;
+    for (const segment of segments) {
+      const nextPath = current.path ? `${current.path}/${segment}` : segment;
+      if (!current.folders.has(segment)) {
+        current.folders.set(segment, {
+          name: segment,
+          path: nextPath,
+          folders: new Map<string, FolderNode>(),
+          items: [],
+        });
+      }
+      current = current.folders.get(segment)!;
+    }
+    current.items.push(item);
+  }
+
+  return root;
 }
 
 export default function DownloadCatalogPanel({
@@ -71,7 +127,7 @@ export default function DownloadCatalogPanel({
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
-  const [sortMode, setSortMode] = useState<DownloadSortMode>('folder_asc');
+  const [currentPath, setCurrentPath] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -118,37 +174,30 @@ export default function DownloadCatalogPanel({
     });
   }, [items, searchText]);
 
-  const groupedItems = useMemo<DownloadCatalogGroup[]>(() => {
-    const groups = new Map<string, DownloadCatalogItem[]>();
-    for (const item of filteredItems) {
-      const key = deriveFolderPath(item.url);
-      const current = groups.get(key) || [];
-      current.push(item);
-      groups.set(key, current);
+  const tree = useMemo(() => buildTree(filteredItems), [filteredItems]);
+
+  const currentNode = useMemo(() => {
+    if (!currentPath) return tree;
+    const segments = currentPath.split('/').filter(Boolean);
+    let node: FolderNode | undefined = tree;
+    for (const segment of segments) {
+      node = node.folders.get(segment);
+      if (!node) break;
     }
+    return node || tree;
+  }, [tree, currentPath]);
 
-    const sortItems = (grouped: DownloadCatalogItem[]) => {
-      const direction = sortMode === 'file_desc' ? -1 : 1;
-      return grouped.sort((a, b) => direction * deriveFileName(a.url).localeCompare(deriveFileName(b.url)));
-    };
+  const breadcrumbParts = useMemo(() => currentPath.split('/').filter(Boolean), [currentPath]);
+  const rootLabel = useMemo(() => deriveRootLabelFromItems(items), [items]);
 
-    return Array.from(groups.entries())
-      .map(([folderPath, grouped]) => ({
-        folderPath,
-        items: sortItems(grouped),
-      }))
-      .sort((a, b) => {
-        const direction = sortMode === 'folder_desc' ? -1 : 1;
-        if (sortMode === 'file_asc' || sortMode === 'file_desc') {
-          if (a.folderPath === 'Root') return -1;
-          if (b.folderPath === 'Root') return 1;
-          return a.folderPath.localeCompare(b.folderPath);
-        }
-        if (a.folderPath === 'Root') return -1;
-        if (b.folderPath === 'Root') return 1;
-        return direction * a.folderPath.localeCompare(b.folderPath);
-      });
-  }, [filteredItems, sortMode]);
+  const childFolders = useMemo(() => {
+    const entries = Array.from(currentNode.folders.values());
+    return entries.sort((a, b) => a.name.localeCompare(b.name));
+  }, [currentNode]);
+
+  const visibleFiles = useMemo(() => {
+    return [...currentNode.items].sort((a, b) => deriveFileName(a.url).localeCompare(deriveFileName(b.url)));
+  }, [currentNode]);
 
   const totals = useMemo(() => ({
     all: filteredItems.length,
@@ -162,6 +211,15 @@ export default function DownloadCatalogPanel({
     setItems((current) => current.map((item) => (item.id === itemId ? { ...item, hidden } : item)));
   };
 
+  const goToFolder = (path: string) => setCurrentPath(path);
+
+  const goUp = () => {
+    if (!currentPath) return;
+    const segments = currentPath.split('/').filter(Boolean);
+    segments.pop();
+    setCurrentPath(segments.join('/'));
+  };
+
   return (
     <section className="space-y-4">
       <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">
@@ -169,7 +227,7 @@ export default function DownloadCatalogPanel({
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Downloads</h2>
             <p className="mt-1 text-sm text-gray-600">
-              Browse all downloadable files exposed by this site, grouped by their storage folder path.
+              Browse downloads by folder level. Open a folder to see its next level or files.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs text-gray-600">
@@ -178,7 +236,7 @@ export default function DownloadCatalogPanel({
             <span className="rounded bg-gray-100 px-2 py-1">Cloudflare: {totals.cf}</span>
           </div>
         </div>
-        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-4">
           <input
             type="text"
             value={searchText}
@@ -186,36 +244,6 @@ export default function DownloadCatalogPanel({
             placeholder="Filter by file name or folder"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-gray-500 lg:max-w-md"
           />
-          <div className="flex flex-wrap gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => setSortMode('folder_asc')}
-              className={`rounded px-3 py-2 ${sortMode === 'folder_asc' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-            >
-              Folder A-Z
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode('folder_desc')}
-              className={`rounded px-3 py-2 ${sortMode === 'folder_desc' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-            >
-              Folder Z-A
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode('file_asc')}
-              className={`rounded px-3 py-2 ${sortMode === 'file_asc' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-            >
-              File A-Z
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode('file_desc')}
-              className={`rounded px-3 py-2 ${sortMode === 'file_desc' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-            >
-              File Z-A
-            </button>
-          </div>
         </div>
       </div>
 
@@ -223,28 +251,77 @@ export default function DownloadCatalogPanel({
       {!loading && error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">{error}</div>}
       {!error && warning && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">{warning}</div>}
 
-      {!loading && !error && groupedItems.length === 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
-          No matching downloads were found.
+      {!error && (
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+            <button
+              type="button"
+              onClick={() => goToFolder('')}
+              className={`rounded px-2 py-1 ${currentPath === '' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              {rootLabel}
+            </button>
+            {breadcrumbParts.map((part, index) => {
+              const path = breadcrumbParts.slice(0, index + 1).join('/');
+              const active = path === currentPath;
+              return (
+                <div key={path} className="flex items-center gap-2">
+                  <span className="text-gray-400">/</span>
+                  <button
+                    type="button"
+                    onClick={() => goToFolder(path)}
+                    className={`rounded px-2 py-1 ${active ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    {part}
+                  </button>
+                </div>
+              );
+            })}
+            {currentPath && (
+              <button
+                type="button"
+                onClick={goUp}
+                className="ml-auto rounded border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
+              >
+                Up one level
+              </button>
+            )}
+          </div>
         </div>
       )}
 
-      {!error && groupedItems.map((group) => (
-        <section key={group.folderPath} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="border-b bg-gray-50 px-4 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700">
-                {group.folderPath === 'Root' ? 'Root' : group.folderPath}
-              </span>
-              <span className="text-xs text-gray-500">
-                {group.folderPath === 'Root'
-                  ? 'Files stored at the repository root.'
-                  : 'Files stored in this folder path.'}
-              </span>
-            </div>
+      {!loading && !error && childFolders.length === 0 && visibleFiles.length === 0 && (
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
+          No matching folders or files were found.
+        </div>
+      )}
+
+      {!error && childFolders.length > 0 && (
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="border-b bg-gray-50 px-4 py-3 text-sm font-medium text-gray-800">Folders</div>
+          <div className="grid gap-3 px-4 py-4 sm:grid-cols-2 xl:grid-cols-3">
+            {childFolders.map((folder) => (
+              <button
+                key={folder.path}
+                type="button"
+                onClick={() => goToFolder(folder.path)}
+                className="flex min-h-24 flex-col items-start justify-between rounded-lg border border-gray-200 bg-white p-4 text-left transition-colors hover:bg-gray-50"
+              >
+                <div className="text-base font-semibold text-gray-900 break-all">{folder.name}</div>
+                <div className="text-xs text-gray-500">
+                  {folder.folders.size} subfolder(s) · {folder.items.length} file(s)
+                </div>
+              </button>
+            ))}
           </div>
+        </section>
+      )}
+
+      {!error && visibleFiles.length > 0 && (
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="border-b bg-gray-50 px-4 py-3 text-sm font-medium text-gray-800">Files</div>
           <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
-            {group.items.map((item) => {
+            {visibleFiles.map((item) => {
               const fileName = deriveFileName(item.url);
               return (
                 <div key={item.id} className="flex min-h-36 flex-col justify-between gap-3 border border-gray-200 bg-white p-4">
@@ -275,7 +352,7 @@ export default function DownloadCatalogPanel({
             })}
           </div>
         </section>
-      ))}
+      )}
     </section>
   );
 }
