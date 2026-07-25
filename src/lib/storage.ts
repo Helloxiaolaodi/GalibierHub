@@ -40,6 +40,35 @@ export const STORAGE_BASE_URL =
 export const HF_PROXY_BASE_URL = process.env.NEXT_PUBLIC_HF_PROXY_URL || '';
 
 export const LOCAL_HF_PROXY_PATH = '/api/hf-proxy';
+export const NOT_DIRECT_FILE_URL_MESSAGE = 'Not a direct file URL';
+
+const DIRECT_FILE_QUERY_HINTS = [
+  'download',
+  'dl',
+  'raw',
+  'filename',
+  'response-content-disposition',
+  'x-amz-signature',
+  'signature',
+  'token',
+  'se',
+  'sp',
+  'sv',
+];
+
+const STORAGE_HOST_PATTERNS = [
+  /\.r2\.dev$/i,
+  /\.amazonaws\.com$/i,
+  /storage\.googleapis\.com$/i,
+  /blob\.core\.windows\.net$/i,
+  /\.supabase\.co$/i,
+];
+
+export interface DirectFileUrlValidationResult {
+  normalizedUrl: string;
+  valid: boolean;
+  reason: string | null;
+}
 
 function isPlaceholderStorageValue(value: string): boolean {
   return !value || /your-(bucket|r2-bucket)|example\.com|<user>|<repo>/i.test(value);
@@ -140,8 +169,15 @@ export function getDirectDownloadUrl(
     resolvedUrl = cleanBase ? `${cleanBase}/${cleanPath}` : cleanPath;
   }
 
+  resolvedUrl = normalizeDirectDownloadUrl(resolvedUrl);
+
   if (!/^https?:\/\//i.test(resolvedUrl)) {
     return resolvedUrl;
+  }
+
+  const validation = validateDirectFileUrl(resolvedUrl);
+  if (!validation.valid) {
+    return validation.normalizedUrl;
   }
 
   try {
@@ -153,6 +189,56 @@ export function getDirectDownloadUrl(
   }
 }
 
+export function validateDirectFileUrl(url: string | null | undefined): DirectFileUrlValidationResult {
+  if (!url) {
+    return { normalizedUrl: '', valid: false, reason: NOT_DIRECT_FILE_URL_MESSAGE };
+  }
+
+  const normalizedUrl = normalizeDirectDownloadUrl(url);
+
+  if (!/^https?:\/\//i.test(normalizedUrl)) {
+    const lastSegment = normalizedUrl.split('?')[0].split('/').filter(Boolean).pop() || '';
+    const valid = Boolean(lastSegment) && !normalizedUrl.endsWith('/') && lastSegment.includes('.');
+    return {
+      normalizedUrl,
+      valid,
+      reason: valid ? null : NOT_DIRECT_FILE_URL_MESSAGE,
+    };
+  }
+
+  try {
+    const parsed = new URL(normalizedUrl);
+    const pathname = parsed.pathname || '';
+    const lastSegment = pathname.split('/').filter(Boolean).pop() || '';
+
+    if (!lastSegment || pathname.endsWith('/')) {
+      return { normalizedUrl, valid: false, reason: NOT_DIRECT_FILE_URL_MESSAGE };
+    }
+
+    if (isHuggingFaceResolveUrl(normalizedUrl)) {
+      return { normalizedUrl, valid: true, reason: null };
+    }
+
+    if (lastSegment.includes('.')) {
+      return { normalizedUrl, valid: true, reason: null };
+    }
+
+    const hasQueryHint = DIRECT_FILE_QUERY_HINTS.some((key) => parsed.searchParams.has(key));
+    if (hasQueryHint) {
+      return { normalizedUrl, valid: true, reason: null };
+    }
+
+    const hostLooksLikeStorage = STORAGE_HOST_PATTERNS.some((pattern) => pattern.test(parsed.hostname));
+    if (hostLooksLikeStorage && pathname.split('/').filter(Boolean).length >= 2) {
+      return { normalizedUrl, valid: true, reason: null };
+    }
+
+    return { normalizedUrl, valid: false, reason: NOT_DIRECT_FILE_URL_MESSAGE };
+  } catch {
+    return { normalizedUrl, valid: false, reason: NOT_DIRECT_FILE_URL_MESSAGE };
+  }
+}
+
 // ---- HF proxy helpers -----------------------------------------------
 
 /**
@@ -161,6 +247,19 @@ export function getDirectDownloadUrl(
  */
 function isHuggingFaceUrl(url: string): boolean {
   return /huggingface\.co\/datasets\/[^/]+\/[^/]+\/resolve\/main/i.test(url);
+}
+
+function isHuggingFaceResolveUrl(url: string): boolean {
+  return /huggingface\.co\/datasets\/[^/]+\/[^/]+\/resolve\/main\//i.test(url);
+}
+
+function isHuggingFaceBlobUrl(url: string): boolean {
+  return /huggingface\.co\/datasets\/[^/]+\/[^/]+\/blob\/main\//i.test(url);
+}
+
+function normalizeDirectDownloadUrl(url: string): string {
+  if (!isHuggingFaceBlobUrl(url)) return url;
+  return url.replace('/blob/main/', '/resolve/main/');
 }
 
 /**

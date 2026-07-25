@@ -10,6 +10,7 @@ import {
   type DownloadResolvedInfo,
   type DownloadStorageProvider,
 } from '@/lib/download-info';
+import { NOT_DIRECT_FILE_URL_MESSAGE } from '@/lib/storage';
 
 interface DownloadActionsProps {
   url: string;
@@ -139,6 +140,7 @@ export default function DownloadActions({
   const hidden = dbMeta.hidden;
   const passwordProtected = dbMeta.password_protected;
   const linksVisible = isAdmin || (!hidden && (!passwordProtected || unlocked));
+  const directUrlInvalid = effectiveInfo.access_mode === 'public_url' && !effectiveInfo.direct_url_valid;
 
   const handleCopy = useCallback(async (copyKey: string, text: string | null | undefined) => {
     if (!text) return;
@@ -351,13 +353,19 @@ export default function DownloadActions({
 
               {(linksVisible || isAdmin) && (
                 <>
-                  <button type="button" onClick={handleBrowserDownload} disabled={downloading} className="inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50">{downloading ? 'Preparing download...' : 'Download to local file (browser)'}</button>
+                  <button type="button" onClick={handleBrowserDownload} disabled={downloading || directUrlInvalid} className="inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50">{downloading ? 'Preparing download...' : 'Download to local file (browser)'}</button>
+
+                  {directUrlInvalid && (
+                    <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
+                  )}
 
                   <div className="rounded border border-gray-100 bg-gray-50 p-3 space-y-3">
                     <div className="text-sm font-medium text-gray-800">Download methods</div>
                     <div className="text-xs text-gray-600">Browser download is always available here. Command-line download supports resume when the file uses a public direct URL.</div>
                     {effectiveInfo.access_mode === 'supabase_private' ? (
                       <p className="text-xs text-amber-700">{effectiveInfo.access_note}</p>
+                    ) : directUrlInvalid ? (
+                      <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
                     ) : showCli ? (
                       <div className="space-y-3">
                         {effectiveInfo.wget_command && (

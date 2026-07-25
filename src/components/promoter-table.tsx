@@ -8,7 +8,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import type { Promoter } from '@/types/genome';
-import { getDirectDownloadUrl } from '@/lib/storage';
+import { getDirectDownloadUrl, NOT_DIRECT_FILE_URL_MESSAGE, validateDirectFileUrl } from '@/lib/storage';
 import {
   buildDownloadResolvedInfo,
   DEFAULT_DOWNLOAD_METADATA,
@@ -23,7 +23,13 @@ type SummaryMode = 'overview' | 'sample' | 'chromosome';
 
 type BatchFile = { sample_id: string; kind: string; url: string };
 type BatchFileMeta = { size: number | null; sha256: string | null; md5: string | null };
-type BatchDownloadItem = DownloadResolvedInfo & { sample_id: string; kind: string; source_url: string };
+type BatchDownloadItem = DownloadResolvedInfo & {
+  sample_id: string;
+  kind: string;
+  source_url: string;
+  batch_eligible: boolean;
+  batch_skip_reason: string | null;
+};
 
 const FILE_KIND_LABELS: Record<string, string> = {
   vcf: 'VCF', fasta: 'FASTA', gb: 'GenBank', bed: 'BED', gff3: 'GFF3',
@@ -78,16 +84,16 @@ async function readBatchDbMeta(key: string): Promise<DownloadMetadataPayload> {
 
 function buildSh(files: BatchDownloadItem[]): string {
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-  const publicFiles = files.filter((file) => file.access_mode === 'public_url' && file.wget_command);
-  const privateFiles = files.filter((file) => file.access_mode !== 'public_url');
+  const publicFiles = files.filter((file) => file.batch_eligible && file.access_mode === 'public_url' && file.wget_command);
+  const privateFiles = files.filter((file) => !file.batch_eligible);
   const body = files
-    .filter((file) => file.access_mode === 'public_url' && file.wget_command)
+    .filter((file) => file.batch_eligible && file.access_mode === 'public_url' && file.wget_command)
     .map((file) => `# sample: ${file.sample_id} (${FILE_KIND_LABELS[file.kind] || file.kind})\n${file.wget_command}`)
     .join('\n\n');
   return `#!/usr/bin/env bash
 # SeqEdge batch download, generated ${now} (UTC)
 # ${publicFiles.length} public file(s). "wget -c" resumes partial downloads.
-# ${privateFiles.length} protected file(s) are omitted because short-lived signed URLs are not exposed in batch scripts.
+# ${privateFiles.length} file(s) are omitted because they are protected or do not use a direct file URL.
 # Run on this server to auto-download all selected public sample files.
 set -u
 
@@ -97,13 +103,13 @@ ${body}
 
 function buildBat(files: BatchDownloadItem[]): string {
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-  const publicFiles = files.filter((file) => file.access_mode === 'public_url' && file.curl_command);
-  const privateFiles = files.filter((file) => file.access_mode !== 'public_url');
+  const publicFiles = files.filter((file) => file.batch_eligible && file.access_mode === 'public_url' && file.curl_command);
+  const privateFiles = files.filter((file) => !file.batch_eligible);
   const body = files
-    .filter((file) => file.access_mode === 'public_url' && file.curl_command)
+    .filter((file) => file.batch_eligible && file.access_mode === 'public_url' && file.curl_command)
     .map((file) => `REM sample: ${file.sample_id} (${FILE_KIND_LABELS[file.kind] || file.kind})\r${file.curl_command}`)
     .join('\r\n\r\n');
-  return `@echo off\r\nREM SeqEdge batch download, generated ${now} (UTC)\r\nREM ${publicFiles.length} public file(s). "curl -C -" resumes partial downloads.\r\nREM ${privateFiles.length} protected file(s) are omitted because short-lived signed URLs are not exposed in batch scripts.\r\n\r\n${body}\r\n`;
+  return `@echo off\r\nREM SeqEdge batch download, generated ${now} (UTC)\r\nREM ${publicFiles.length} public file(s). "curl -C -" resumes partial downloads.\r\nREM ${privateFiles.length} file(s) are omitted because they are protected or do not use a direct file URL.\r\n\r\n${body}\r\n`;
 }
 
 function downloadText(filename: string, text: string): void {
@@ -255,11 +261,18 @@ export default function PromoterTable({
           const dbMeta = source?.dbMeta || DEFAULT_DOWNLOAD_METADATA;
           const hfMeta = source?.hfMeta || { size: null, sha256: null, md5: null };
           const resolved = buildDownloadResolvedInfo(normalizeDownloadKey(file.url), dbMeta, `${FILE_KIND_LABELS[file.kind] || file.kind} download`, null);
+          const validation = validateDirectFileUrl(file.url);
+          const batchEligible = resolved.access_mode === 'public_url' ? validation.valid : false;
+          const batchSkipReason = resolved.access_mode !== 'public_url'
+            ? 'Protected signed URL is not exported into reusable batch scripts.'
+            : (!validation.valid ? (validation.reason || NOT_DIRECT_FILE_URL_MESSAGE) : null);
           return {
             ...resolved,
             sample_id: file.sample_id,
             kind: file.kind,
             source_url: file.url,
+            batch_eligible: batchEligible,
+            batch_skip_reason: batchSkipReason,
             file_name: resolved.file_name || batchFileName(file.url),
             file_type: dbMeta.custom_file_type || FILE_KIND_LABELS[file.kind] || file.kind,
             size_bytes: dbMeta.custom_size_bytes ?? hfMeta.size ?? resolved.size_bytes,
@@ -289,12 +302,12 @@ export default function PromoterTable({
   }, []);
 
   const batchPublicCount = useMemo(
-    () => batchItems.filter((item) => item.access_mode === 'public_url' && item.public_url).length,
+    () => batchItems.filter((item) => item.batch_eligible && item.access_mode === 'public_url' && item.public_url).length,
     [batchItems],
   );
 
   const batchPrivateCount = useMemo(
-    () => batchItems.filter((item) => item.access_mode !== 'public_url').length,
+    () => batchItems.filter((item) => !item.batch_eligible).length,
     [batchItems],
   );
 
@@ -693,6 +706,7 @@ export default function PromoterTable({
                           <th className="px-3 py-2 text-left font-medium">Item</th>
                           <th className="px-3 py-2 text-left font-medium">Type</th>
                           <th className="px-3 py-2 text-left font-medium">Access</th>
+                          <th className="px-3 py-2 text-left font-medium">Batch</th>
                           <th className="px-3 py-2 text-left font-medium">File</th>
                           <th className="px-3 py-2 text-left font-medium">Description</th>
                           <th className="px-3 py-2 text-left font-medium">Size</th>
@@ -714,6 +728,15 @@ export default function PromoterTable({
                               </td>
                               <td className="px-3 py-2">
                                 <span className={`rounded px-1.5 py-0.5 text-[10px] ${item.access_mode === 'public_url' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{item.access_mode === 'public_url' ? 'Public URL' : 'Private signed URL'}</span>
+                              </td>
+                              <td className="px-3 py-2 text-gray-600">
+                                {item.batch_eligible ? (
+                                  <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700">Included</span>
+                                ) : (
+                                  <div className="max-w-[180px] break-words text-[11px] text-amber-700" title={item.batch_skip_reason || undefined}>
+                                    {item.batch_skip_reason || NOT_DIRECT_FILE_URL_MESSAGE}
+                                  </div>
+                                )}
                               </td>
                               <td className="px-3 py-2">
                                 <div className="max-w-[220px] truncate font-medium" title={item.file_name}>{item.file_name}</div>
@@ -753,7 +776,7 @@ export default function PromoterTable({
                     <summary className="cursor-pointer hover:text-gray-700">Preview the shell script</summary>
                     <pre className="mt-2 max-h-56 overflow-auto rounded bg-gray-900 p-3 font-mono text-[11px] text-gray-100">{buildSh(batchItems)}</pre>
                   </details>
-                  <p className="text-xs text-gray-400">Public script entries use resume-enabled downloads (`wget -c` / `curl -C -`). Protected files backed by Supabase signed URLs are intentionally omitted from batch scripts because exposing short-lived private links in a reusable script would weaken access control. SHA256 is shown when supplied by admin metadata or exposed by Hugging Face LFS metadata. MD5 remains `N/A` unless you provide it in metadata. Download counts mainly reflect browser-triggered downloads that pass through the site workflow.</p>
+                  <p className="text-xs text-gray-400">Public script entries use resume-enabled downloads (`wget -c` / `curl -C -`). Protected files backed by Supabase signed URLs and entries that are not direct file URLs are intentionally omitted from batch scripts. SHA256 is shown when supplied by admin metadata or exposed by Hugging Face LFS metadata. MD5 remains `N/A` unless you provide it in metadata. Download counts mainly reflect browser-triggered downloads that pass through the site workflow.</p>
                 </>
               )}
             </div>

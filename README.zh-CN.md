@@ -326,11 +326,111 @@ Cloudflare Pages：
 ## 在何处配置下载
 
 - 总览下载卡片：`src/site-config.ts`
-- 样本级下载元数据：`genome_samples.vcf_download_url`、`genome_samples.fasta_download_url` 及相关 `*_download_mode` 字段
+- 样本级下载元数据：`genome_samples.vcf_download_url`、`genome_samples.fasta_download_url`、`genome_samples.gb_download_url`、`genome_samples.bed_download_url`、`genome_samples.gff3_download_url` 及相关 `*_download_mode` 字段
 - 统一下载元数据结构与命令生成：`src/lib/download-info.ts`
 - 单文件下载弹窗与创建者编辑能力：`src/components/download-actions.tsx`
 - 公开文件的批量脚本生成：`src/components/promoter-table.tsx` 与 `/api/samples/batch`
 - 私有 signed URL 解析：`/api/download-metadata/resolve`，底层依赖 `download_metadata` 表
+
+## 如何把 Hugging Face 文件接入 SeqEdge
+
+当前代码里，Hugging Face 文件有两个实用接入点：
+
+1. 首页精选下载卡片
+2. 样本级下载入口（显示在记录详情浮层和独立详情页中）
+
+### 1. 先使用正确的直链 URL
+
+不要把包含 `/blob/main/` 的 Hugging Face 页面地址直接填入数据库。
+
+- 页面地址示例：`https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/blob/main/817-food-biochem/817-food-biochem-materials.zip`
+- 直链地址示例：`https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip`
+
+SeqEdge 现在会把常见的 Hugging Face `blob` 链接自动规范化为 `resolve` 链接，但数据库和环境变量里仍然建议直接保存真正的文件直链。
+
+### 2. 让文件显示在首页
+
+设置首页精选下载对应的环境变量：
+
+```bash
+NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download 817 Food Biochem Materials
+NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION=Public Hugging Face dataset package for large-file download, browser delivery, and resume-capable CLI retrieval.
+NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip
+NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
+NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
+```
+
+这样首页总览区的下载卡片就会显示该文件，并打开统一下载弹窗。
+
+### 3. 让同一个文件显示为样本级下载入口
+
+当前 UI 已经会在悬浮详情面板和独立详情页里渲染以下样本级文件槽位：
+
+- `vcf_download_url`
+- `fasta_download_url`
+- `gb_download_url`
+- `bed_download_url`
+- `gff3_download_url`
+
+对于来自 Hugging Face 的通用压缩包，当前 schema 下最稳妥的做法是把它接到 `gb_download_url` 这个槽位。当前 UI 会把这个槽位显示成 `Download Package`。
+
+示例 SQL：
+
+```sql
+update genome_samples
+set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip'
+where sample_id = 'CNhs10881';
+```
+
+这样访问对应记录时，就能在详情浮层和详情页中看到这个样本级下载入口。
+
+### 4. 补充隐藏 / 密码 / 元数据控制
+
+如果文件仍然放在公开 Hugging Face 仓库中，你仍然可以通过 `download_metadata` 表给它补充站内元数据和 UI 控制，例如自定义标题、描述、哈希值、隐藏标记和密码提示。
+
+示例：
+
+```sql
+insert into download_metadata (
+  download_key,
+  custom_label,
+  custom_description,
+  custom_file_type,
+  custom_size_bytes,
+  storage_provider,
+  hidden,
+  md5_checksum,
+  sha256_checksum
+)
+values (
+  'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip',
+  '817 Food Biochem Materials',
+  'Public Hugging Face dataset package exposed through the SeqEdge unified download modal.',
+  'Archive (zip)',
+  734003200,
+  'public_url',
+  false,
+  null,
+  null
+)
+on conflict (download_key) do update set
+  custom_label = excluded.custom_label,
+  custom_description = excluded.custom_description,
+  custom_file_type = excluded.custom_file_type,
+  custom_size_bytes = excluded.custom_size_bytes,
+  storage_provider = excluded.storage_provider,
+  hidden = excluded.hidden,
+  md5_checksum = excluded.md5_checksum,
+  sha256_checksum = excluded.sha256_checksum;
+```
+
+需要明确的是：如果底层仍然是公开 Hugging Face `resolve` URL，那么隐藏/密码依然只是站内 UI 控制，不能阻止别人绕过网站直接匿名下载。
+
+### 5. 什么时候才算真正的私密下载
+
+如果你需要真正受控的下载链路，应把文件放到 Supabase 私有 bucket 中，并把对应 `download_metadata.storage_provider` 设为 `supabase_private`。SeqEdge 会通过 `/api/download-metadata/resolve` 动态签发短时有效的 signed URL。
+
+这才是当前代码里已经完整落地的真实私密下载方案。
 
 ## 用户指南内容
 
