@@ -6,6 +6,7 @@ import type { Promoter } from '@/types/genome';
 import { getDirectDownloadUrl } from '@/lib/storage';
 import type { SampleMetadata } from '@/types/genome';
 import DownloadActions from '@/components/download-actions';
+import { useDownloadVisibility } from '@/hooks/use-download-visibility';
 
 export default function PromoterDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState<string>('');
@@ -52,6 +53,15 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
   const gbDownloadUrl = getDirectDownloadUrl(sample?.gb_download_url);
   const bedDownloadUrl = getDirectDownloadUrl(sample?.bed_download_url);
   const gff3DownloadUrl = getDirectDownloadUrl(sample?.gff3_download_url);
+  const { isVisible: isDownloadVisible, loaded: downloadsLoaded } = useDownloadVisibility(
+    [vcfDownloadUrl, fastaDownloadUrl, gbDownloadUrl, bedDownloadUrl, gff3DownloadUrl],
+    false,
+  );
+  const visibleVcfDownloadUrl = isDownloadVisible(vcfDownloadUrl) ? vcfDownloadUrl : '';
+  const visibleFastaDownloadUrl = isDownloadVisible(fastaDownloadUrl) ? fastaDownloadUrl : '';
+  const visibleGbDownloadUrl = isDownloadVisible(gbDownloadUrl) ? gbDownloadUrl : '';
+  const visibleBedDownloadUrl = isDownloadVisible(bedDownloadUrl) ? bedDownloadUrl : '';
+  const visibleGff3DownloadUrl = isDownloadVisible(gff3DownloadUrl) ? gff3DownloadUrl : '';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -86,44 +96,44 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
           <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Open in Browser</Link>
           <button type="button" onClick={() => navigator.clipboard.writeText([promoter.chrom, promoter.start, promoter.end_pos, promoter.gene_symbol || 'NA', promoter.score, promoter.strand].join('\t'))} className="px-4 py-2 border rounded-lg text-sm">Copy as BED</button>
         </div>
-        {(vcfDownloadUrl || fastaDownloadUrl || gbDownloadUrl || bedDownloadUrl || gff3DownloadUrl) && (
+        {(downloadsLoaded && (visibleVcfDownloadUrl || visibleFastaDownloadUrl || visibleGbDownloadUrl || visibleBedDownloadUrl || visibleGff3DownloadUrl)) && (
           <section className="bg-white border rounded-lg p-4 space-y-4">
             <h3 className="text-sm font-semibold text-gray-900">File downloads</h3>
-            {vcfDownloadUrl && (
+            {visibleVcfDownloadUrl && (
               <DownloadActions
-                url={vcfDownloadUrl}
+                url={visibleVcfDownloadUrl}
                 label="Download VCF"
                 description="Sample-level file download from the configured storage host."
                 showCli={sample?.vcf_download_mode === 'cli'}
               />
             )}
-            {fastaDownloadUrl && (
+            {visibleFastaDownloadUrl && (
               <DownloadActions
-                url={fastaDownloadUrl}
+                url={visibleFastaDownloadUrl}
                 label="Download FASTA"
                 description="Sample-level file download from the configured storage host."
                 showCli={sample?.fasta_download_mode === 'cli'}
               />
             )}
-            {gbDownloadUrl && (
+            {visibleGbDownloadUrl && (
               <DownloadActions
-                url={gbDownloadUrl}
+                url={visibleGbDownloadUrl}
                 label="Download Package"
                 description="Sample-level file download from the configured storage host."
                 showCli={true}
               />
             )}
-            {bedDownloadUrl && (
+            {visibleBedDownloadUrl && (
               <DownloadActions
-                url={bedDownloadUrl}
+                url={visibleBedDownloadUrl}
                 label="Download BED"
                 description="Sample-level file download from the configured storage host."
                 showCli={true}
               />
             )}
-            {gff3DownloadUrl && (
+            {visibleGff3DownloadUrl && (
               <DownloadActions
-                url={gff3DownloadUrl}
+                url={visibleGff3DownloadUrl}
                 label="Download GFF3"
                 description="Sample-level file download from the configured storage host."
                 showCli={true}

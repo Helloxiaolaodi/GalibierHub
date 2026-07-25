@@ -136,7 +136,7 @@ export default function DownloadActions({
     };
   }, [resolvedInfo, key, dbMeta, label, description, hfMeta.size, hfMeta.sha256]);
 
-  const displaySize = hfMeta.loading ? 'Loading...' : formatDownloadBytes(effectiveInfo.size_bytes) || sizeLabel || '';
+  const displaySize = hfMeta.loading ? 'Loading…' : formatDownloadBytes(effectiveInfo.size_bytes) || sizeLabel || '';
   const hidden = dbMeta.hidden;
   const passwordProtected = dbMeta.password_protected;
   const linksVisible = isAdmin || (!hidden && (!passwordProtected || unlocked));
@@ -179,7 +179,7 @@ export default function DownloadActions({
       if (res.ok && data.verified) {
         setUnlocked(true);
       } else {
-        setPwError(data.error || 'Incorrect password.');
+        setPwError(data.error || 'Wrong password.');
       }
     } catch {
       setPwError('Verification failed. Please try again.');
@@ -260,7 +260,7 @@ export default function DownloadActions({
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        setSaveState({ ok: false, text: data.error || 'Failed to save.' });
+        setSaveState({ ok: false, text: data.error || 'Save failed.' });
         return;
       }
       const nextMeta = await readDbMeta(key);
@@ -269,7 +269,7 @@ export default function DownloadActions({
       setSaveState({ ok: true, text: 'Saved.' });
       setEditing(false);
     } catch (error) {
-      setSaveState({ ok: false, text: error instanceof Error ? error.message : 'Failed to save.' });
+      setSaveState({ ok: false, text: error instanceof Error ? error.message : 'Save failed.' });
     }
   };
 
@@ -287,7 +287,7 @@ export default function DownloadActions({
       )}
       <div className="flex flex-wrap gap-2">
         {hidden && !isAdmin ? (
-          <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-400">File hidden by creator</span>
+          <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-400">Hidden by creator</span>
         ) : (
           <button
             type="button"
@@ -315,7 +315,7 @@ export default function DownloadActions({
                   <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">{effectiveInfo.file_type}</span>
                   {displaySize && <span className="rounded bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700">{displaySize}</span>}
                   <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{dbMeta.download_count} downloads</span>
-                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{effectiveInfo.access_mode === 'supabase_private' ? 'Private signed URL' : 'Public URL'}</span>
+                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{effectiveInfo.access_mode === 'supabase_private' ? 'Private URL' : 'Public URL'}</span>
                   {hidden && <span className="rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Hidden</span>}
                   {passwordProtected && <span className="rounded bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">Password</span>}
                   {isAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Admin</span>}
@@ -339,12 +339,12 @@ export default function DownloadActions({
               </div>
 
               {hidden && !isAdmin && (
-                <p className="text-sm text-gray-500">This file has been hidden by the creator and is not available for download.</p>
+                <p className="text-sm text-gray-500">This file is hidden and unavailable.</p>
               )}
 
               {passwordProtected && !unlocked && !isAdmin && (
                 <div className="space-y-2 rounded border border-rose-200 bg-rose-50 p-3">
-                  <label className="block text-sm font-medium text-gray-700">This download requires a password</label>
+                  <label className="block text-sm font-medium text-gray-700">Password required</label>
                   <input type="password" value={pwInput} onChange={(event) => setPwInput(event.target.value)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" placeholder="Enter password" />
                   {pwError && <p className="text-xs text-red-600">{pwError}</p>}
                   <button type="button" onClick={verifyPassword} className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">Unlock</button>
@@ -353,7 +353,7 @@ export default function DownloadActions({
 
               {(linksVisible || isAdmin) && (
                 <>
-                  <button type="button" onClick={handleBrowserDownload} disabled={downloading || directUrlInvalid} className="inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50">{downloading ? 'Preparing download...' : 'Download to local file (browser)'}</button>
+                  <button type="button" onClick={handleBrowserDownload} disabled={downloading || directUrlInvalid} className="inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50">{downloading ? 'Preparing…' : 'Download in browser'}</button>
 
                   {directUrlInvalid && (
                     <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
@@ -361,7 +361,7 @@ export default function DownloadActions({
 
                   <div className="rounded border border-gray-100 bg-gray-50 p-3 space-y-3">
                     <div className="text-sm font-medium text-gray-800">Download methods</div>
-                    <div className="text-xs text-gray-600">Browser download is always available here. Command-line download supports resume when the file uses a public direct URL.</div>
+                    <div className="text-xs text-gray-600">Browser download is always available. CLI download supports resume for public direct URLs.</div>
                     {effectiveInfo.access_mode === 'supabase_private' ? (
                       <p className="text-xs text-amber-700">{effectiveInfo.access_note}</p>
                     ) : directUrlInvalid ? (
@@ -371,7 +371,7 @@ export default function DownloadActions({
                         {effectiveInfo.wget_command && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Linux / macOS — wget (resume supported)</span>
+                              <span className="text-sm font-medium text-gray-700">Linux / macOS — wget (resume)</span>
                               <button type="button" onClick={() => handleCopy('wget', effectiveInfo.wget_command)} className="text-xs text-blue-600 hover:underline">{copied === 'wget' ? 'Copied' : 'Copy'}</button>
                             </div>
                             <code className="block rounded bg-gray-900 px-3 py-2 font-mono text-xs text-gray-100">{effectiveInfo.wget_command}</code>
@@ -380,7 +380,7 @@ export default function DownloadActions({
                         {effectiveInfo.curl_command && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Windows / Linux / macOS — curl (resume supported)</span>
+                              <span className="text-sm font-medium text-gray-700">Windows / Linux / macOS — curl (resume)</span>
                               <button type="button" onClick={() => handleCopy('curl', effectiveInfo.curl_command)} className="text-xs text-blue-600 hover:underline">{copied === 'curl' ? 'Copied' : 'Copy'}</button>
                             </div>
                             <code className="block rounded bg-gray-900 px-3 py-2 font-mono text-xs text-gray-100">{effectiveInfo.curl_command}</code>
@@ -389,7 +389,7 @@ export default function DownloadActions({
                         {effectiveInfo.hf_cli_command && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Hugging Face CLI (resume + multi-stream, recommended)</span>
+                              <span className="text-sm font-medium text-gray-700">Hugging Face CLI (resume, recommended)</span>
                               <button type="button" onClick={() => handleCopy('hf', effectiveInfo.hf_cli_command)} className="text-xs text-blue-600 hover:underline">{copied === 'hf' ? 'Copied' : 'Copy'}</button>
                             </div>
                             <code className="block rounded bg-gray-900 px-3 py-2 font-mono text-xs text-gray-100">{effectiveInfo.hf_cli_command}</code>
@@ -398,7 +398,7 @@ export default function DownloadActions({
                         {effectiveInfo.region_hint && <p className="text-xs text-gray-500">{effectiveInfo.region_hint}</p>}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-500">Direct CLI command generation is not enabled for this entry.</p>
+                      <p className="text-xs text-gray-500">CLI commands are unavailable for this entry.</p>
                     )}
                   </div>
                 </>
@@ -409,7 +409,7 @@ export default function DownloadActions({
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-amber-800">Creator controls</span>
                     {!editing ? (
-                      <button type="button" onClick={startEdit} className="text-xs text-blue-600 hover:underline">Edit metadata / controls</button>
+                      <button type="button" onClick={startEdit} className="text-xs text-blue-600 hover:underline">Edit metadata</button>
                     ) : (
                       <div className="flex gap-2">
                         <button type="button" onClick={saveEdit} className="rounded bg-gray-900 px-3 py-1 text-xs font-medium text-white hover:bg-gray-800">Save</button>
@@ -437,7 +437,7 @@ export default function DownloadActions({
                 </div>
               )}
 
-              <p className="text-xs text-gray-400">Note: download count tracks in-site browser downloads. External direct URL usage and command-line downloads may not be fully counted.</p>
+              <p className="text-xs text-gray-400">Download counts mainly reflect in-site browser downloads. Direct URL and CLI downloads may be undercounted.</p>
             </div>
           </div>
         </div>

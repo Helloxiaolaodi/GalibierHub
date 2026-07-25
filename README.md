@@ -183,7 +183,7 @@ Recommended production layout:
 2. Cloudflare Pages for the mirror site
 3. Cloudflare Worker for Hugging Face proxying
 
-The main interface has three tabs: **Overview**, **Promoters** (promoter table + genome browser), and **Discussion**.
+The main interface now has four tabs: **Overview**, **Records** (record table + genome browser), **Discussion**, and **Downloads**.
 
 The current shipped UI and default schema are still genomics-oriented. Template users can generalize the project later, but the repository in its present state still uses promoter- and genome-related naming in the main data surfaces.
 
@@ -237,6 +237,7 @@ Optional creator-reply and email variables:
 
 ```bash
 GITHUB_ADMIN_USERNAME=your-github-login
+NEXT_PUBLIC_GITHUB_ADMIN_USERNAME=your-github-login
 FEEDBACK_EMAIL_API_URL=https://your-mail-service.example/send
 FEEDBACK_EMAIL_API_KEY=your_mail_api_key
 FEEDBACK_EMAIL_TO=owner@example.org
@@ -247,7 +248,7 @@ Notes:
 - `SUPABASE_SERVICE_ROLE_KEY` is recommended for production API routes.
 - If files live in a subfolder, include that prefix in `NEXT_PUBLIC_STORAGE_BASE_URL`.
 - Direct Hugging Face reads are supported, but the Worker is the most reliable JBrowse path.
-- To enable creator replies: enable GitHub auth provider in Supabase (see [Creator Reply Setup](#creator-reply-setup)) and set `GITHUB_ADMIN_USERNAME` to the single GitHub login allowed to reply.
+- To enable creator replies: enable GitHub auth provider in Supabase (see [Creator Reply Setup](#creator-reply-setup)), set `GITHUB_ADMIN_USERNAME` for server-side reply authorization, and set `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` for the client-side creator controls.
 
 ### 3. Initialize the database
 
@@ -325,19 +326,21 @@ SeqEdge also opens the first reachable annotation track automatically so the vie
 
 ## Where To Configure Downloads
 
-- Overview download cards: `src/site-config.ts`
+- Featured download cards on the Overview tab: `src/site-config.ts`
 - Sample-level download metadata: `genome_samples.vcf_download_url`, `genome_samples.fasta_download_url`, `genome_samples.gb_download_url`, `genome_samples.bed_download_url`, `genome_samples.gff3_download_url`, and related `*_download_mode` fields
 - Unified download metadata model and CLI generation: `src/lib/download-info.ts`
 - Single-file modal behavior and creator edit controls: `src/components/download-actions.tsx`
 - Batch script generation for public entries: `src/components/promoter-table.tsx` and `/api/samples/batch`
+- Dedicated site-wide download catalog and folder grouping: `src/components/download-catalog-panel.tsx` and `/api/download-catalog`
 - Private signed-URL resolution: `/api/download-metadata/resolve` backed by the `download_metadata` table
 
 ## Add a Hugging Face File to SeqEdge
 
-The current codebase supports two practical Hugging Face integration points:
+The current codebase supports three practical Hugging Face integration points:
 
 1. a homepage featured download card
 2. a sample-level download entry shown inside the record detail panel and detail page
+3. the dedicated `Downloads` tab, which groups downloadable files by folder-like path and opens the same unified download modal
 
 ### 1. Use the correct direct file URL
 
@@ -360,7 +363,7 @@ NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 ```
 
-This powers the overview download card and opens the unified download modal.
+This powers the featured card on the Overview tab and opens the unified download modal. The same file can also appear in the dedicated `Downloads` tab when it is present in the site-wide catalog.
 
 ### 3. Show the same file as a sample-level download entry
 
@@ -383,6 +386,8 @@ where sample_id = 'CNhs10881';
 ```
 
 If you want the same row to prefer CLI hints in the modal, keep using a large-file host such as Hugging Face and open the modal from the record detail view.
+
+You can also attach the same file to the dedicated `Downloads` tab through `download_metadata`, so the site exposes one consistent single-file modal whether the visitor enters from Overview, Records, or Downloads.
 
 ### 4. Add hidden / password / private delivery metadata
 
@@ -434,14 +439,14 @@ That is the only fully implemented private-download path in the current codebase
 
 ## User Guide Content
 
-The in-app User Guide covers four sections:
+The in-app User Guide is now visitor-facing and concise. It explains only how to use the four main tabs:
 
-1. Browsing Data
-2. Downloading Data
+1. Overview
+2. Records
 3. Discussion
-4. For Site Creators
+4. Downloads
 
-This is where end users can learn the difference between browser downloads and CLI downloads for large files, and how to use the built-in feedback channel.
+Its purpose is to help a visitor start using the site quickly, not to document deployment or creator-only setup.
 
 ## Discussion
 
@@ -453,7 +458,7 @@ SeqEdge includes a lightweight interaction area for research communication:
 - The `Discussion` tab shows threads split into `In progress` and `Completed`.
 - Threads can be sorted, including a `Most liked` view.
 - Creator replies appear on the site and can also be emailed when the email API is configured.
-- The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`.
+- The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`, while the creator UI in the browser also expects `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` to match the same login.
 - Posted and replied timestamps are displayed for each thread.
 - Visitors can leave `Like` and `Bookmark` reactions, and those counts remain visible in both list and detail views.
 - Image uploads show success or failure feedback during submission.
@@ -502,7 +507,7 @@ If the Site URL is left as the default http://localhost:3000, OAuth sign-in will
 
 ### 4. Configure Environment
 
-Set `GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the GitHub login that may reply. Any other signed-in GitHub account can read but cannot send creator replies.
+Set both `GITHUB_ADMIN_USERNAME` and `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the same GitHub login that may reply. Any other signed-in GitHub account can read but cannot send creator replies.
 
 Then sign in from the top-right `Log in with GitHub` button on the site.
 

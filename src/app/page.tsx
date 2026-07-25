@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import type { Promoter, DashboardStats } from '@/types/genome';
-import { getDirectDownloadUrl } from '@/lib/storage';
 import { SiteConfig } from '@/site-config';
 import { getBrowserSupabase } from '@/utils/supabase-browser';
 import SearchFilters, { type SearchFilters as FiltersType } from '@/components/search-filters';
@@ -12,12 +11,13 @@ import PromoterTable from '@/components/promoter-table';
 import PromoterDetail from '@/components/promoter-detail';
 import GenomeBrowser from '@/components/genome-browser';
 import UserGuide from '@/components/user-guide';
-import DownloadActions from '@/components/download-actions';
+import DownloadCatalogPanel from '@/components/download-catalog-panel';
 import SiteFeedback from '@/components/site-feedback';
 import SiteUptime from '@/components/site-uptime';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
+type ActiveTab = 'overview' | 'promoters' | 'discussion' | 'downloads';
 
 function buildPromoterLocus(promoter: Promoter) {
   return `${promoter.chrom}:${Math.max(1, promoter.start - 2000)}-${Math.max(promoter.end_pos + 2000, promoter.start + 1)}`;
@@ -61,7 +61,7 @@ export default function HomePage() {
   const [currentFilters, setCurrentFilters] = useState<FiltersType>(EMPTY_FILTERS);
   const [sortMode, setSortMode] = useState<PromoterSortMode>('score_desc');
   const [summaryMode, setSummaryMode] = useState<SummaryMode>('overview');
-  const [activeTab, setActiveTab] = useState<'overview' | 'promoters' | 'discussion'>('overview');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [creatorSignInError, setCreatorSignInError] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
   const [feedbackRefreshSignal, setFeedbackRefreshSignal] = useState(0);
@@ -69,14 +69,8 @@ export default function HomePage() {
   const [creatorLogin, setCreatorLogin] = useState<string | null>(null);
   const [dataError, setDataError] = useState<string | null>(null);
 
-  const featuredDownloads = useMemo(
-    () => SiteConfig.downloads.featured
-      .map((item) => ({
-        ...item,
-        href: getDirectDownloadUrl(item.href),
-        showCli: item.mode === 'cli',
-      }))
-      .filter((item) => Boolean(item.href)),
+  const expectedAdminLogin = useMemo(
+    () => (process.env.NEXT_PUBLIC_GITHUB_ADMIN_USERNAME || '').trim().toLowerCase(),
     [],
   );
 
@@ -258,7 +252,12 @@ export default function HomePage() {
   );
 
   const creatorAccessToken = creatorSession?.access_token || null;
-
+  const isCreatorAdmin = Boolean(
+    creatorLogin &&
+    creatorAccessToken &&
+    expectedAdminLogin &&
+    creatorLogin.toLowerCase() === expectedAdminLogin,
+  );
   const handleCreatorSignIn = useCallback(async () => {
     const supabase = getBrowserSupabase();
     if (!supabase || typeof window === 'undefined') {
@@ -318,7 +317,7 @@ export default function HomePage() {
             </div>
           </div>
           <nav className="flex flex-wrap items-center gap-1">
-            {(['overview', 'promoters', 'discussion'] as const).map((tab) => (
+            {(['overview', 'promoters', 'discussion', 'downloads'] as const).map((tab) => (
               <button type="button" key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -331,7 +330,9 @@ export default function HomePage() {
                   ? 'Overview'
                   : tab === 'promoters'
                     ? 'Records'
-                    : 'Discussion'}
+                    : tab === 'discussion'
+                      ? 'Discussion'
+                      : 'Downloads'}
               </button>
             ))}
             <div className="w-px h-5 bg-gray-200 mx-1" />
@@ -390,31 +391,6 @@ export default function HomePage() {
         {activeTab === 'overview' && (
           <>
             <StatsChart stats={stats} />
-            {featuredDownloads.length > 0 && (
-              <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                <div className="border-b bg-gray-50 px-4 py-3">
-                  <h2 className="text-sm font-semibold text-gray-900">Featured Downloads</h2>
-                </div>
-                <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
-                  {featuredDownloads.map((item) => (
-                    <div key={item.id} className="flex min-h-28 flex-col justify-between gap-3 border border-gray-200 bg-white p-4">
-                      <div className="space-y-1">
-                        <h3 className="text-sm font-semibold text-gray-900">{item.label}</h3>
-                      </div>
-                     <DownloadActions
-                       url={item.href}
-                       label="Download"
-                       sizeLabel={item.sizeLabel}
-                       description={item.description}
-                       showCli={item.showCli}
-                       isAdmin={Boolean(creatorLogin && creatorAccessToken)}
-                       accessToken={creatorAccessToken}
-                     />
-                   </div>
-                 ))}
-                </div>
-              </section>
-            )}
             <SearchFilters onSearch={handleSearch} loading={loading} />
             <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} visibleCount={pageSummary.visibleCount} sortMode={sortMode} summaryMode={summaryMode} onSortModeChange={(nextMode) => {
                 setSortMode(nextMode);
@@ -456,6 +432,9 @@ export default function HomePage() {
         {activeTab === 'discussion' && (
           <SiteFeedback accessToken={creatorAccessToken} creatorLogin={creatorLogin} refreshSignal={feedbackRefreshSignal} onFeedbackSubmitted={() => setFeedbackRefreshSignal((current) => current + 1)} />
         )}
+        {activeTab === 'downloads' && (
+          <DownloadCatalogPanel isAdmin={isCreatorAdmin} accessToken={creatorAccessToken} />
+        )}
       </main>
       {selectedPromoter && (
        <PromoterDetail
@@ -465,7 +444,7 @@ export default function HomePage() {
            setActiveTab('promoters');
          }}
          onClose={() => setSelectedPromoter(null)}
-         isAdmin={Boolean(creatorLogin && creatorAccessToken)}
+         isAdmin={isCreatorAdmin}
          accessToken={creatorAccessToken}
        />
       )}
