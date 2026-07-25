@@ -245,7 +245,11 @@ FEEDBACK_EMAIL_TO=owner@example.org
 
 Notes:
 
-- `SUPABASE_SERVICE_ROLE_KEY` is recommended for production API routes.
+- `SUPABASE_SERVICE_ROLE_KEY` is required for creator-only write actions such as hiding or showing files in `Downloads`, saving `download_metadata`, issuing private signed URLs, and other privileged server-side mutations.
+- To copy it, open Supabase Dashboard -> **Settings** -> **API** -> **Project API keys** -> copy the `service_role` key. Keep it server-side only and never expose it through any `NEXT_PUBLIC_*` variable.
+- To configure it on Vercel, open your project -> **Settings** -> **Environment Variables** -> add `SUPABASE_SERVICE_ROLE_KEY` with the copied `service_role` value -> enable Production at minimum, and Preview / Development if needed -> save -> redeploy.
+- To configure it on Cloudflare Pages, open your project -> **Settings** -> **Environment variables** -> add `SUPABASE_SERVICE_ROLE_KEY` with the same value -> save -> redeploy.
+- Without a new deployment, the current build does not receive the new value. If this variable is missing, public browsing still works, but creator actions such as `Hide from visitors` fail because server-side writes to `download_metadata` require `service_role` privileges.
 - If files live in a subfolder, include that prefix in `NEXT_PUBLIC_STORAGE_BASE_URL`.
 - Direct Hugging Face reads are supported, but the Worker is the most reliable JBrowse path.
 - To enable creator replies: enable GitHub auth provider in Supabase (see [Creator Reply Setup](#creator-reply-setup)), set `GITHUB_ADMIN_USERNAME` for server-side reply authorization, and set `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` for the client-side creator controls.
