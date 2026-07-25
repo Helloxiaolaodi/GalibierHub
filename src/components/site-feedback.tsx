@@ -15,6 +15,7 @@ interface FeedbackResponse {
 }
 
 interface SiteFeedbackProps {
+  isAdminHint?: boolean;
   accessToken?: string | null;
   creatorLogin?: string | null;
   refreshSignal?: number;
@@ -96,7 +97,7 @@ function buildVisitorFingerprint() {
 const FEEDBACK_LIST_MAX_HEIGHT = 480;
 const FEEDBACK_PAGE_SIZE = 5;
 
-export default function SiteFeedback({ accessToken = null, creatorLogin = null, refreshSignal = 0, onFeedbackSubmitted }: SiteFeedbackProps) {
+export default function SiteFeedback({ isAdminHint = false, accessToken = null, creatorLogin = null, refreshSignal = 0, onFeedbackSubmitted }: SiteFeedbackProps) {
   const [entries, setEntries] = useState<SiteFeedbackEntry[]>([]);
   const [summary, setSummary] = useState<FeedbackSummary>({ totalComments: 0, averageRating: 0 });
  const [, setReactionCounts] = useState<ReactionCounts>({ like: 0, bookmark: 0 });
@@ -173,13 +174,13 @@ const [uploadingImage, setUploadingImage] = useState(false);
       }
       setEntries(data.entries || []);
       setSummary(data.summary || { totalComments: 0, averageRating: 0 });
-      setIsAdmin(Boolean(data.isAdmin));
+      setIsAdmin(Boolean(data.isAdmin) || isAdminHint);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load community feedback.');
     } finally {
       setLoading(false);
     }
-  }, [accessToken]);
+  }, [accessToken, isAdminHint]);
 
   const fetchReactions = useCallback(async () => {
     try {
@@ -353,7 +354,9 @@ const [uploadingImage, setUploadingImage] = useState(false);
         body: JSON.stringify({ id: entryId, hidden: !currentHidden }),
       });
       await fetchFeedback();
-  } catch { /* ignore */ }
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : 'Failed to update entry visibility.');
+    }
   finally { setHideToggling(null); }
   };
 
@@ -369,7 +372,9 @@ const [uploadingImage, setUploadingImage] = useState(false);
       const data = await response.json() as { error?: string };
       if (!response.ok) throw new Error(data.error || 'Failed to delete entry.');
       await fetchFeedback();
-    } catch { /* ignore */ }
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : 'Failed to delete entry.');
+    }
     finally { setDeletingId(null); }
  };
   const renderEntry = (entry: SiteFeedbackEntry) => {
@@ -655,7 +660,9 @@ const [uploadingImage, setUploadingImage] = useState(false);
         body: JSON.stringify({ id: entryId, pinned: !currentPinned }),
       });
       await fetchFeedback();
-    } catch { /* ignore */ }
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : 'Failed to update pinned state.');
+    }
     finally { setPinToggling(null); }
   };
 
