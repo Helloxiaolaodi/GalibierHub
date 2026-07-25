@@ -20,7 +20,8 @@ function getOptionalEmailConfig() {
   const apiUrl = process.env.FEEDBACK_EMAIL_API_URL || "";
   const apiKey = process.env.FEEDBACK_EMAIL_API_KEY || "";
   const to = process.env.FEEDBACK_EMAIL_TO || process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
-  return { apiUrl, apiKey, to };
+  const from = process.env.FEEDBACK_EMAIL_FROM || "onboarding@resend.dev";
+  return { apiUrl, apiKey, to, from };
 }
 
 async function sendFeedbackEmail(payload: {
@@ -34,8 +35,13 @@ async function sendFeedbackEmail(payload: {
   message: string;
   createdAt: string;
 }) {
-  const { apiUrl, apiKey, to } = getOptionalEmailConfig();
+  const { apiUrl, apiKey, to, from } = getOptionalEmailConfig();
   if (!apiUrl || !apiKey || !to) {
+    return;
+  }
+
+  if (!from) {
+    console.warn("[feedback-email] FEEDBACK_EMAIL_FROM is empty; Resend requires a `from` sender. Skipping.");
     return;
   }
 
@@ -47,6 +53,7 @@ async function sendFeedbackEmail(payload: {
     },
     body: JSON.stringify({
       to,
+      from,
       subject: `[SeqEdge] ${payload.title}`,
       text: [
         `Title: ${payload.title}`,
@@ -78,8 +85,13 @@ async function sendReplyEmail(payload: {
   createdAt: string;
   repliedAt: string;
 }) {
-  const { apiUrl, apiKey } = getOptionalEmailConfig();
+  const { apiUrl, apiKey, from } = getOptionalEmailConfig();
   if (!apiUrl || !apiKey || !payload.to) {
+    return;
+  }
+
+  if (!from) {
+    console.warn("[feedback-email] FEEDBACK_EMAIL_FROM is empty; Resend requires a `from` sender. Skipping.");
     return;
   }
 
@@ -91,6 +103,7 @@ async function sendReplyEmail(payload: {
     },
     body: JSON.stringify({
       to: payload.to,
+      from,
       subject: `[SeqEdge] Reply: ${payload.title}`,
       text: [
         `Hello ${payload.displayName},`,
@@ -322,7 +335,9 @@ export async function POST(request: Request) {
     visibility: visibility as "public" | "private",
     message,
     createdAt: data.created_at,
-  }).catch(() => undefined);
+  }).catch((error) => {
+    console.error("[feedback-email] sendFeedbackEmail failed:", error);
+  });
 
   return NextResponse.json({ entry: data }, { status: 201 });
 }
@@ -457,8 +472,10 @@ export async function PATCH(request: NextRequest) {
       category: data.category,
       message: data.message,
       createdAt: data.created_at,
-      repliedAt: data.replied_at || new Date().toISOString(),
-    }).catch(() => undefined);
+    repliedAt: data.replied_at || new Date().toISOString(),
+    }).catch((error) => {
+      console.error("[feedback-email] sendReplyEmail failed:", error);
+    });
   }
 
   return NextResponse.json({ entry: data });
