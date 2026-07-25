@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import DownloadActions from '@/components/download-actions';
 
 type DownloadCatalogItem = {
@@ -127,39 +127,49 @@ export default function DownloadCatalogPanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [currentPath, setCurrentPath] = useState('');
 
-  useEffect(() => {
+  const loadCatalog = useCallback(async () => {
     let active = true;
     setLoading(true);
     setError(null);
-    setWarning(null);
     const headers: HeadersInit = accessToken
       ? { Authorization: `Bearer ${accessToken}` }
       : {};
-    fetch('/api/download-catalog', { headers })
-      .then((res) => res.json())
-      .then((data) => {
-        if (!active) return;
-        if (Array.isArray(data?.items)) {
-          setItems(data.items as DownloadCatalogItem[]);
-          setEffectiveIsAdmin(Boolean(isAdmin) || Boolean(data?.isAdmin));
-          setWarning(typeof data?.warning === 'string' && data.warning.trim() ? data.warning : null);
-          return;
-        }
+    try {
+      const res = await fetch('/api/download-catalog', { headers });
+      const data = await res.json();
+      if (!active) return () => {
+        active = false;
+      };
+      if (Array.isArray(data?.items)) {
+        setItems(data.items as DownloadCatalogItem[]);
+        setEffectiveIsAdmin(Boolean(isAdmin) || Boolean(data?.isAdmin));
+        setWarning(typeof data?.warning === 'string' && data.warning.trim() ? data.warning : null);
+      } else {
         setError(data?.error || 'Failed to load download catalog.');
-      })
-      .catch(() => {
-        if (active) setError('Failed to load download catalog.');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+      }
+    } catch {
+      if (active) setError('Failed to load download catalog.');
+    } finally {
+      if (active) setLoading(false);
+    }
     return () => {
       active = false;
     };
   }, [accessToken, isAdmin]);
+
+  useEffect(() => {
+    let cleanup: undefined | (() => void);
+    void loadCatalog().then((fn) => {
+      cleanup = fn;
+    });
+    return () => {
+      cleanup?.();
+    };
+  }, [loadCatalog]);
 
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
@@ -211,6 +221,12 @@ export default function DownloadCatalogPanel({
 
   const handleMetadataSaved = (itemId: string, hidden: boolean) => {
     setItems((current) => current.map((item) => (item.id === itemId ? { ...item, hidden } : item)));
+    setStatusMessage(
+      hidden
+        ? 'Hidden from visitors. It remains visible to you as creator admin.'
+        : 'Visible to visitors.',
+    );
+    void loadCatalog();
   };
 
   const goToFolder = (path: string) => setCurrentPath(path);
@@ -247,11 +263,17 @@ export default function DownloadCatalogPanel({
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-gray-500 lg:max-w-md"
           />
         </div>
+        {effectiveIsAdmin && (
+          <p className="mt-3 text-xs text-amber-700">
+            Hidden files stay visible to creator admin and disappear only for visitors.
+          </p>
+        )}
       </div>
 
       {showBlockingLoader && <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">Loading download catalog...</div>}
       {!loading && error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">{error}</div>}
       {!error && warning && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">{warning}</div>}
+      {!error && statusMessage && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">{statusMessage}</div>}
 
       {!error && (
         <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">

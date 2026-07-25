@@ -1,6 +1,7 @@
 ﻿import { createHash } from "crypto";
 import type { User } from "@supabase/supabase-js";
 import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
+import { resolveExpectedAdminGithubLogin } from "@/lib/admin-login";
 
 type CreatorAuthResult =
   | { ok: true; githubLogin: string; user: User }
@@ -42,9 +43,9 @@ export async function requireCreatorGithubAuth(accessToken: string | null): Prom
     return { ok: false, error: "Supabase is not configured." };
   }
 
-  const expectedGithubLogin = (process.env.GITHUB_ADMIN_USERNAME || "").trim().toLowerCase();
+  const expectedGithubLogin = resolveExpectedAdminGithubLogin();
   if (!expectedGithubLogin) {
-    return { ok: false, error: "GITHUB_ADMIN_USERNAME is not configured." };
+    return { ok: false, error: "Admin GitHub login is not configured." };
   }
 
   if (!accessToken) {
@@ -68,7 +69,7 @@ export async function requireCreatorGithubAuth(accessToken: string | null): Prom
   }
 
   if (githubLogin.toLowerCase() !== expectedGithubLogin) {
-    return { ok: false, error: `This GitHub account (@${githubLogin}) does not have admin access. Expected: @${process.env.GITHUB_ADMIN_USERNAME || "unknown"}.` };
+    return { ok: false, error: `This GitHub account (@${githubLogin}) does not have admin access. Expected: @${expectedGithubLogin || "unknown"}.` };
   }
 
   return { ok: true, githubLogin, user: data.user };
