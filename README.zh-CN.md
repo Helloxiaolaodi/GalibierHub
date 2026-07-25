@@ -245,7 +245,11 @@ FEEDBACK_EMAIL_TO=owner@example.org
 
 注意事项：
 
-- 生产环境的 API 路由建议使用 `SUPABASE_SERVICE_ROLE_KEY`。
+- `SUPABASE_SERVICE_ROLE_KEY` 不是建议项，而是当前创建者专属写操作所必需的变量，例如在 `Downloads` 中隐藏或显示文件、写入 `download_metadata`、签发私有下载 signed URL，以及其他受保护的服务端修改。
+- 获取方式：打开 Supabase Dashboard -> **Settings** -> **API** -> **Project API keys** -> 复制 `service_role` 对应的 key。它只能放在服务端环境变量中，不能写进任何 `NEXT_PUBLIC_*` 变量。
+- 在 Vercel 中配置：打开项目 -> **Settings** -> **Environment Variables** -> 新增 `SUPABASE_SERVICE_ROLE_KEY` -> 粘贴刚复制的 `service_role` 值 -> 至少勾选 Production，按需再勾选 Preview / Development -> 保存 -> 重新部署。
+- 在 Cloudflare Pages 中配置：打开项目 -> **Settings** -> **Environment variables** -> 新增 `SUPABASE_SERVICE_ROLE_KEY` -> 填入同一个值 -> 保存 -> 重新触发部署。
+- 如果不重新部署，当前构建拿不到新的变量。缺少该变量时，公开浏览仍可正常使用，但创建者点击 `Hide from visitors` 一类操作会失败，因为服务端写入 `download_metadata` 需要 `service_role` 权限。
 - 若文件存放在子目录，请在 `NEXT_PUBLIC_STORAGE_BASE_URL` 中包含该前缀。
 - 支持直接读取 Hugging Face，但 Worker 是最可靠的 JBrowse 读取路径。
 - 启用创建者回复：在 Supabase 中启用 GitHub 身份认证（见 [创建者回帖设置](#创建者回帖设置)），同时将 `GITHUB_ADMIN_USERNAME` 用于服务端回帖鉴权，并将 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` 用于前端创建者控制界面的鉴权。
