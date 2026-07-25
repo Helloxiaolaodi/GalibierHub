@@ -595,15 +595,7 @@ FEEDBACK_EMAIL_TO=1641454426@qq.com
 
 ## 技术栈
 
-- [Next.js](https://nextjs.org/docs) `15.5.21`
-- [React](https://react.dev/learn) `19.2.4`
-- [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) `^2.110.7`
-- [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) `^4.3.0`
-- [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) `^3.1.0`
-- [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) `^8.21.3`
-- [ECharts](https://echarts.apache.org/handbook/en/get-started/) `^6.1.0`
-- [`@opennextjs/cloudflare`](https://open.nextjs.org/cloudflare) `^1.20.2`
-- [Wrangler](https://developers.cloudflare.com/workers/wrangler/) `^4.113.0`
+- 见下方统一的工具说明表。
 
 <div align="right">
 
@@ -613,35 +605,21 @@ FEEDBACK_EMAIL_TO=1641454426@qq.com
 
 ## 致谢
 
-SeqEdge 构建于强大的开源生态系统。这些项目使模板在面向科研的子基因组应用中切实可用。
-
-| 项目 | 作用 |
-| --- | --- |
-| [Next.js](https://nextjs.org/) | 前端框架与应用运行时 |
-| [Supabase](https://supabase.com/) | 托管 PostgreSQL 与 API 层 |
-| [JBrowse 2](https://jbrowse.org/jb2/) | 交互式基因组浏览器基础 |
-| [Cloudflare R2](https://www.cloudflare.com/products/r2/) | 大型基因组资源的存储层 |
-| [Vercel](https://vercel.com/) | 部署与边缘分发 |
-| [TanStack Table](https://tanstack.com/table) | 子与位点表格的数据网格行为 |
-| [Apache ECharts](https://echarts.apache.org/) | 汇总分析的图表渲染 |
-| [Tailwind CSS](https://tailwindcss.com/) | 一致的 UI 样式 |
+SeqEdge 基于一套开源工具链构建，用于完成界面渲染、数据访问、参考浏览器集成与部署发布。
 
 ### 工具出处与引用
 
-| 工具 | 版本 | 出处 |
-| --- | --- | --- |
-| [Next.js](https://nextjs.org/docs) | `15.5.21` | 官方文档 |
-| [React](https://react.dev/learn) | `19.2.4` | 官方学习文档 |
-| [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) | `^2.110.7` | Supabase JavaScript 客户端官方文档 |
-| [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) | `^4.3.0` | JBrowse 2 官方文档 |
-| [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) | `^3.1.0` | npm 包说明 |
-| [JBrowse 2](https://www.nature.com/articles/s41587-023-01780-9) | 集成运行时 | Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023 |
-| [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) | `^8.21.3` | 官方文档 |
-| [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | 官方入门手册 |
-| [`@opennextjs/cloudflare`](https://open.nextjs.org/cloudflare) | `^1.20.2` | OpenNext Cloudflare 官方文档 |
-| [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | `^4.113.0` | Cloudflare Workers CLI 官方文档 |
-
-SeqEdge 也借鉴了 [EPD](https://epd.fl.ch/)、[DBTSS](https://dbtss.hgc.jp/) 与 [RegulonDB](https://regulondb.ccg.unam.mx/) 等经典子基因组数据库，并采用云原生部署模型进行了更新。
+| 工具 | 版本 | 功能 | 引用 |
+| --- | --- | --- | --- |
+| [Next.js](https://nextjs.org/docs) | `15.5.21` | 应用框架与运行时 | 官方文档 |
+| [React](https://react.dev/learn) | `19.2.4` | 组件渲染与客户端状态管理 | 官方学习文档 |
+| [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) | `^2.110.7` | 数据库、认证与存储客户端访问 | Supabase JavaScript 客户端文档 |
+| [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) | `^4.3.0` | 内嵌参考浏览器核心 | JBrowse 2 官方文档 |
+| [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) | `^3.1.0` | 线性浏览器视图的 React 封装 | npm 包说明 |
+| [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) | `^8.21.3` | 记录表格渲染与交互 | 官方文档 |
+| [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | 概览图表与仪表盘可视化 | 官方入门手册 |
+| [`@opennextjs/cloudflare`](https://open.nextjs.org/cloudflare) | `^1.20.2` | Cloudflare 构建适配器 | OpenNext Cloudflare 官方文档 |
+| [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | `^4.113.0` | Cloudflare 部署命令行工具 | Cloudflare Workers CLI 官方文档 |
 
 <div align="right">
 
