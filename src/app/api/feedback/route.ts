@@ -131,17 +131,6 @@ async function sendReplyEmail(payload: {
 
 const COMMENTS_SELECT = "id, feedback_id, author_name, author_email, message, image_url, created_at";
 
-async function getFeedbackComments(feedbackId: string) {
-  const sb = getSupabase();
-  const { data, error } = await sb
-    .from("feedback_comments")
-    .select(COMMENTS_SELECT)
-    .eq("feedback_id", feedbackId)
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return data || [];
-}
-
 export async function GET(request: NextRequest) {
   if (!isSupabaseConfigured) {
     return NextResponse.json(

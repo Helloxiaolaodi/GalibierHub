@@ -90,6 +90,20 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
     width: 448,
     height: 720,
   });
+  const vcfDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.vcf_download_url) : '';
+  const fastaDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.fasta_download_url) : '';
+  const gbDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gb_download_url) : '';
+  const bedDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.bed_download_url) : '';
+  const gff3DownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gff3_download_url) : '';
+  const { isVisible: isDownloadVisible, loaded: downloadsLoaded } = useDownloadVisibility(
+    [vcfDownloadUrl, fastaDownloadUrl, gbDownloadUrl, bedDownloadUrl, gff3DownloadUrl],
+    isAdmin,
+  );
+  const visibleVcfDownloadUrl = isDownloadVisible(vcfDownloadUrl) ? vcfDownloadUrl : '';
+  const visibleFastaDownloadUrl = isDownloadVisible(fastaDownloadUrl) ? fastaDownloadUrl : '';
+  const visibleGbDownloadUrl = isDownloadVisible(gbDownloadUrl) ? gbDownloadUrl : '';
+  const visibleBedDownloadUrl = isDownloadVisible(bedDownloadUrl) ? bedDownloadUrl : '';
+  const visibleGff3DownloadUrl = isDownloadVisible(gff3DownloadUrl) ? gff3DownloadUrl : '';
 
   useEffect(() => {
     if (!promoter) return;
@@ -174,22 +188,8 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
   const strandColor = promoter.strand === '+' ? 'text-blue-600' : 'text-red-600';
   const length = promoter.end_pos - promoter.start;
   const bmi = sample && sample !== null ? bmiClass(sample.bmi) : null;
-  const vcfDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.vcf_download_url) : '';
-  const fastaDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.fasta_download_url) : '';
-  const gbDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gb_download_url) : '';
-  const bedDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.bed_download_url) : '';
-  const gff3DownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gff3_download_url) : '';
   const showVcfCli = sample?.vcf_download_mode === 'cli';
   const showFastaCli = sample?.fasta_download_mode === 'cli';
-  const { isVisible: isDownloadVisible, loaded: downloadsLoaded } = useDownloadVisibility(
-    [vcfDownloadUrl, fastaDownloadUrl, gbDownloadUrl, bedDownloadUrl, gff3DownloadUrl],
-    isAdmin,
-  );
-  const visibleVcfDownloadUrl = isDownloadVisible(vcfDownloadUrl) ? vcfDownloadUrl : '';
-  const visibleFastaDownloadUrl = isDownloadVisible(fastaDownloadUrl) ? fastaDownloadUrl : '';
-  const visibleGbDownloadUrl = isDownloadVisible(gbDownloadUrl) ? gbDownloadUrl : '';
-  const visibleBedDownloadUrl = isDownloadVisible(bedDownloadUrl) ? bedDownloadUrl : '';
-  const visibleGff3DownloadUrl = isDownloadVisible(gff3DownloadUrl) ? gff3DownloadUrl : '';
 
   const handleCopyBed = () => {
     const bed = `${promoter.chrom}\t${promoter.start}\t${promoter.end_pos}\t${promoter.gene_symbol || 'NA'}\t${promoter.score}\t${promoter.strand}`;

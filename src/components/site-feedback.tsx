@@ -1,11 +1,11 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { SiteConfig } from '@/site-config';
 import { useDiscussionComments } from './discussion-comments';
 import type { FeedbackSummary, ReactionCounts, SiteFeedbackEntry } from '@/types/genome';
 
-type FeedbackCategory = 'general' | 'issue' | 'idea' | 'data' | 'collaboration';
 type ReactionType = 'like' | 'bookmark';
 
 interface FeedbackResponse {
@@ -20,15 +20,6 @@ interface SiteFeedbackProps {
   refreshSignal?: number;
   onFeedbackSubmitted?: () => void;
 }
-
-const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
-  general: 'General',
-  issue: 'Issue',
-  idea: 'Idea',
-  data: 'Data',
-  collaboration: 'Collaboration',
-};
-
 
 function renderMessageWithImages(
   text: string | null | undefined,
@@ -57,10 +48,13 @@ function renderMessageWithImages(
           return <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{part}</span>;
         }
         return (
-          <img
+          <Image
             key={i}
             src={part.src}
             alt={part.alt}
+            width={1200}
+            height={900}
+            unoptimized
             className={`max-w-full h-auto rounded my-2 ${onImageClick ? 'cursor-zoom-in' : ''}`}
             loading="lazy"
             decoding="async"
@@ -105,7 +99,7 @@ const FEEDBACK_PAGE_SIZE = 5;
 export default function SiteFeedback({ accessToken = null, creatorLogin = null, refreshSignal = 0, onFeedbackSubmitted }: SiteFeedbackProps) {
   const [entries, setEntries] = useState<SiteFeedbackEntry[]>([]);
   const [summary, setSummary] = useState<FeedbackSummary>({ totalComments: 0, averageRating: 0 });
- const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({ like: 0, bookmark: 0 });
+ const [, setReactionCounts] = useState<ReactionCounts>({ like: 0, bookmark: 0 });
   const [entryReactionCounts, setEntryReactionCounts] = useState<Record<string, { like: number; bookmark: number }>>({});
   const [entryActiveReactions, setEntryActiveReactions] = useState<Record<string, Record<string, boolean>>>({});
   const [loading, setLoading] = useState(true);
@@ -945,9 +939,12 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <img
+          <Image
             src={lightBox.src}
             alt={lightBox.alt}
+            width={1600}
+            height={1200}
+            unoptimized
             className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
             decoding="async"
             referrerPolicy="no-referrer"
