@@ -10,6 +10,7 @@ export function useDownloadVisibility(urls: Array<string | null | undefined>, is
     () => [...new Set(urls.map((url) => normalizeDownloadKey(url || '')).filter(Boolean))],
     [urls],
   );
+  const keySignature = useMemo(() => keys.join('||'), [keys]);
   const [hiddenMap, setHiddenMap] = useState<VisibilityMap>({});
   const [loaded, setLoaded] = useState(false);
 
@@ -48,7 +49,7 @@ export function useDownloadVisibility(urls: Array<string | null | undefined>, is
     return () => {
       active = false;
     };
-  }, [isAdmin, keys]);
+  }, [isAdmin, keySignature]);
 
   const isVisible = (url: string | null | undefined) => {
     if (!url) return false;
