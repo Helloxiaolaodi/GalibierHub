@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomBytes, scryptSync } from "crypto";
-import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
+import { getServiceSupabase, getSupabase, hasSupabaseServiceRole, isSupabaseConfigured } from "@/utils/supabase";
 import { requireCreatorGithubAuth, getBearerToken } from "@/lib/feedback-admin";
 import { DEFAULT_DOWNLOAD_METADATA, normalizeDownloadKey, type DownloadStorageProvider } from "@/lib/download-info";
 
@@ -68,6 +68,12 @@ export async function PUT(request: Request) {
   if (!isSupabaseConfigured) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
+  if (!hasSupabaseServiceRole) {
+    return NextResponse.json(
+      { error: "SUPABASE_SERVICE_ROLE_KEY is required for creator download metadata writes." },
+      { status: 503 },
+    );
+  }
 
   let body: unknown;
   try {
@@ -129,20 +135,21 @@ export async function PUT(request: Request) {
     patch.password_hash = hashPassword(payload.password.trim());
   }
 
-  const sb = getSupabase();
+  const sb = getServiceSupabase();
   const { data: existing } = await sb
     .from("download_metadata")
     .select("download_key")
     .eq("download_key", key)
     .maybeSingle();
 
-  if (existing) {
-    const { error } = await sb.from("download_metadata").update(patch).eq("download_key", key);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  } else {
+  if (!existing) {
     const { error } = await sb.from("download_metadata").insert({ download_key: key, ...patch });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
   }
+
+  const { error } = await sb.from("download_metadata").update(patch).eq("download_key", key);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }
