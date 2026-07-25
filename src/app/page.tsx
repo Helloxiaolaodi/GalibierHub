@@ -14,6 +14,7 @@ import UserGuide from '@/components/user-guide';
 import DownloadCatalogPanel from '@/components/download-catalog-panel';
 import SiteFeedback from '@/components/site-feedback';
 import SiteUptime from '@/components/site-uptime';
+import { resolveExpectedAdminGithubLogin } from '@/lib/admin-login';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
@@ -70,11 +71,7 @@ export default function HomePage() {
   const [dataError, setDataError] = useState<string | null>(null);
 
   const expectedAdminLogin = useMemo(
-    () => {
-      const publicEnv = (process.env.NEXT_PUBLIC_GITHUB_ADMIN_USERNAME || '').trim().toLowerCase();
-      if (publicEnv) return publicEnv;
-      return (SiteConfig.creatorCreditLabel || '').trim().replace(/^@/, '').toLowerCase();
-    },
+    () => resolveExpectedAdminGithubLogin({ fallbackLabel: SiteConfig.creatorCreditLabel }),
     [],
   );
 

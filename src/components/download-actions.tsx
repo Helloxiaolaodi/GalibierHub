@@ -340,6 +340,12 @@ export default function DownloadActions({
           </button>
         )}
       </div>
+      {isAdmin && saveState && !open && (
+        <p className={`text-xs ${saveState.ok ? 'text-emerald-700' : 'text-red-600'}`}>
+          {saveState.text}
+          {saveState.ok && hidden ? ' Visible to creator admin only.' : ''}
+        </p>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4" role="dialog" aria-modal="true" onClick={() => setOpen(false)}>
