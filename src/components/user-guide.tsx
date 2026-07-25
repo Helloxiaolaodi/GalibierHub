@@ -53,46 +53,47 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
 
         <div className="space-y-5 p-5 text-sm leading-relaxed text-gray-700">
           <section>
-            <h3 className="mb-2 font-semibold text-gray-900">1. Browsing Data</h3>
+            <h3 className="mb-2 font-semibold text-gray-900">1. Overview</h3>
             <ul className="space-y-2">
-              <li><span className="font-medium text-gray-900">Overview:</span> Dashboard with live metric counts and interactive charts for species and score distributions.</li>
-              <li><span className="font-medium text-gray-900">Promoters:</span> Filter by chromosome, gene, score, sample ID, species, tissue, cohort, or BMI class. Click any row to inspect sequence details, copy as BED/FASTA, and view in the embedded genome browser.</li>
+              <li>Use this tab to view summary metrics, charts, and featured download entries.</li>
+              <li>Start here if you want a quick overview before opening records or downloads.</li>
             </ul>
           </section>
 
           <section>
-            <h3 className="mb-2 font-semibold text-gray-900">2. Downloading Data</h3>
+            <h3 className="mb-2 font-semibold text-gray-900">2. Records</h3>
             <ul className="space-y-2">
-              <li><span className="font-medium text-gray-900">Web download:</span> Click <span className="font-medium text-gray-900">Download</span> on any file card. Links go directly to the public storage host with <code>?download=true</code> for maximum speed.</li>
-              <li><span className="font-medium text-gray-900">CLI download (recommended for large files):</span> Use <span className="font-medium text-gray-900">Copy wget</span> or <span className="font-medium text-gray-900">Copy curl</span> for resumable terminal downloads.</li>
-              <li><span className="font-medium text-gray-900">Overview bundles:</span> Download complete dataset archives from the Dataset Downloads section on the Overview tab.</li>
+              <li>Filter records by fields such as coordinate, label, score, sample, species, tissue, cohort, or class.</li>
+              <li>Click a row to open the detail panel and jump the embedded browser to the matching region.</li>
+              <li>Use the detail panel to inspect metadata and open file downloads for that record.</li>
             </ul>
           </section>
 
           <section>
-            <h3 className="mb-2 font-semibold text-gray-900">3. Community Feedback</h3>
+            <h3 className="mb-2 font-semibold text-gray-900">3. Discussion</h3>
             <ul className="space-y-2">
-              <li>Navigate to the <span className="font-medium text-gray-900">Community Feedback</span> tab and click <span className="font-medium text-gray-900">Leave Feedback</span> to submit a message.</li>
-              <li>Each message includes a title, category, rating, and public/private visibility. Email is optional.</li>
-              <li>Threads are grouped into <span className="font-medium text-gray-900">In progress</span> and <span className="font-medium text-gray-900">Completed</span> sections with timestamps.</li>
-              <li>Like and bookmark entries to show support and save for later.</li>
+              <li>Click <span className="font-medium text-gray-900">Leave Feedback</span> to post a message. GitHub sign-in is supported for posting.</li>
+              <li>Threads appear in <span className="font-medium text-gray-900">In progress</span> and <span className="font-medium text-gray-900">Completed</span>.</li>
+              <li>You can view likes, bookmarks, replies, and uploaded images. Click an image to enlarge it.</li>
             </ul>
           </section>
 
           <section>
-            <h3 className="mb-2 font-semibold text-gray-900">4. For Site Creators</h3>
+            <h3 className="mb-2 font-semibold text-gray-900">4. Downloads</h3>
             <ul className="space-y-2">
-              <li><span className="font-medium text-gray-900">Reply:</span> Sign in with GitHub (Creator Sign In) to reply to feedback. Replies are emailed to visitors who provided an email address.</li>
-              <li><span className="font-medium text-gray-900">Moderate:</span> Pin important entries to the top of Completed (max 3) or hide entries from public view.</li>
-              <li><span className="font-medium text-gray-900">Customize:</span> Edit <code>src/site-config.ts</code> to set branding, tracks, and download links.</li>
-              <li><span className="font-medium text-gray-900">Deploy:</span> See README for Vercel, Cloudflare Pages, and Wrangler deployment guides.</li>
+              <li>Open this tab to browse downloadable files grouped by path.</li>
+              <li>For a single file, open its download window from <span className="font-medium text-gray-900">Overview</span>, a record detail panel in <span className="font-medium text-gray-900">Records</span>, or the file list in <span className="font-medium text-gray-900">Downloads</span>.</li>
+              <li>For batch scripts, select items in <span className="font-medium text-gray-900">Records</span> and click <span className="font-medium text-gray-900">Batch download</span>.</li>
+              <li>The download window shows file info, browser download, and command-line commands.</li>
+              <li>For large public files, prefer <code>wget -c</code>, <code>curl -L -C -</code>, or <code>hf download</code> because they support resume.</li>
+              <li>Protected files may require site access or a short-lived link and may not appear in batch scripts.</li>
             </ul>
           </section>
 
          <section>
-            <h3 className="mb-2 font-semibold text-gray-900">Open-source Stack</h3>
+            <h3 className="mb-2 font-semibold text-gray-900">Quick Tips</h3>
             <p className="text-xs text-gray-500">
-              Built with Next.js 15, React 19, Supabase, JBrowse 2, TanStack Table, ECharts, and OpenNext.
+              Use <span className="font-medium text-gray-700">Overview</span> to orient yourself, <span className="font-medium text-gray-700">Records</span> to inspect entries, <span className="font-medium text-gray-700">Discussion</span> to post feedback, and <span className="font-medium text-gray-700">Downloads</span> to get files.
             </p>
           </section>
         </div>

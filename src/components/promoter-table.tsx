@@ -688,15 +688,15 @@ export default function PromoterTable({
             </div>
             <div className="space-y-4 px-5 py-4">
               <p className="text-sm text-gray-600">
-                Review the unified download metadata for the selected <span className="font-medium text-gray-900">{selectedSampleIds.size}</span> item{selectedSampleIds.size === 1 ? '' : 's'}. Public files can be exported into resume-enabled batch scripts. Protected files are listed here for inspection, but they are intentionally omitted from reusable scripts.
+                Review downloads for <span className="font-medium text-gray-900">{selectedSampleIds.size}</span> selected item{selectedSampleIds.size === 1 ? '' : 's'}. Public direct files can be exported to resume-capable scripts. Protected or non-direct files are listed but excluded from reusable scripts.
               </p>
-              {batchLoading && <p className="text-sm text-gray-500">Resolving download URLs...</p>}
-              {!batchLoading && batchMetaLoading && <p className="text-sm text-gray-500">Loading checksum and file metadata...</p>}
+              {batchLoading && <p className="text-sm text-gray-500">Resolving files...</p>}
+              {!batchLoading && batchMetaLoading && <p className="text-sm text-gray-500">Loading metadata...</p>}
               {batchError && <p className="text-sm text-red-600">{batchError}</p>}
               {!batchLoading && !batchError && batchItems.length > 0 && (
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
-                    <span>{batchItems.length} file(s) resolved. {batchPublicCount} public scriptable, {batchPrivateCount} protected.</span>
+                    <span>{batchItems.length} file(s). {batchPublicCount} scriptable, {batchPrivateCount} excluded.</span>
                     {allSha256Text && <button type="button" onClick={() => handleCopy('sha256-all', allSha256Text)} className="text-blue-600 hover:underline">{copied === 'sha256-all' ? 'Copied' : 'Copy all SHA256'}</button>}
                   </div>
                   <div className="max-h-[32rem] overflow-auto rounded border border-gray-100 bg-gray-50">
@@ -769,14 +769,20 @@ export default function PromoterTable({
                     </table>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <button type="button" onClick={() => downloadText('seqedge-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">Download .sh script (Linux/macOS, public files, resume)</button>
-                    <button type="button" onClick={() => downloadText('seqedge-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">Download .bat script (Windows, public files, resume)</button>
+                    <button type="button" onClick={() => downloadText('seqedge-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">Download .sh (Linux/macOS, resume)</button>
+                    <button type="button" onClick={() => downloadText('seqedge-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">Download .bat (Windows, resume)</button>
                   </div>
-                  <details className="text-xs text-gray-500">
-                    <summary className="cursor-pointer hover:text-gray-700">Preview the shell script</summary>
-                    <pre className="mt-2 max-h-56 overflow-auto rounded bg-gray-900 p-3 font-mono text-[11px] text-gray-100">{buildSh(batchItems)}</pre>
-                  </details>
-                  <p className="text-xs text-gray-400">Public script entries use resume-enabled downloads (`wget -c` / `curl -C -`). Protected files backed by Supabase signed URLs and entries that are not direct file URLs are intentionally omitted from batch scripts. SHA256 is shown when supplied by admin metadata or exposed by Hugging Face LFS metadata. MD5 remains `N/A` unless you provide it in metadata. Download counts mainly reflect browser-triggered downloads that pass through the site workflow.</p>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    <details className="text-xs text-gray-500">
+                      <summary className="cursor-pointer hover:text-gray-700">Preview .sh</summary>
+                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-gray-900 p-3 font-mono text-[11px] text-gray-100">{buildSh(batchItems)}</pre>
+                    </details>
+                    <details className="text-xs text-gray-500">
+                      <summary className="cursor-pointer hover:text-gray-700">Preview .bat</summary>
+                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-gray-900 p-3 font-mono text-[11px] text-gray-100 whitespace-pre-wrap">{buildBat(batchItems)}</pre>
+                    </details>
+                  </div>
+                  <p className="text-xs text-gray-400">Public scripts use resume (`wget -c` / `curl -C -`). Protected signed URLs and non-direct links are excluded. SHA256 appears when available. MD5 stays `N/A` unless you set it. Counts mainly reflect browser downloads triggered through the site.</p>
                 </>
               )}
             </div>

@@ -183,7 +183,7 @@ SeqEdge 将三部分解耦：
 2. Cloudflare Pages 作为镜像站
 3. Cloudflare Worker 用于 Hugging Face 代理
 
-主界面当前有三个标签页：**Overview**、**Promoters**（promoter 表格 + 基因组浏览器）与 **Discussion**。
+主界面当前已有四个标签页：**Overview**、**Records**（记录表格 + 基因组浏览器）、**Discussion** 与 **Downloads**。
 
 需要说明的是：仓库当前已发布的默认 UI 和默认数据模型仍然是偏基因组 / promoter 场景的命名。未来模板使用者可以再做泛化，但当前代码本身仍以 promoter 和 genome 相关字段为主。
 
@@ -237,6 +237,7 @@ NEXT_PUBLIC_REFERENCE_BUNDLE_MODE=direct
 
 ```bash
 GITHUB_ADMIN_USERNAME=your-github-login
+NEXT_PUBLIC_GITHUB_ADMIN_USERNAME=your-github-login
 FEEDBACK_EMAIL_API_URL=https://your-mail-service.example/send
 FEEDBACK_EMAIL_API_KEY=your_mail_api_key
 FEEDBACK_EMAIL_TO=owner@example.org
@@ -247,7 +248,7 @@ FEEDBACK_EMAIL_TO=owner@example.org
 - 生产环境的 API 路由建议使用 `SUPABASE_SERVICE_ROLE_KEY`。
 - 若文件存放在子目录，请在 `NEXT_PUBLIC_STORAGE_BASE_URL` 中包含该前缀。
 - 支持直接读取 Hugging Face，但 Worker 是最可靠的 JBrowse 读取路径。
-- 启用创建者回复：在 Supabase 中启用 GitHub 身份认证（见 [创建者回帖设置](#创建者回帖设置)），并将 `GITHUB_ADMIN_USERNAME` 设为唯一被允许回帖的 GitHub 登录名。
+- 启用创建者回复：在 Supabase 中启用 GitHub 身份认证（见 [创建者回帖设置](#创建者回帖设置)），同时将 `GITHUB_ADMIN_USERNAME` 用于服务端回帖鉴权，并将 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` 用于前端创建者控制界面的鉴权。
 
 ### 3. 初始化数据库
 
@@ -325,19 +326,21 @@ Cloudflare Pages：
 
 ## 在何处配置下载
 
-- 总览下载卡片：`src/site-config.ts`
+- Overview 标签页中的精选下载卡片：`src/site-config.ts`
 - 样本级下载元数据：`genome_samples.vcf_download_url`、`genome_samples.fasta_download_url`、`genome_samples.gb_download_url`、`genome_samples.bed_download_url`、`genome_samples.gff3_download_url` 及相关 `*_download_mode` 字段
 - 统一下载元数据结构与命令生成：`src/lib/download-info.ts`
 - 单文件下载弹窗与创建者编辑能力：`src/components/download-actions.tsx`
 - 公开文件的批量脚本生成：`src/components/promoter-table.tsx` 与 `/api/samples/batch`
+- 独立的站内下载目录与按路径分组展示：`src/components/download-catalog-panel.tsx` 与 `/api/download-catalog`
 - 私有 signed URL 解析：`/api/download-metadata/resolve`，底层依赖 `download_metadata` 表
 
 ## 如何把 Hugging Face 文件接入 SeqEdge
 
-当前代码里，Hugging Face 文件有两个实用接入点：
+当前代码里，Hugging Face 文件有三个实用接入点：
 
 1. 首页精选下载卡片
 2. 样本级下载入口（显示在记录详情浮层和独立详情页中）
+3. 独立的 `Downloads` 标签页，按类似文件夹路径分组展示站内可下载文件，并复用同一套统一下载弹窗
 
 ### 1. 先使用正确的直链 URL
 
@@ -360,7 +363,7 @@ NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 ```
 
-这样首页总览区的下载卡片就会显示该文件，并打开统一下载弹窗。
+这样 Overview 标签页中的精选下载卡片就会显示该文件，并打开统一下载弹窗。只要该文件同时进入站内下载目录，它也可以出现在独立的 `Downloads` 标签页中。
 
 ### 3. 让同一个文件显示为样本级下载入口
 
@@ -383,6 +386,8 @@ where sample_id = 'CNhs10881';
 ```
 
 这样访问对应记录时，就能在详情浮层和详情页中看到这个样本级下载入口。
+
+如果你还希望同一个文件在独立 `Downloads` 标签页中出现，可继续通过 `download_metadata` 绑定这条文件记录。这样用户无论从 Overview、Records 还是 Downloads 进入，最终看到的都是同一套单文件下载弹窗结构。
 
 ### 4. 补充隐藏 / 密码 / 元数据控制
 
@@ -434,14 +439,14 @@ on conflict (download_key) do update set
 
 ## 用户指南内容
 
-应用内的用户指南涵盖四个部分：
+应用内的用户指南现在只面向网站访问者，并保持简洁。它只解释四个主界面的用法：
 
-1. 浏览数据
-2. 下载数据
-3. 讨论
-4. 站点创建者指南
+1. Overview
+2. Records
+3. Discussion
+4. Downloads
 
-用户可在此了解大文件的浏览器下载与 CLI 下载的区别，以及如何使用内置反馈渠道。
+它的目标是让访问者快速上手使用网站，而不是承担部署说明或创建者专用配置文档的角色。
 
 ## 讨论
 
@@ -453,7 +458,7 @@ SeqEdge 内置了一个面向科研交流的轻量互动区域：
 - `讨论` 标签页将帖子分为 `进行中` 与 `已完成` 两类展示。
 - 帖子支持排序，包含 `Most liked` 视图。
 - 创建者回复会显示在站点上，配置邮件 API 时也可同时发送邮件。
-- 回复操作仅限与 `GITHUB_ADMIN_USERNAME` 匹配的 GitHub 账号。
+- 回复操作仅限与 `GITHUB_ADMIN_USERNAME` 匹配的 GitHub 账号；同时浏览器中的创建者控制界面还要求 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` 与其保持一致。
 - 每条帖子都会显示发布与回复的时间戳。
 - 访客可以留下 `点赞` 与 `收藏`，并且这些计数会在列表视图和详情视图中同时显示。
 - 图片上传和留言提交都会显示成功 / 失败提示。
@@ -502,7 +507,7 @@ SeqEdge 内置了一个面向科研交流的轻量互动区域：
 
 ### 4. 配置环境
 
-在 `.env.local` 或部署控制台中将 `GITHUB_ADMIN_USERNAME` 设为允许回帖的 GitHub 登录名。任何其他已登录的 GitHub 账号可查看但不能发布创建者回复。
+在 `.env.local` 或部署控制台中，将 `GITHUB_ADMIN_USERNAME` 与 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` 都设为同一个允许回帖的 GitHub 登录名。任何其他已登录的 GitHub 账号可查看但不能发布创建者回复。
 
 随后通过站点右上角的 `使用 GitHub 登录` 按钮登录。
 

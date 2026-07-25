@@ -60,10 +60,10 @@ export const DEFAULT_DOWNLOAD_METADATA: DownloadMetadataPayload = {
 };
 
 export const HF_REGION_HINT =
-  'This file is hosted on Hugging Face (US-East). Large-file downloads from Asia are best handled with the Hugging Face CLI, which supports resume and multi-stream transfer and is more reliable than plain wget/curl over long-distance routes.';
+  'Hosted on Hugging Face (US-East). In Asia, use the Hugging Face CLI for more reliable resumed large-file downloads.';
 
 export const PRIVATE_ACCESS_NOTE =
-  'This file uses a private Supabase Storage object and is delivered through a short-lived signed URL. Browser download is supported. Direct CLI commands are not exposed in the public UI for protected files.';
+  'This file uses a private Supabase signed URL. Browser download works. Public CLI commands are hidden.';
 
 export function normalizeDownloadKey(key: string): string {
   return key.split('?')[0].trim();

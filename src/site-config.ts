@@ -5,6 +5,104 @@
 // Other users who fork this template only need to edit this file
 // (plus .env.local and schema.sql) to create their own database site.
 
+type FeaturedDownloadItem = {
+  id: string;
+  label: string;
+  description: string;
+  href: string;
+  sizeLabel: string;
+  mode: 'direct' | 'cli';
+};
+
+function hasStorageBaseUrl(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_STORAGE_BASE_URL ||
+    process.env.NEXT_PUBLIC_R2_PUBLIC_URL,
+  );
+}
+
+function buildFeaturedDownloads(): FeaturedDownloadItem[] {
+  const items: FeaturedDownloadItem[] = [
+    {
+      id: 'release-archive',
+      label: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL || 'Download Release Archive',
+      description:
+        process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION ||
+        'Versioned bundle for offline analysis, mirroring, or reproducible local setup.',
+      href: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_URL || '',
+      sizeLabel: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE || '',
+      mode: (process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_MODE || 'cli') as 'direct' | 'cli',
+    },
+    {
+      id: 'reference-bundle',
+      label: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_LABEL || 'Download Reference Bundle',
+      description:
+        process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_DESCRIPTION ||
+        'Reference FASTA and annotation files used by the embedded browser.',
+      href: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_URL || '',
+      sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_SIZE || '',
+      mode: (process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_MODE || 'cli') as 'direct' | 'cli',
+    },
+  ];
+
+  if (hasStorageBaseUrl()) {
+    items.push(
+      {
+        id: 'reference-fasta',
+        label: process.env.NEXT_PUBLIC_REFERENCE_FASTA_LABEL || 'Download Reference FASTA',
+        description:
+          process.env.NEXT_PUBLIC_REFERENCE_FASTA_DESCRIPTION ||
+          'Primary FASTA file used by the embedded browser and local analysis workflows.',
+        href: process.env.NEXT_PUBLIC_REFERENCE_FASTA || 'scov2.fa',
+        sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_FASTA_SIZE || '',
+        mode: (process.env.NEXT_PUBLIC_REFERENCE_FASTA_MODE || 'cli') as 'direct' | 'cli',
+      },
+      {
+        id: 'reference-fasta-index',
+        label: process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX_LABEL || 'Download FASTA Index',
+        description:
+          process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX_DESCRIPTION ||
+          'Index file paired with the reference FASTA for browser jumps and CLI access.',
+        href: process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX || 'scov2.fa.fai',
+        sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX_SIZE || '',
+        mode: (process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX_MODE || 'cli') as 'direct' | 'cli',
+      },
+      {
+        id: 'reference-bed',
+        label: process.env.NEXT_PUBLIC_REFERENCE_BED_LABEL || 'Download Annotation BED',
+        description:
+          process.env.NEXT_PUBLIC_REFERENCE_BED_DESCRIPTION ||
+          'BED annotation file used by the embedded browser and downstream processing.',
+        href: process.env.NEXT_PUBLIC_REFERENCE_BED || 'scov2.genes.bed',
+        sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_BED_SIZE || '',
+        mode: (process.env.NEXT_PUBLIC_REFERENCE_BED_MODE || 'cli') as 'direct' | 'cli',
+      },
+      {
+        id: 'reference-gff3',
+        label: process.env.NEXT_PUBLIC_REFERENCE_GFF3_LABEL || 'Download Annotation GFF3',
+        description:
+          process.env.NEXT_PUBLIC_REFERENCE_GFF3_DESCRIPTION ||
+          'GFF3 annotation file for browser rendering, parsing, and local reuse.',
+        href: process.env.NEXT_PUBLIC_REFERENCE_GFF3 || 'scov2.genes.gff3',
+        sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_GFF3_SIZE || '',
+        mode: (process.env.NEXT_PUBLIC_REFERENCE_GFF3_MODE || 'cli') as 'direct' | 'cli',
+      },
+      {
+        id: 'reference-genbank',
+        label: process.env.NEXT_PUBLIC_REFERENCE_GENBANK_LABEL || 'Download GenBank File',
+        description:
+          process.env.NEXT_PUBLIC_REFERENCE_GENBANK_DESCRIPTION ||
+          'GenBank-format reference record for archive use, inspection, and local parsing.',
+        href: process.env.NEXT_PUBLIC_REFERENCE_GENBANK || 'scov2.gb',
+        sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_GENBANK_SIZE || '',
+        mode: (process.env.NEXT_PUBLIC_REFERENCE_GENBANK_MODE || 'cli') as 'direct' | 'cli',
+      },
+    );
+  }
+
+  return items.filter((item) => Boolean(item.href));
+}
+
 export const SiteConfig = {
   title: 'SeqEdge',
   subtitle: 'A Modern Edge-Native Portal for Genomic Databases',
@@ -71,28 +169,7 @@ export const SiteConfig = {
   },
 
   downloads: {
-    featured: [
-      {
-        id: 'release-archive',
-        label: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL || 'Download Release Archive',
-        description:
-          process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION ||
-          'Versioned bundle for offline analysis, mirroring, or reproducible local setup.',
-        href: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_URL || '',
-        sizeLabel: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE || '',
-        mode: (process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_MODE || 'cli') as 'direct' | 'cli',
-      },
-      {
-        id: 'reference-bundle',
-        label: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_LABEL || 'Download Reference Bundle',
-        description:
-          process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_DESCRIPTION ||
-          'Reference FASTA and annotation files used by the embedded genome browser.',
-        href: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_URL || '',
-        sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_SIZE || '',
-        mode: (process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_MODE || 'cli') as 'direct' | 'cli',
-      },
-    ],
+    featured: buildFeaturedDownloads(),
   },
 
   // Chinese adult BMI classification (kg/m^2)

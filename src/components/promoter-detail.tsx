@@ -5,6 +5,7 @@ import { SiteConfig } from '@/site-config';
 import { getDirectDownloadUrl } from '@/lib/storage';
 import type { Promoter, SampleMetadata } from '@/types/genome';
 import DownloadActions from './download-actions';
+import { useDownloadVisibility } from '@/hooks/use-download-visibility';
 
 interface PromoterDetailProps {
   promoter: Promoter | null;
@@ -180,6 +181,15 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
   const gff3DownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gff3_download_url) : '';
   const showVcfCli = sample?.vcf_download_mode === 'cli';
   const showFastaCli = sample?.fasta_download_mode === 'cli';
+  const { isVisible: isDownloadVisible, loaded: downloadsLoaded } = useDownloadVisibility(
+    [vcfDownloadUrl, fastaDownloadUrl, gbDownloadUrl, bedDownloadUrl, gff3DownloadUrl],
+    isAdmin,
+  );
+  const visibleVcfDownloadUrl = isDownloadVisible(vcfDownloadUrl) ? vcfDownloadUrl : '';
+  const visibleFastaDownloadUrl = isDownloadVisible(fastaDownloadUrl) ? fastaDownloadUrl : '';
+  const visibleGbDownloadUrl = isDownloadVisible(gbDownloadUrl) ? gbDownloadUrl : '';
+  const visibleBedDownloadUrl = isDownloadVisible(bedDownloadUrl) ? bedDownloadUrl : '';
+  const visibleGff3DownloadUrl = isDownloadVisible(gff3DownloadUrl) ? gff3DownloadUrl : '';
 
   const handleCopyBed = () => {
     const bed = `${promoter.chrom}\t${promoter.start}\t${promoter.end_pos}\t${promoter.gene_symbol || 'NA'}\t${promoter.score}\t${promoter.strand}`;
@@ -425,12 +435,13 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
             )}
           </div>
 
-          {(vcfDownloadUrl || fastaDownloadUrl || gbDownloadUrl || bedDownloadUrl || gff3DownloadUrl) && (
+          {((downloadsLoaded && (visibleVcfDownloadUrl || visibleFastaDownloadUrl || visibleGbDownloadUrl || visibleBedDownloadUrl || visibleGff3DownloadUrl)) || isAdmin) && (
             <Card title="File downloads">
               <div className="space-y-4">
-                {vcfDownloadUrl && (
+                {!downloadsLoaded && !isAdmin && <p className="text-sm text-gray-500">Loading downloads...</p>}
+                {visibleVcfDownloadUrl && (
                   <DownloadActions
-                    url={vcfDownloadUrl}
+                    url={visibleVcfDownloadUrl}
                     label="Download VCF"
                     description="Sample-level file download from the configured storage host."
                     showCli={showVcfCli}
@@ -438,9 +449,9 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                     accessToken={accessToken}
                   />
                 )}
-               {fastaDownloadUrl && (
+               {visibleFastaDownloadUrl && (
                  <DownloadActions
-                   url={fastaDownloadUrl}
+                   url={visibleFastaDownloadUrl}
                    label="Download FASTA"
                    description="Sample-level file download from the configured storage host."
                    showCli={showFastaCli}
@@ -448,9 +459,9 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                    accessToken={accessToken}
                  />
                )}
-               {gbDownloadUrl && (
+               {visibleGbDownloadUrl && (
                  <DownloadActions
-                   url={gbDownloadUrl}
+                   url={visibleGbDownloadUrl}
                    label="Download Package"
                    description="Sample-level file download from the configured storage host."
                    showCli={true}
@@ -458,9 +469,9 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                    accessToken={accessToken}
                  />
                )}
-               {bedDownloadUrl && (
+               {visibleBedDownloadUrl && (
                  <DownloadActions
-                   url={bedDownloadUrl}
+                   url={visibleBedDownloadUrl}
                    label="Download BED"
                    description="Sample-level file download from the configured storage host."
                    showCli={true}
@@ -468,15 +479,18 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                    accessToken={accessToken}
                  />
                )}
-               {gff3DownloadUrl && (
+               {visibleGff3DownloadUrl && (
                  <DownloadActions
-                   url={gff3DownloadUrl}
+                   url={visibleGff3DownloadUrl}
                    label="Download GFF3"
                    description="Sample-level file download from the configured storage host."
                    showCli={true}
                    isAdmin={isAdmin}
                    accessToken={accessToken}
                  />
+               )}
+               {downloadsLoaded && !isAdmin && !visibleVcfDownloadUrl && !visibleFastaDownloadUrl && !visibleGbDownloadUrl && !visibleBedDownloadUrl && !visibleGff3DownloadUrl && (
+                 <p className="text-sm text-gray-500">No public downloads are available for this item.</p>
                )}
               </div>
             </Card>

@@ -63,6 +63,8 @@ function renderMessageWithImages(
             alt={part.alt}
             className={`max-w-full h-auto rounded my-2 ${onImageClick ? 'cursor-zoom-in' : ''}`}
             loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
             onClick={onImageClick ? () => onImageClick(part.src, part.alt) : undefined}
           />
         );
@@ -947,6 +949,8 @@ const [uploadingImage, setUploadingImage] = useState(false);
             src={lightBox.src}
             alt={lightBox.alt}
             className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+            decoding="async"
+            referrerPolicy="no-referrer"
             onClick={(e: ReactMouseEvent<HTMLImageElement>) => e.stopPropagation()}
           />
        </div>
