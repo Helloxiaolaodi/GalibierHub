@@ -22,6 +22,13 @@ function hasStorageBaseUrl(): boolean {
 }
 
 function buildFeaturedDownloads(): FeaturedDownloadItem[] {
+  const storageBaseUrl =
+    process.env.NEXT_PUBLIC_STORAGE_BASE_URL ||
+    process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
+    '';
+  const defaultReleaseArchiveUrl = storageBaseUrl.includes('huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main')
+    ? '817-food-biochem/817-food-biochem-materials.zip'
+    : '';
   const items: FeaturedDownloadItem[] = [
     {
       id: 'release-archive',
@@ -29,7 +36,7 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
       description:
         process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION ||
         'Versioned bundle for offline analysis, mirroring, or reproducible local setup.',
-      href: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_URL || '',
+      href: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_URL || defaultReleaseArchiveUrl,
       sizeLabel: process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE || '',
       mode: (process.env.NEXT_PUBLIC_RELEASE_ARCHIVE_MODE || 'cli') as 'direct' | 'cli',
     },
