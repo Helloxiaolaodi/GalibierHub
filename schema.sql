@@ -160,6 +160,9 @@ CREATE TABLE IF NOT EXISTS feedback_comments (
   image_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS author_email TEXT;
+ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
 CREATE INDEX IF NOT EXISTS idx_feedback_comments_feedback_id ON feedback_comments (feedback_id);
 CREATE INDEX IF NOT EXISTS idx_feedback_comments_created_at ON feedback_comments (created_at);
 
@@ -260,6 +263,12 @@ CREATE TABLE IF NOT EXISTS download_metadata (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS custom_label TEXT;
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS custom_size_bytes BIGINT;
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS custom_file_type TEXT;
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS custom_description TEXT;
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS hidden BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS storage_provider TEXT NOT NULL DEFAULT 'public_url';
 ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS storage_bucket TEXT;
 ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS storage_path TEXT;
@@ -267,6 +276,7 @@ ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS signed_url_ttl_seconds IN
 ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS md5_checksum TEXT;
 ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS sha256_checksum TEXT;
 ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'download_metadata_storage_provider_check'
@@ -274,6 +284,30 @@ DO $$ BEGIN
     ALTER TABLE download_metadata
       ADD CONSTRAINT download_metadata_storage_provider_check
       CHECK (storage_provider IN ('public_url', 'supabase_private'));
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'download_metadata_signed_url_ttl_seconds_check'
+  ) THEN
+    ALTER TABLE download_metadata
+      ADD CONSTRAINT download_metadata_signed_url_ttl_seconds_check
+      CHECK (signed_url_ttl_seconds BETWEEN 60 AND 86400);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'download_metadata_private_storage_check'
+  ) THEN
+    ALTER TABLE download_metadata
+      ADD CONSTRAINT download_metadata_private_storage_check
+      CHECK (
+        storage_provider <> 'supabase_private'
+        OR (
+          storage_bucket IS NOT NULL AND btrim(storage_bucket) <> ''
+          AND storage_path IS NOT NULL AND btrim(storage_path) <> ''
+        )
+      );
   END IF;
 END $$;
 
@@ -284,6 +318,9 @@ CREATE TABLE IF NOT EXISTS download_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE download_events ADD COLUMN IF NOT EXISTS ip_hash TEXT;
+ALTER TABLE download_events ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS download_events_key_idx ON download_events (download_key);
 
 ALTER TABLE download_metadata ENABLE ROW LEVEL SECURITY;
@@ -293,13 +330,35 @@ DROP POLICY IF EXISTS "Public read download_metadata" ON download_metadata;
 CREATE POLICY "Public read download_metadata" ON download_metadata FOR SELECT TO anon USING (true);
 
 DROP POLICY IF EXISTS "Public insert download_metadata" ON download_metadata;
-CREATE POLICY "Public insert download_metadata" ON download_metadata FOR INSERT TO anon WITH CHECK (true);
+DROP POLICY IF EXISTS "Service insert download_metadata" ON download_metadata;
+CREATE POLICY "Service insert download_metadata" ON download_metadata FOR INSERT TO authenticated WITH CHECK (auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Public update download_metadata" ON download_metadata;
-CREATE POLICY "Public update download_metadata" ON download_metadata FOR UPDATE TO anon USING (true);
+DROP POLICY IF EXISTS "Service update download_metadata" ON download_metadata;
+CREATE POLICY "Service update download_metadata" ON download_metadata FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Public read download_events" ON download_events;
-CREATE POLICY "Public read download_events" ON download_events FOR SELECT TO anon USING (true);
+DROP POLICY IF EXISTS "Service read download_events" ON download_events;
+CREATE POLICY "Service read download_events" ON download_events FOR SELECT TO authenticated USING (auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Public insert download_events" ON download_events;
-CREATE POLICY "Public insert download_events" ON download_events FOR INSERT TO anon WITH CHECK (true);
+DROP POLICY IF EXISTS "Service insert download_events" ON download_events;
+CREATE POLICY "Service insert download_events" ON download_events FOR INSERT TO authenticated WITH CHECK (auth.role() = 'service_role');
+
+-- ============================================================
+-- Safer RLS for feedback writes: public reads remain open, but
+-- creator/admin mutations are expected to use the server-side
+-- SUPABASE_SERVICE_ROLE_KEY configured in the application.
+-- ============================================================
+DROP POLICY IF EXISTS "Public update site_feedback" ON site_feedback;
+DROP POLICY IF EXISTS "Public delete site_feedback" ON site_feedback;
+DROP POLICY IF EXISTS "Service update site_feedback" ON site_feedback;
+DROP POLICY IF EXISTS "Service delete site_feedback" ON site_feedback;
+CREATE POLICY "Service update site_feedback" ON site_feedback FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service delete site_feedback" ON site_feedback FOR DELETE TO authenticated USING (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Public update feedback_comments" ON feedback_comments;
+
+DROP POLICY IF EXISTS "Public delete site_reactions" ON site_reactions;
+DROP POLICY IF EXISTS "Service delete site_reactions" ON site_reactions;
+CREATE POLICY "Service delete site_reactions" ON site_reactions FOR DELETE TO authenticated USING (auth.role() = 'service_role');

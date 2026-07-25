@@ -7,6 +7,7 @@ import {
   normalizeDownloadKey,
   type DownloadMetadataPayload,
 } from '@/lib/download-info';
+import { NOT_DIRECT_FILE_URL_MESSAGE } from '@/lib/storage';
 
 function verifyPassword(password: string, stored: string): boolean {
   const parts = stored.split(':');
@@ -43,6 +44,9 @@ export async function POST(request: Request) {
 
   if (!isSupabaseConfigured) {
     const resolved = buildDownloadResolvedInfo(downloadKey, DEFAULT_DOWNLOAD_METADATA, fallbackLabel, fallbackDescription);
+    if (!resolved.direct_url_valid || !resolved.public_url) {
+      return NextResponse.json({ error: resolved.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE }, { status: 400 });
+    }
     return NextResponse.json({ ok: true, resolved, url: resolved.public_url }, { status: 200 });
   }
 
@@ -103,8 +107,8 @@ export async function POST(request: Request) {
   }
 
   const resolved = buildDownloadResolvedInfo(downloadKey, meta, fallbackLabel, fallbackDescription);
-  if (!resolved.public_url) {
-    return NextResponse.json({ error: 'This file does not have a usable public URL.' }, { status: 400 });
+  if (!resolved.direct_url_valid || !resolved.public_url) {
+    return NextResponse.json({ error: resolved.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE }, { status: 400 });
   }
 
   return NextResponse.json({ ok: true, resolved, url: resolved.public_url }, { status: 200 });

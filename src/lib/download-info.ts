@@ -1,4 +1,4 @@
-import { getDirectDownloadUrl } from '@/lib/storage';
+import { getDirectDownloadUrl, NOT_DIRECT_FILE_URL_MESSAGE, validateDirectFileUrl } from '@/lib/storage';
 
 export type DownloadStorageProvider = 'public_url' | 'supabase_private';
 
@@ -23,6 +23,7 @@ export interface DownloadMetadataPayload {
 export interface DownloadResolvedInfo extends DownloadMetadataPayload {
   download_key: string;
   public_url: string | null;
+  normalized_public_url: string | null;
   file_name: string;
   file_type: string;
   display_name: string;
@@ -36,6 +37,8 @@ export interface DownloadResolvedInfo extends DownloadMetadataPayload {
   curl_command: string | null;
   access_note: string | null;
   region_hint: string | null;
+  direct_url_valid: boolean;
+  invalid_reason: string | null;
 }
 
 export const DEFAULT_DOWNLOAD_METADATA: DownloadMetadataPayload = {
@@ -156,20 +159,27 @@ export function buildDownloadResolvedInfo(
 ): DownloadResolvedInfo {
   const accessMode = meta.storage_provider || 'public_url';
   const publicUrl = getPublicDownloadUrl(downloadKey, accessMode);
+  const validation = accessMode === 'public_url'
+    ? validateDirectFileUrl(publicUrl)
+    : { normalizedUrl: '', valid: true, reason: null as string | null };
   const pathLike = meta.storage_path || downloadKey;
   const fileName = meta.custom_label || extractDownloadFileName(pathLike);
   const fileType = meta.custom_file_type || inferDownloadFileType(fileName);
   const description = meta.custom_description ?? fallbackDescription ?? null;
-  const hfCli = publicUrl ? parseHfDownloadCommand(publicUrl) : null;
-  const cliSupported = Boolean(publicUrl) && accessMode === 'public_url';
+  const effectivePublicUrl = accessMode === 'public_url' && validation.valid ? (publicUrl || null) : null;
+  const hfCli = effectivePublicUrl ? parseHfDownloadCommand(effectivePublicUrl) : null;
+  const cliSupported = Boolean(effectivePublicUrl) && accessMode === 'public_url';
   const resumeSupported = cliSupported;
   const regionHint = hfCli ? HF_REGION_HINT : null;
-  const accessNote = accessMode === 'supabase_private' ? PRIVATE_ACCESS_NOTE : null;
+  const accessNote = accessMode === 'supabase_private'
+    ? PRIVATE_ACCESS_NOTE
+    : (!validation.valid ? NOT_DIRECT_FILE_URL_MESSAGE : null);
 
   return {
     ...meta,
     download_key: downloadKey,
-    public_url: publicUrl,
+    public_url: effectivePublicUrl,
+    normalized_public_url: publicUrl,
     file_name: fileName,
     file_type: fileType,
     display_name: fallbackLabel || fileName,
@@ -179,9 +189,11 @@ export function buildDownloadResolvedInfo(
     cli_supported: cliSupported,
     resume_supported: resumeSupported,
     hf_cli_command: hfCli,
-    wget_command: publicUrl ? buildWgetCommand(publicUrl) : null,
-    curl_command: publicUrl ? buildCurlCommand(publicUrl) : null,
+    wget_command: effectivePublicUrl ? buildWgetCommand(effectivePublicUrl) : null,
+    curl_command: effectivePublicUrl ? buildCurlCommand(effectivePublicUrl) : null,
     access_note: accessNote,
     region_hint: regionHint,
+    direct_url_valid: accessMode !== 'public_url' ? true : validation.valid,
+    invalid_reason: accessMode !== 'public_url' ? null : validation.reason,
   };
 }

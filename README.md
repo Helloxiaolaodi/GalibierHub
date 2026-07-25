@@ -326,11 +326,111 @@ SeqEdge also opens the first reachable annotation track automatically so the vie
 ## Where To Configure Downloads
 
 - Overview download cards: `src/site-config.ts`
-- Sample-level download metadata: `genome_samples.vcf_download_url`, `genome_samples.fasta_download_url`, and related `*_download_mode` fields
+- Sample-level download metadata: `genome_samples.vcf_download_url`, `genome_samples.fasta_download_url`, `genome_samples.gb_download_url`, `genome_samples.bed_download_url`, `genome_samples.gff3_download_url`, and related `*_download_mode` fields
 - Unified download metadata model and CLI generation: `src/lib/download-info.ts`
 - Single-file modal behavior and creator edit controls: `src/components/download-actions.tsx`
 - Batch script generation for public entries: `src/components/promoter-table.tsx` and `/api/samples/batch`
 - Private signed-URL resolution: `/api/download-metadata/resolve` backed by the `download_metadata` table
+
+## Add a Hugging Face File to SeqEdge
+
+The current codebase supports two practical Hugging Face integration points:
+
+1. a homepage featured download card
+2. a sample-level download entry shown inside the record detail panel and detail page
+
+### 1. Use the correct direct file URL
+
+Do not paste the Hugging Face page URL that contains `/blob/main/`.
+
+- Page URL example: `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/blob/main/817-food-biochem/817-food-biochem-materials.zip`
+- Direct file URL example: `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip`
+
+SeqEdge now normalizes common Hugging Face `blob` links to `resolve` links, but you should still store the direct file URL in your database and environment variables.
+
+### 2. Show the file on the homepage
+
+Set the featured archive environment variables:
+
+```bash
+NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download 817 Food Biochem Materials
+NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION=Public Hugging Face dataset package for large-file download, browser delivery, and resume-capable CLI retrieval.
+NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip
+NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
+NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
+```
+
+This powers the overview download card and opens the unified download modal.
+
+### 3. Show the same file as a sample-level download entry
+
+The current UI now renders these sample-level file slots in both the floating detail panel and the standalone detail page:
+
+- `vcf_download_url`
+- `fasta_download_url`
+- `gb_download_url`
+- `bed_download_url`
+- `gff3_download_url`
+
+For a generic package from Hugging Face, the least disruptive option in the current schema is to use `gb_download_url` as a generic package slot. The UI labels this slot as `Download Package`.
+
+Example SQL:
+
+```sql
+update genome_samples
+set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip'
+where sample_id = 'CNhs10881';
+```
+
+If you want the same row to prefer CLI hints in the modal, keep using a large-file host such as Hugging Face and open the modal from the record detail view.
+
+### 4. Add hidden / password / private delivery metadata
+
+If the file is public on Hugging Face, you can still attach site-level metadata and UI controls through `download_metadata`, for example custom label, description, hashes, hidden flag, and password prompt.
+
+Example:
+
+```sql
+insert into download_metadata (
+  download_key,
+  custom_label,
+  custom_description,
+  custom_file_type,
+  custom_size_bytes,
+  storage_provider,
+  hidden,
+  md5_checksum,
+  sha256_checksum
+)
+values (
+  'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip',
+  '817 Food Biochem Materials',
+  'Public Hugging Face dataset package exposed through the SeqEdge unified download modal.',
+  'Archive (zip)',
+  734003200,
+  'public_url',
+  false,
+  null,
+  null
+)
+on conflict (download_key) do update set
+  custom_label = excluded.custom_label,
+  custom_description = excluded.custom_description,
+  custom_file_type = excluded.custom_file_type,
+  custom_size_bytes = excluded.custom_size_bytes,
+  storage_provider = excluded.storage_provider,
+  hidden = excluded.hidden,
+  md5_checksum = excluded.md5_checksum,
+  sha256_checksum = excluded.sha256_checksum;
+```
+
+Important: for a public Hugging Face `resolve` URL, hidden/password remain only site-level UI controls. They do not stop direct anonymous download if someone already knows the public URL.
+
+### 5. When you need real private downloads
+
+For actual gated delivery, store the file in a private Supabase bucket and set the matching `download_metadata.storage_provider` to `supabase_private`. SeqEdge then resolves the file through `/api/download-metadata/resolve` and returns a short-lived signed URL.
+
+That is the only fully implemented private-download path in the current codebase.
 
 ## User Guide Content
 

@@ -49,6 +49,9 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
 
   const vcfDownloadUrl = getDirectDownloadUrl(sample?.vcf_download_url);
   const fastaDownloadUrl = getDirectDownloadUrl(sample?.fasta_download_url);
+  const gbDownloadUrl = getDirectDownloadUrl(sample?.gb_download_url);
+  const bedDownloadUrl = getDirectDownloadUrl(sample?.bed_download_url);
+  const gff3DownloadUrl = getDirectDownloadUrl(sample?.gff3_download_url);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -83,14 +86,14 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
           <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Open in Browser</Link>
           <button type="button" onClick={() => navigator.clipboard.writeText([promoter.chrom, promoter.start, promoter.end_pos, promoter.gene_symbol || 'NA', promoter.score, promoter.strand].join('\t'))} className="px-4 py-2 border rounded-lg text-sm">Copy as BED</button>
         </div>
-        {(vcfDownloadUrl || fastaDownloadUrl) && (
+        {(vcfDownloadUrl || fastaDownloadUrl || gbDownloadUrl || bedDownloadUrl || gff3DownloadUrl) && (
           <section className="bg-white border rounded-lg p-4 space-y-4">
             <h3 className="text-sm font-semibold text-gray-900">File downloads</h3>
             {vcfDownloadUrl && (
               <DownloadActions
                 url={vcfDownloadUrl}
                 label="Download VCF"
-                description="Direct file download from the configured storage host."
+                description="Sample-level file download from the configured storage host."
                 showCli={sample?.vcf_download_mode === 'cli'}
               />
             )}
@@ -98,8 +101,32 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
               <DownloadActions
                 url={fastaDownloadUrl}
                 label="Download FASTA"
-                description="Direct file download from the configured storage host."
+                description="Sample-level file download from the configured storage host."
                 showCli={sample?.fasta_download_mode === 'cli'}
+              />
+            )}
+            {gbDownloadUrl && (
+              <DownloadActions
+                url={gbDownloadUrl}
+                label="Download Package"
+                description="Sample-level file download from the configured storage host."
+                showCli={true}
+              />
+            )}
+            {bedDownloadUrl && (
+              <DownloadActions
+                url={bedDownloadUrl}
+                label="Download BED"
+                description="Sample-level file download from the configured storage host."
+                showCli={true}
+              />
+            )}
+            {gff3DownloadUrl && (
+              <DownloadActions
+                url={gff3DownloadUrl}
+                label="Download GFF3"
+                description="Sample-level file download from the configured storage host."
+                showCli={true}
               />
             )}
           </section>

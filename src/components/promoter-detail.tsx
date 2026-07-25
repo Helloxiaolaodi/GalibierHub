@@ -432,7 +432,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                   <DownloadActions
                     url={vcfDownloadUrl}
                     label="Download VCF"
-                    description="Direct file download from the configured storage host."
+                    description="Sample-level file download from the configured storage host."
                     showCli={showVcfCli}
                     isAdmin={isAdmin}
                     accessToken={accessToken}
@@ -442,7 +442,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                  <DownloadActions
                    url={fastaDownloadUrl}
                    label="Download FASTA"
-                   description="Direct file download from the configured storage host."
+                   description="Sample-level file download from the configured storage host."
                    showCli={showFastaCli}
                    isAdmin={isAdmin}
                    accessToken={accessToken}
@@ -451,8 +451,8 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                {gbDownloadUrl && (
                  <DownloadActions
                    url={gbDownloadUrl}
-                   label="Download GenBank"
-                   description="Direct file download from the configured storage host."
+                   label="Download Package"
+                   description="Sample-level file download from the configured storage host."
                    showCli={true}
                    isAdmin={isAdmin}
                    accessToken={accessToken}
@@ -462,7 +462,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                  <DownloadActions
                    url={bedDownloadUrl}
                    label="Download BED"
-                   description="Direct file download from the configured storage host."
+                   description="Sample-level file download from the configured storage host."
                    showCli={true}
                    isAdmin={isAdmin}
                    accessToken={accessToken}
@@ -472,7 +472,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                  <DownloadActions
                    url={gff3DownloadUrl}
                    label="Download GFF3"
-                   description="Direct file download from the configured storage host."
+                   description="Sample-level file download from the configured storage host."
                    showCli={true}
                    isAdmin={isAdmin}
                    accessToken={accessToken}
