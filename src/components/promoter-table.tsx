@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,9 +8,116 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import type { Promoter } from '@/types/genome';
+import { getDirectDownloadUrl } from '@/lib/storage';
+import {
+  buildDownloadResolvedInfo,
+  DEFAULT_DOWNLOAD_METADATA,
+  formatDownloadBytes,
+  normalizeDownloadKey,
+  type DownloadMetadataPayload,
+  type DownloadResolvedInfo,
+} from '@/lib/download-info';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
+
+type BatchFile = { sample_id: string; kind: string; url: string };
+type BatchFileMeta = { size: number | null; sha256: string | null; md5: string | null };
+type BatchDownloadItem = DownloadResolvedInfo & { sample_id: string; kind: string; source_url: string };
+
+const FILE_KIND_LABELS: Record<string, string> = {
+  vcf: 'VCF', fasta: 'FASTA', gb: 'GenBank', bed: 'BED', gff3: 'GFF3',
+};
+
+function batchFileName(url: string): string {
+  try {
+    const name = new URL(url).pathname.split('/').pop() || 'download.file';
+    return decodeURIComponent(name);
+  } catch {
+    return url.split('/').pop() || 'download.file';
+  }
+}
+
+async function readBatchFileMeta(url: string): Promise<BatchFileMeta> {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split('/').filter(Boolean);
+    const kindIdx = parts.indexOf('datasets');
+    const resolveIdx = parts.indexOf('resolve');
+    if (kindIdx === -1 || resolveIdx === -1 || resolveIdx <= kindIdx + 2) {
+      return { size: null, sha256: null, md5: null };
+    }
+    const repo = parts[kindIdx + 1] + '/' + parts[kindIdx + 2];
+    const dirPath = parts.slice(resolveIdx + 2, -1).join('/');
+    const fileName = parts[parts.length - 1];
+    const api = `https://huggingface.co/api/datasets/${repo}/tree/main${dirPath ? '/' + dirPath : ''}?recursive=false`;
+    const res = await fetch(api);
+    if (!res.ok) return { size: null, sha256: null, md5: null };
+    const data = (await res.json()) as Array<{ path: string; size?: number; lfs?: { oid?: string } }>;
+    const hit = data.find((item) => item.path.split('/').pop() === fileName);
+    return {
+      size: hit?.size ?? null,
+      sha256: hit?.lfs?.oid ?? null,
+      md5: null,
+    };
+  } catch {
+    return { size: null, sha256: null, md5: null };
+  }
+}
+
+async function readBatchDbMeta(key: string): Promise<DownloadMetadataPayload> {
+  try {
+    const res = await fetch(`/api/download-metadata?key=${encodeURIComponent(key)}`);
+    if (!res.ok) throw new Error('failed');
+    const data = (await res.json()) as Partial<DownloadMetadataPayload>;
+    return { ...DEFAULT_DOWNLOAD_METADATA, ...data };
+  } catch {
+    return DEFAULT_DOWNLOAD_METADATA;
+  }
+}
+
+function buildSh(files: BatchDownloadItem[]): string {
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const publicFiles = files.filter((file) => file.access_mode === 'public_url' && file.wget_command);
+  const privateFiles = files.filter((file) => file.access_mode !== 'public_url');
+  const body = files
+    .filter((file) => file.access_mode === 'public_url' && file.wget_command)
+    .map((file) => `# sample: ${file.sample_id} (${FILE_KIND_LABELS[file.kind] || file.kind})\n${file.wget_command}`)
+    .join('\n\n');
+  return `#!/usr/bin/env bash
+# SeqEdge batch download, generated ${now} (UTC)
+# ${publicFiles.length} public file(s). "wget -c" resumes partial downloads.
+# ${privateFiles.length} protected file(s) are omitted because short-lived signed URLs are not exposed in batch scripts.
+# Run on this server to auto-download all selected public sample files.
+set -u
+
+${body}
+`;
+}
+
+function buildBat(files: BatchDownloadItem[]): string {
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const publicFiles = files.filter((file) => file.access_mode === 'public_url' && file.curl_command);
+  const privateFiles = files.filter((file) => file.access_mode !== 'public_url');
+  const body = files
+    .filter((file) => file.access_mode === 'public_url' && file.curl_command)
+    .map((file) => `REM sample: ${file.sample_id} (${FILE_KIND_LABELS[file.kind] || file.kind})\r${file.curl_command}`)
+    .join('\r\n\r\n');
+  return `@echo off\r\nREM SeqEdge batch download, generated ${now} (UTC)\r\nREM ${publicFiles.length} public file(s). "curl -C -" resumes partial downloads.\r\nREM ${privateFiles.length} protected file(s) are omitted because short-lived signed URLs are not exposed in batch scripts.\r\n\r\n${body}\r\n`;
+}
+
+function downloadText(filename: string, text: string): void {
+  if (typeof window === 'undefined') return;
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
 
 interface PromoterTableProps {
   data: Promoter[];
@@ -58,8 +165,175 @@ export default function PromoterTable({
     setPageInput(String(pageIndex + 1));
   }, [pageIndex]);
 
+  const [selectedSampleIds, setSelectedSampleIds] = useState<Set<string>>(new Set());
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchMetaLoading, setBatchMetaLoading] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [batchItems, setBatchItems] = useState<BatchDownloadItem[]>([]);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const pageSampleIdArray = useMemo(() => {
+    const seen = new Set<string>();
+    for (const p of data) {
+      if (!seen.has(p.sample_id)) seen.add(p.sample_id);
+    }
+    return [...seen];
+  }, [data]);
+
+  const allPageSelected = pageSampleIdArray.length > 0 && pageSampleIdArray.every((id) => selectedSampleIds.has(id));
+  const somePageSelected = !allPageSelected && pageSampleIdArray.some((id) => selectedSampleIds.has(id));
+
+  const toggleSample = useCallback((id: string) => {
+    setSelectedSampleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAllPage = useCallback(() => {
+    setSelectedSampleIds((prev) => {
+      const next = new Set(prev);
+      if (pageSampleIdArray.length > 0 && pageSampleIdArray.every((id) => next.has(id))) {
+        for (const id of pageSampleIdArray) next.delete(id);
+      } else {
+        for (const id of pageSampleIdArray) next.add(id);
+      }
+      return next;
+    });
+  }, [pageSampleIdArray]);
+
+  const clearSelection = useCallback(() => setSelectedSampleIds(new Set()), []);
+
+  const openBatch = useCallback(async () => {
+    setBatchOpen(true);
+    setBatchLoading(true);
+    setBatchMetaLoading(false);
+    setBatchError(null);
+    setBatchItems([]);
+    try {
+      const ids = [...selectedSampleIds];
+      const res = await fetch('/api/samples/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sample_ids: ids }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || 'Failed to resolve sample download URLs.');
+      const results: Array<Record<string, unknown>> = Array.isArray(json?.results) ? json.results : [];
+      const files: BatchFile[] = [];
+      for (const row of results) {
+        if (!row || typeof row.sample_id !== 'string') continue;
+        const sid = row.sample_id as string;
+        const entries: Array<[string, unknown]> = [
+          ['vcf', row.vcf_download_url],
+          ['fasta', row.fasta_download_url],
+          ['gb', row.gb_download_url],
+          ['bed', row.bed_download_url],
+          ['gff3', row.gff3_download_url],
+        ];
+        for (const [kind, raw] of entries) {
+          const url = getDirectDownloadUrl(typeof raw === 'string' ? raw : null);
+          if (url) files.push({ sample_id: sid, kind, url });
+        }
+      }
+      if (files.length === 0) setBatchError('No downloadable files were found for the selected items.');
+      if (files.length > 0) {
+        setBatchMetaLoading(true);
+        const uniqueUrls = [...new Set(files.map((file) => file.url))];
+        const entries = await Promise.all(
+          uniqueUrls.map(async (fileUrl) => {
+            const key = normalizeDownloadKey(fileUrl);
+            const [hfMeta, dbMeta] = await Promise.all([readBatchFileMeta(fileUrl), readBatchDbMeta(key)]);
+            return [fileUrl, { hfMeta, dbMeta }] as const;
+          })
+        );
+        const items = files.map((file) => {
+          const source = entries.find(([fileUrl]) => fileUrl === file.url)?.[1];
+          const dbMeta = source?.dbMeta || DEFAULT_DOWNLOAD_METADATA;
+          const hfMeta = source?.hfMeta || { size: null, sha256: null, md5: null };
+          const resolved = buildDownloadResolvedInfo(normalizeDownloadKey(file.url), dbMeta, `${FILE_KIND_LABELS[file.kind] || file.kind} download`, null);
+          return {
+            ...resolved,
+            sample_id: file.sample_id,
+            kind: file.kind,
+            source_url: file.url,
+            file_name: resolved.file_name || batchFileName(file.url),
+            file_type: dbMeta.custom_file_type || FILE_KIND_LABELS[file.kind] || file.kind,
+            size_bytes: dbMeta.custom_size_bytes ?? hfMeta.size ?? resolved.size_bytes,
+            sha256_checksum: dbMeta.sha256_checksum ?? hfMeta.sha256 ?? resolved.sha256_checksum,
+            md5_checksum: dbMeta.md5_checksum ?? hfMeta.md5 ?? resolved.md5_checksum,
+          } satisfies BatchDownloadItem;
+        });
+        setBatchItems(items);
+      }
+    } catch (e) {
+      setBatchError(e instanceof Error ? e.message : 'Failed to resolve sample download URLs.');
+    } finally {
+      setBatchMetaLoading(false);
+      setBatchLoading(false);
+    }
+  }, [selectedSampleIds]);
+
+  const handleCopy = useCallback(async (copyKey: string, text: string | null | undefined) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(copyKey);
+      window.setTimeout(() => setCopied((current) => (current === copyKey ? null : current)), 1600);
+    } catch {
+      setCopied(null);
+    }
+  }, []);
+
+  const batchPublicCount = useMemo(
+    () => batchItems.filter((item) => item.access_mode === 'public_url' && item.public_url).length,
+    [batchItems],
+  );
+
+  const batchPrivateCount = useMemo(
+    () => batchItems.filter((item) => item.access_mode !== 'public_url').length,
+    [batchItems],
+  );
+
+  const allSha256Text = useMemo(
+    () => batchItems
+      .filter((item) => item.sha256_checksum)
+      .map((item) => `${item.sample_id}\t${item.kind}\t${item.file_name}\t${item.sha256_checksum}`)
+      .join('\n'),
+    [batchItems],
+  );
+
   const columns = useMemo<ColumnDef<Promoter>[]>(
     () => [
+      {
+        id: 'select',
+        header: () => (
+          <input
+            type="checkbox"
+            aria-label="Select all items on this page"
+            checked={allPageSelected}
+            ref={(el) => { if (el) el.indeterminate = somePageSelected; }}
+            onChange={toggleAllPage}
+            onClick={(e) => e.stopPropagation()}
+            className="h-4 w-4 cursor-pointer"
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            aria-label={`Select item ${row.original.sample_id}`}
+            checked={selectedSampleIds.has(row.original.sample_id)}
+            onChange={() => toggleSample(row.original.sample_id)}
+            onClick={(e) => e.stopPropagation()}
+            className="h-4 w-4 cursor-pointer"
+          />
+        ),
+        size: 44,
+        enableSorting: false,
+      },
       {
         accessorKey: 'chrom',
         header: 'Chr',
@@ -79,7 +353,7 @@ export default function PromoterTable({
       },
       {
         accessorKey: 'gene_symbol',
-        header: 'Gene',
+        header: 'Feature',
         size: 120,
         cell: ({ getValue }) => (getValue() as string) || '\u2014',
       },
@@ -115,11 +389,11 @@ export default function PromoterTable({
       },
       {
         accessorKey: 'sample_id',
-        header: 'Sample',
+        header: 'Item ID',
         size: 120,
       },
     ],
-    []
+    [selectedSampleIds, allPageSelected, somePageSelected, toggleAllPage, toggleSample]
   );
 
   const table = useReactTable({
@@ -148,7 +422,7 @@ export default function PromoterTable({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800">
-          Promoter Predictions ({totalCount} total)
+          Resource Records ({totalCount} total)
         </h2>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-xs text-gray-500">
@@ -160,8 +434,8 @@ export default function PromoterTable({
             >
               <option value="score_desc">Score high to low</option>
               <option value="score_asc">Score low to high</option>
-              <option value="chrom_start">Chromosome + start</option>
-              <option value="sample_id">Sample ID</option>
+              <option value="chrom_start">Reference + start</option>
+              <option value="sample_id">Item ID</option>
             </select>
           </label>
           {loading ? (
@@ -184,7 +458,7 @@ export default function PromoterTable({
               ))}
             </div>
           ) : (
-            <p className="mt-2 text-sm text-gray-500">No active filters. Add chromosome, gene, score, sample, or metadata constraints to narrow the full result set.</p>
+            <p className="mt-2 text-sm text-gray-500">No active filters. Add reference, feature, score, item, or metadata constraints to narrow the full result set.</p>
           )}
         </div>
 
@@ -195,8 +469,8 @@ export default function PromoterTable({
           <div className="mt-2 flex flex-wrap gap-2">
             {([
               { key: 'overview', label: 'Overview' },
-              { key: 'sample', label: 'Group by sample' },
-              { key: 'chromosome', label: 'Group by chromosome' },
+              { key: 'sample', label: 'Group by item' },
+              { key: 'chromosome', label: 'Group by reference' },
             ] as const).map((option) => (
               <button
                 key={option.key}
@@ -211,7 +485,7 @@ export default function PromoterTable({
           {summaryMode === 'overview' ? (
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
-                <div className="text-xs font-medium text-gray-500">Top chromosomes on this page</div>
+                <div className="text-xs font-medium text-gray-500">Top references on this page</div>
                 <div className="mt-1 space-y-1 text-sm text-gray-700">
                   {topChromosomes.length > 0 ? topChromosomes.map((item) => (
                     <div key={item.label} className="flex items-center justify-between gap-2">
@@ -222,7 +496,7 @@ export default function PromoterTable({
                 </div>
               </div>
               <div>
-                <div className="text-xs font-medium text-gray-500">Top samples on this page</div>
+                <div className="text-xs font-medium text-gray-500">Top items on this page</div>
                 <div className="mt-1 space-y-1 text-sm text-gray-700">
                   {topSamples.length > 0 ? topSamples.map((item) => (
                     <div key={item.label} className="flex items-center justify-between gap-2">
@@ -236,7 +510,7 @@ export default function PromoterTable({
           ) : (
             <div className="mt-3">
               <div className="text-xs font-medium text-gray-500">
-                {summaryMode === 'sample' ? 'Sample groups on this page' : 'Chromosome groups on this page'} ({visibleCount} visible rows)
+                {summaryMode === 'sample' ? 'Item groups on this page' : 'Reference groups on this page'} ({visibleCount} visible rows)
               </div>
               <div className="mt-2 space-y-1 text-sm text-gray-700">
                 {groupedItems.length > 0 ? groupedItems.map((item) => (
@@ -250,6 +524,18 @@ export default function PromoterTable({
           )}
         </div>
       </div>
+
+      {selectedSampleIds.size > 0 && (
+        <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50/95 px-4 py-2 shadow-sm">
+          <span className="text-sm font-medium text-blue-800">
+            {selectedSampleIds.size} item{selectedSampleIds.size === 1 ? '' : 's'} selected for batch download
+          </span>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={clearSelection} className="rounded border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700 hover:bg-gray-50">Clear</button>
+            <button type="button" onClick={openBatch} disabled={batchLoading} className="rounded bg-gray-900 px-3 py-1 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-50">Batch download</button>
+          </div>
+        </div>
+      )}
 
       <div className="overflow-x-auto border rounded-lg">
         <table className="min-w-full text-sm">
@@ -272,7 +558,7 @@ export default function PromoterTable({
             {table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-3 py-6 text-center text-sm text-gray-500">
-                  No promoter records matched the current filters.
+                  No resource records matched the current filters.
                 </td>
               </tr>
             ) : table.getRowModel().rows.map((row) => (
@@ -377,6 +663,103 @@ export default function PromoterTable({
           </button>
         </div>
       </div>
+
+      {batchOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4" role="dialog" aria-modal="true" onClick={() => setBatchOpen(false)}>
+          <div className="my-8 w-full max-w-6xl rounded-lg border border-gray-200 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-gray-200 px-5 py-3">
+              <h3 className="text-base font-semibold text-gray-900">Batch download generator</h3>
+              <button type="button" onClick={() => setBatchOpen(false)} aria-label="Close" className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="space-y-4 px-5 py-4">
+              <p className="text-sm text-gray-600">
+                Review the unified download metadata for the selected <span className="font-medium text-gray-900">{selectedSampleIds.size}</span> item{selectedSampleIds.size === 1 ? '' : 's'}. Public files can be exported into resume-enabled batch scripts. Protected files are listed here for inspection, but they are intentionally omitted from reusable scripts.
+              </p>
+              {batchLoading && <p className="text-sm text-gray-500">Resolving download URLs...</p>}
+              {!batchLoading && batchMetaLoading && <p className="text-sm text-gray-500">Loading checksum and file metadata...</p>}
+              {batchError && <p className="text-sm text-red-600">{batchError}</p>}
+              {!batchLoading && !batchError && batchItems.length > 0 && (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+                    <span>{batchItems.length} file(s) resolved. {batchPublicCount} public scriptable, {batchPrivateCount} protected.</span>
+                    {allSha256Text && <button type="button" onClick={() => handleCopy('sha256-all', allSha256Text)} className="text-blue-600 hover:underline">{copied === 'sha256-all' ? 'Copied' : 'Copy all SHA256'}</button>}
+                  </div>
+                  <div className="max-h-[32rem] overflow-auto rounded border border-gray-100 bg-gray-50">
+                    <table className="min-w-full text-xs text-gray-700">
+                      <thead className="sticky top-0 bg-gray-100 text-gray-600">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium">Item</th>
+                          <th className="px-3 py-2 text-left font-medium">Type</th>
+                          <th className="px-3 py-2 text-left font-medium">Access</th>
+                          <th className="px-3 py-2 text-left font-medium">File</th>
+                          <th className="px-3 py-2 text-left font-medium">Description</th>
+                          <th className="px-3 py-2 text-left font-medium">Size</th>
+                          <th className="px-3 py-2 text-left font-medium">Created</th>
+                          <th className="px-3 py-2 text-left font-medium">Downloads</th>
+                          <th className="px-3 py-2 text-left font-medium">SHA256</th>
+                          <th className="px-3 py-2 text-left font-medium">MD5</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {batchItems.map((item, i) => {
+                          const sha256 = item.sha256_checksum || 'Unavailable';
+                          const md5 = item.md5_checksum || 'N/A';
+                          return (
+                            <tr key={`${item.sample_id}-${item.kind}-${i}`} className="border-t border-gray-200 align-top">
+                              <td className="px-3 py-2 font-mono text-gray-900">{item.sample_id}</td>
+                              <td className="px-3 py-2">
+                                <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px]">{FILE_KIND_LABELS[item.kind] || item.kind}</span>
+                              </td>
+                              <td className="px-3 py-2">
+                                <span className={`rounded px-1.5 py-0.5 text-[10px] ${item.access_mode === 'public_url' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{item.access_mode === 'public_url' ? 'Public URL' : 'Private signed URL'}</span>
+                              </td>
+                              <td className="px-3 py-2">
+                                <div className="max-w-[220px] truncate font-medium" title={item.file_name}>{item.file_name}</div>
+                              </td>
+                              <td className="px-3 py-2 text-gray-600">
+                                <div className="max-w-[260px] break-words" title={item.description || undefined}>{item.description || 'No description'}</div>
+                              </td>
+                              <td className="px-3 py-2 text-gray-600">
+                                {formatDownloadBytes(item.size_bytes) || 'Unknown'}
+                              </td>
+                              <td className="px-3 py-2 text-gray-600">
+                                {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
+                              </td>
+                              <td className="px-3 py-2 text-gray-600">
+                                {item.download_count.toLocaleString()}
+                              </td>
+                              <td className="px-3 py-2 font-mono text-[11px] leading-5 text-gray-800">
+                                <div className="flex items-start gap-2">
+                                  <div className="max-w-[260px] break-all" title={sha256}>{sha256}</div>
+                                  {item.sha256_checksum && <button type="button" onClick={() => handleCopy(`sha256-${i}`, item.sha256_checksum)} className="shrink-0 text-blue-600 hover:underline">{copied === `sha256-${i}` ? 'Copied' : 'Copy'}</button>}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 font-mono text-[11px] leading-5 text-gray-500">
+                                <div className="max-w-[160px] break-all" title={md5}>{md5}</div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button type="button" onClick={() => downloadText('seqedge-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">Download .sh script (Linux/macOS, public files, resume)</button>
+                    <button type="button" onClick={() => downloadText('seqedge-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">Download .bat script (Windows, public files, resume)</button>
+                  </div>
+                  <details className="text-xs text-gray-500">
+                    <summary className="cursor-pointer hover:text-gray-700">Preview the shell script</summary>
+                    <pre className="mt-2 max-h-56 overflow-auto rounded bg-gray-900 p-3 font-mono text-[11px] text-gray-100">{buildSh(batchItems)}</pre>
+                  </details>
+                  <p className="text-xs text-gray-400">Public script entries use resume-enabled downloads (`wget -c` / `curl -C -`). Protected files backed by Supabase signed URLs are intentionally omitted from batch scripts because exposing short-lived private links in a reusable script would weaken access control. SHA256 is shown when supplied by admin metadata or exposed by Hugging Face LFS metadata. MD5 remains `N/A` unless you provide it in metadata. Download counts mainly reflect browser-triggered downloads that pass through the site workflow.</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

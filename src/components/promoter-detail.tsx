@@ -10,6 +10,8 @@ interface PromoterDetailProps {
   promoter: Promoter | null;
   onViewInBrowser?: (promoter: Promoter) => void;
   onClose: () => void;
+  isAdmin?: boolean;
+  accessToken?: string | null;
 }
 
 type SampleState = SampleMetadata | null | undefined;
@@ -72,7 +74,7 @@ function displayValue(value: string | number | null | undefined): string {
   return String(value);
 }
 
-export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: PromoterDetailProps) {
+export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isAdmin = false, accessToken = null }: PromoterDetailProps) {
   const initializedPromoterIdRef = useRef<string | null>(null);
   const [sample, setSample] = useState<SampleState>(undefined);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
@@ -171,12 +173,12 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
   const strandColor = promoter.strand === '+' ? 'text-blue-600' : 'text-red-600';
   const length = promoter.end_pos - promoter.start;
   const bmi = sample && sample !== null ? bmiClass(sample.bmi) : null;
- const vcfDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.vcf_download_url) : '';
- const fastaDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.fasta_download_url) : '';
+  const vcfDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.vcf_download_url) : '';
+  const fastaDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.fasta_download_url) : '';
   const gbDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gb_download_url) : '';
   const bedDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.bed_download_url) : '';
   const gff3DownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gff3_download_url) : '';
- const showVcfCli = sample?.vcf_download_mode === 'cli';
+  const showVcfCli = sample?.vcf_download_mode === 'cli';
   const showFastaCli = sample?.fasta_download_mode === 'cli';
 
   const handleCopyBed = () => {
@@ -186,7 +188,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
 
   const handleCopyFasta = () => {
     if (!promoter.sequence) return;
-    const header = `>${promoter.gene_symbol || 'promoter'}_${promoter.chrom}:${promoter.start}-${promoter.end_pos}:${promoter.strand}`;
+    const header = `>${promoter.gene_symbol || 'record'}_${promoter.chrom}:${promoter.start}-${promoter.end_pos}:${promoter.strand}`;
     navigator.clipboard.writeText(`${header}\n${promoter.sequence}`);
   };
 
@@ -272,7 +274,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
           onPointerCancel={handlePointerUp}
         >
           <div className="min-w-0 pr-4">
-            <h2 className="text-lg font-bold text-gray-900">Promoter | {promoter.gene_symbol || 'unnamed'}</h2>
+            <h2 className="text-lg font-bold text-gray-900">Record | {promoter.gene_symbol || 'unnamed'}</h2>
             <p className="mt-0.5 font-mono text-xs text-gray-500">
               {promoter.chrom}:{promoter.start.toLocaleString()}-{promoter.end_pos.toLocaleString()} ({promoter.strand})
             </p>
@@ -293,19 +295,18 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
         </div>
 
         <div className="space-y-4 overflow-y-auto p-5">
-          {/* Card 1 - Genomic coordinates */}
-          <Card title="Genomic coordinates">
+          <Card title="Reference coordinates">
             <div className={`grid grid-cols-2 gap-4 ${panelWidthClass}`}>
-              <KV label="Chromosome">{promoter.chrom}</KV>
+              <KV label="Reference">{promoter.chrom}</KV>
               <KV label="Start">{promoter.start.toLocaleString()}</KV>
               <KV label="End">{promoter.end_pos.toLocaleString()}</KV>
               <KV label="Length">{length.toLocaleString()} bp</KV>
               <KV label="Strand">
                 <span className={`font-bold ${strandColor}`}>{promoter.strand}</span>
               </KV>
-              <KV label="Gene">{displayValue(promoter.gene_symbol)}</KV>
+              <KV label="Feature label">{displayValue(promoter.gene_symbol)}</KV>
               <div className="col-span-2">
-                <div className="text-[11px] uppercase tracking-wider text-gray-500">Prediction score</div>
+                <div className="text-[11px] uppercase tracking-wider text-gray-500">Score</div>
                 <div className="mt-1 flex items-center gap-2">
                   <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-200">
                     <div
@@ -323,12 +324,11 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
             </div>
           </Card>
 
-          {/* Card 2 - Sequence and motif */}
-          <Card title="Sequence & motif">
+          <Card title="Sequence preview">
             {promoter.sequence ? (
               <div>
                 <div className="mb-1.5 text-[11px] uppercase tracking-wider text-gray-500">
-                  Promoter sequence ({promoter.sequence.length} nt)
+                  Sequence ({promoter.sequence.length} nt)
                 </div>
                 <div className="overflow-x-auto rounded-lg bg-gray-50 p-3 font-mono text-xs">
                   <div className="flex flex-wrap gap-0">
@@ -354,20 +354,19 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
               </div>
             ) : (
               <div className="text-sm italic text-gray-500">
-                Sequence not stored for this promoter. Retrieve it from the configured FASTA source when needed.
+                Sequence is not stored for this record. Retrieve it from the configured FASTA source when needed.
               </div>
             )}
           </Card>
 
-          {/* Card 3 - Sample phenotype */}
-          <Card title="Sample phenotype">
+          <Card title="Item metadata">
             {sample === undefined ? (
-              <div className="text-sm text-gray-400">Loading sample metadata...</div>
+              <div className="text-sm text-gray-400">Loading item metadata...</div>
             ) : sample === null ? (
-              <div className="text-sm text-gray-500">No sample metadata is available for this promoter.</div>
+              <div className="text-sm text-gray-500">No item metadata is available for this record.</div>
             ) : (
               <div className={`grid grid-cols-2 gap-4 ${size.width >= 640 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
-                <KV label="Sample ID">{sample.sample_id}</KV>
+                <KV label="Item ID">{sample.sample_id}</KV>
                 <KV label="Cohort">
                   {sample.cohort ? (
                     <span className="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
@@ -406,14 +405,14 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
               onClick={handleViewInBrowser}
               className="min-w-[10rem] flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             >
-              View in Genome Browser
+              Open in Browser
             </button>
             <button
               type="button"
               onClick={handleCopyBed}
               className="min-w-[10rem] flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-50"
             >
-              Copy as BED
+              Copy coordinates as BED
             </button>
             {promoter.sequence && (
               <button
@@ -427,48 +426,58 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
           </div>
 
           {(vcfDownloadUrl || fastaDownloadUrl || gbDownloadUrl || bedDownloadUrl || gff3DownloadUrl) && (
-            <Card title="Sample file downloads">
+            <Card title="File downloads">
               <div className="space-y-4">
                 {vcfDownloadUrl && (
                   <DownloadActions
                     url={vcfDownloadUrl}
                     label="Download VCF"
-                    description="Direct sample-level variant file download from the public storage host."
+                    description="Direct file download from the configured storage host."
                     showCli={showVcfCli}
+                    isAdmin={isAdmin}
+                    accessToken={accessToken}
                   />
                 )}
                {fastaDownloadUrl && (
                  <DownloadActions
                    url={fastaDownloadUrl}
                    label="Download FASTA"
-                   description="Direct sample-level FASTA download from the public storage host."
+                   description="Direct file download from the configured storage host."
                    showCli={showFastaCli}
+                   isAdmin={isAdmin}
+                   accessToken={accessToken}
                  />
                )}
-                {gbDownloadUrl && (
-                  <DownloadActions
-                    url={gbDownloadUrl}
-                    label="Download GenBank"
-                    description="Direct sample-level GenBank (.gb) download from the public storage host."
-                    showCli={false}
-                  />
-                )}
-                {bedDownloadUrl && (
-                  <DownloadActions
-                    url={bedDownloadUrl}
-                    label="Download BED"
-                    description="Direct sample-level BED annotation download from the public storage host."
-                    showCli={false}
-                  />
-                )}
-                {gff3DownloadUrl && (
-                  <DownloadActions
-                    url={gff3DownloadUrl}
-                    label="Download GFF3"
-                    description="Direct sample-level GFF3 annotation download from the public storage host."
-                    showCli={false}
-                  />
-                )}
+               {gbDownloadUrl && (
+                 <DownloadActions
+                   url={gbDownloadUrl}
+                   label="Download GenBank"
+                   description="Direct file download from the configured storage host."
+                   showCli={true}
+                   isAdmin={isAdmin}
+                   accessToken={accessToken}
+                 />
+               )}
+               {bedDownloadUrl && (
+                 <DownloadActions
+                   url={bedDownloadUrl}
+                   label="Download BED"
+                   description="Direct file download from the configured storage host."
+                   showCli={true}
+                   isAdmin={isAdmin}
+                   accessToken={accessToken}
+                 />
+               )}
+               {gff3DownloadUrl && (
+                 <DownloadActions
+                   url={gff3DownloadUrl}
+                   label="Download GFF3"
+                   description="Direct file download from the configured storage host."
+                   showCli={true}
+                   isAdmin={isAdmin}
+                   accessToken={accessToken}
+                 />
+               )}
               </div>
             </Card>
           )}
@@ -476,7 +485,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: P
 
         <button
           type="button"
-          aria-label="Resize promoter detail panel"
+          aria-label="Resize detail panel"
           className={`absolute bottom-1 right-1 hidden h-8 w-8 items-end justify-end rounded-md text-gray-400 transition-colors hover:bg-white hover:text-gray-600 lg:flex ${resizing ? 'cursor-se-resize bg-white text-gray-600' : 'cursor-se-resize'}`}
           onPointerDown={handleResizePointerDown}
           onPointerMove={handleResizePointerMove}

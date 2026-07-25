@@ -87,8 +87,8 @@ export default function HomePage() {
     if (dataError.includes('Supabase is not configured')) {
       hints.push('Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to real values in .env.local or your deployment environment.');
     }
-    if (dataError.includes('Promoter queries require a real data source')) {
-      hints.push('Import real rows into genome_samples and predicted_promoters after running schema.sql.');
+    if (dataError.includes('require a real data source')) {
+      hints.push('Import real rows into your resource tables after running schema.sql.');
     }
     return hints;
   }, [dataError]);
@@ -175,12 +175,12 @@ export default function HomePage() {
         }
         setPromoters([]);
         setTotalPromoters(0);
-        setDataError(data?.error || 'Failed to load promoter records from the configured data source.');
+        setDataError(data?.error || 'Failed to load resource records from the configured data source.');
       })
       .catch(() => {
         setPromoters([]);
         setTotalPromoters(0);
-        setDataError('Failed to load promoter records from the configured data source.');
+        setDataError('Failed to load resource records from the configured data source.');
       })
       .finally(() => setLoading(false));
   }, [sortMode]);
@@ -207,16 +207,16 @@ export default function HomePage() {
 
   const filterSummary = useMemo(() => {
     const items: Array<{ label: string; value: string }> = [];
-    if (currentFilters.chrom) items.push({ label: 'Chromosome', value: currentFilters.chrom });
+    if (currentFilters.chrom) items.push({ label: 'Reference', value: currentFilters.chrom });
     if (currentFilters.start || currentFilters.end_pos) {
       items.push({
         label: 'Coordinates',
         value: `${currentFilters.start || '?'}-${currentFilters.end_pos || '?'}`,
       });
     }
-    if (currentFilters.geneSymbol) items.push({ label: 'Gene', value: currentFilters.geneSymbol });
+    if (currentFilters.geneSymbol) items.push({ label: 'Feature', value: currentFilters.geneSymbol });
     if (currentFilters.minScore) items.push({ label: 'Min score', value: currentFilters.minScore });
-    if (currentFilters.sampleId) items.push({ label: 'Sample ID', value: currentFilters.sampleId });
+    if (currentFilters.sampleId) items.push({ label: 'Item ID', value: currentFilters.sampleId });
     if (currentFilters.species) items.push({ label: 'Species', value: currentFilters.species });
     if (currentFilters.tissue) items.push({ label: 'Tissue', value: currentFilters.tissue });
     if (currentFilters.cohort) items.push({ label: 'Cohort', value: currentFilters.cohort });
@@ -228,8 +228,8 @@ export default function HomePage() {
         : sortMode === 'score_asc'
           ? 'Score low to high'
           : sortMode === 'chrom_start'
-            ? 'Chromosome + start'
-            : 'Sample ID',
+            ? 'Reference + start'
+            : 'Item ID',
     });
     return items;
   }, [currentFilters, sortMode]);
@@ -330,7 +330,7 @@ export default function HomePage() {
                 {tab === 'overview'
                   ? 'Overview'
                   : tab === 'promoters'
-                    ? 'Promoters'
+                    ? 'Records'
                     : 'Discussion'}
               </button>
             ))}
@@ -393,7 +393,7 @@ export default function HomePage() {
             {featuredDownloads.length > 0 && (
               <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                 <div className="border-b bg-gray-50 px-4 py-3">
-                  <h2 className="text-sm font-semibold text-gray-900">Dataset Downloads</h2>
+                  <h2 className="text-sm font-semibold text-gray-900">Featured Downloads</h2>
                 </div>
                 <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
                   {featuredDownloads.map((item) => (
@@ -401,15 +401,17 @@ export default function HomePage() {
                       <div className="space-y-1">
                         <h3 className="text-sm font-semibold text-gray-900">{item.label}</h3>
                       </div>
-                      <DownloadActions
-                        url={item.href}
-                        label="Download"
-                        sizeLabel={item.sizeLabel}
-                        description={item.description}
-                        showCli={item.showCli}
-                      />
-                    </div>
-                  ))}
+                     <DownloadActions
+                       url={item.href}
+                       label="Download"
+                       sizeLabel={item.sizeLabel}
+                       description={item.description}
+                       showCli={item.showCli}
+                       isAdmin={Boolean(creatorLogin && creatorAccessToken)}
+                       accessToken={creatorAccessToken}
+                     />
+                   </div>
+                 ))}
                 </div>
               </section>
             )}
@@ -421,7 +423,7 @@ export default function HomePage() {
             />
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
-                Genome Browser - Real-data reference view
+                Reference Browser - Real-data view
               </div>
               <GenomeBrowser
                 locus={browserLocus}
@@ -441,7 +443,7 @@ export default function HomePage() {
               }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick} />
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
-                Genome Browser - Real-data reference view
+                Reference Browser - Real-data view
               </div>
               <GenomeBrowser
                 locus={browserLocus}
@@ -456,14 +458,16 @@ export default function HomePage() {
         )}
       </main>
       {selectedPromoter && (
-        <PromoterDetail
-          promoter={selectedPromoter}
-          onViewInBrowser={(promoter) => {
-            setBrowserLocus(buildPromoterLocus(promoter));
-            setActiveTab('promoters');
-          }}
-          onClose={() => setSelectedPromoter(null)}
-        />
+       <PromoterDetail
+         promoter={selectedPromoter}
+         onViewInBrowser={(promoter) => {
+           setBrowserLocus(buildPromoterLocus(promoter));
+           setActiveTab('promoters');
+         }}
+         onClose={() => setSelectedPromoter(null)}
+         isAdmin={Boolean(creatorLogin && creatorAccessToken)}
+         accessToken={creatorAccessToken}
+       />
       )}
       <SiteUptime startAt={SiteConfig.uptime.startAt} />
     </div>
