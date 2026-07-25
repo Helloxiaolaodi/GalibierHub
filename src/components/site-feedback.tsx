@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { SiteConfig } from '@/site-config';
 import { useDiscussionComments } from './discussion-comments';
 import type { FeedbackSummary, ReactionCounts, SiteFeedbackEntry } from '@/types/genome';
@@ -30,7 +30,10 @@ const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
 };
 
 
-function renderMessageWithImages(text: string | null | undefined) {
+function renderMessageWithImages(
+  text: string | null | undefined,
+  onImageClick?: (src: string, alt: string) => void,
+) {
   if (!text) return text;
   const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
   const parts: (string | { type: 'img'; alt: string; src: string })[] = [];
@@ -58,8 +61,9 @@ function renderMessageWithImages(text: string | null | undefined) {
             key={i}
             src={part.src}
             alt={part.alt}
-            className="max-w-full h-auto rounded my-2"
+            className={`max-w-full h-auto rounded my-2 ${onImageClick ? 'cursor-zoom-in' : ''}`}
             loading="lazy"
+            onClick={onImageClick ? () => onImageClick(part.src, part.alt) : undefined}
           />
         );
       })}
@@ -131,8 +135,11 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
  const [expandedEntries, setExpandedEntries] = useState<Record<string, boolean>>({});
   const [inProgressSort, setInProgressSort] = useState<'newest' | 'oldest' | 'most_liked'>('newest');
   const [completedSort, setCompletedSort] = useState<'newest' | 'oldest' | 'most_liked'>('newest');
- const [uploadingImage, setUploadingImage] = useState(false);
+const [uploadingImage, setUploadingImage] = useState(false);
   const [replyUploadingImage, setReplyUploadingImage] = useState<Record<string, boolean>>({});
+  const [lightBox, setLightBox] = useState<{ src: string; alt: string } | null>(null);
+  const [composerUploadMessage, setComposerUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [replyUploadMessage, setReplyUploadMessage] = useState<Record<string, { type: 'success' | 'error'; text: string } | null>>({});
 
   const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
     const formData = new FormData();
@@ -142,8 +149,7 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
       const data = await response.json() as { url?: string; error?: string };
       if (!response.ok) throw new Error(data.error || 'Upload failed');
       return data.url || null;
-    } catch (err) {
-      setComposerError(err instanceof Error ? err.message : 'Image upload failed.');
+    } catch {
       return null;
     }
   }, []);
@@ -153,6 +159,7 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
     setCommentDrafts,
     commentSubmitting,
     commentError,
+    commentSuccess,
     fetchEntryComments,
     handleSubmitComment,
   } = useDiscussionComments();
@@ -448,6 +455,14 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
           )}
           {/* Expand/collapse chevron */}
           <div className="shrink-0">
+          {!isExpanded && (entryReactionCounts[entry.id]?.like || 0) > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700" title={`${entryReactionCounts[entry.id]?.like || 0} likes`}>
+              <svg className="h-3 w-3" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+              </svg>
+              {entryReactionCounts[entry.id]?.like || 0}
+            </span>
+          )}
             {isExpanded ? (
               <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -465,12 +480,12 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
       {/* EXPANDED CONTENT - outside the header button */}
       {isExpanded && (
         <>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{renderMessageWithImages(entry.message)}</p>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{renderMessageWithImages(entry.message, (src) => setLightBox({ src, alt: entry.title || 'Image' }))}</p>
 
           {entry.creator_reply ? (
             <div className="mt-4 border-l-2 border-blue-500 bg-blue-50 px-4 py-3">
               <div className="text-sm font-semibold text-blue-900">Creator reply</div>
-              <div className="mt-1 whitespace-pre-wrap text-sm text-blue-900">{renderMessageWithImages(entry.creator_reply)}</div>
+              <div className="mt-1 whitespace-pre-wrap text-sm text-blue-900">{renderMessageWithImages(entry.creator_reply, (src) => setLightBox({ src, alt: 'Reply image' }))}</div>
               <div className="mt-2 text-xs text-blue-700">Replied: {formatDateTime(entry.replied_at)}</div>
            </div>
          ) : isAdmin ? (
@@ -520,12 +535,17 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
               <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 Upload Image
-                <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setReplyUploadingImage((c) => ({ ...c, [entry.id]: true })); for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setCommentDrafts((c) => ({ ...c, [entry.id]: (c[entry.id] || '') + ((c[entry.id] || '') ? '\n' : '') + '![image](' + url + ')' })); } } setReplyUploadingImage((c) => ({ ...c, [entry.id]: false })); } }} />
+                <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setReplyUploadingImage((c) => ({ ...c, [entry.id]: true })); setReplyUploadMessage((c) => ({ ...c, [entry.id]: null })); let uploaded = 0; for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setCommentDrafts((c) => ({ ...c, [entry.id]: (c[entry.id] || '') + ((c[entry.id] || '') ? '\n' : '') + '![image](' + url + ')' })); uploaded++; } } setReplyUploadingImage((c) => ({ ...c, [entry.id]: false })); setReplyUploadMessage((c) => ({ ...c, [entry.id]: uploaded > 0 ? { type: 'success', text: 'Image uploaded successfully.' } : { type: 'error', text: 'Image upload failed. Please try again.' } })); e.target.value = ''; } }} />
               </label>
               {replyUploadingImage[entry.id] && <span className="text-xs text-gray-500">Uploading...</span>}
-             <button
-               type="button"
-               onClick={(e) => { e.stopPropagation(); void handleSubmitComment(entry.id); }}
+              {replyUploadMessage[entry.id] && (
+                <span className={`text-xs ${replyUploadMessage[entry.id]!.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
+                  {replyUploadMessage[entry.id]!.text}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); void handleSubmitComment(entry.id); }}
                disabled={commentSubmitting[entry.id]}
                 className="ml-auto rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:bg-blue-300"
              >
@@ -533,14 +553,15 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
              </button>
            </div>
            {commentError[entry.id] && <div className="mt-1 text-xs text-red-600">{commentError[entry.id]}</div>}
+          {commentSuccess[entry.id] && <div className="mt-1 text-xs text-emerald-700">{commentSuccess[entry.id]}</div>}
 
-            {/* Thread comments */}
+          {/* Thread comments */}
             {comments.length > 0 && (
               <div className="mt-3 space-y-2">
                 {comments.map((c) => (
                   <div key={c.id} className="pl-3 border-l-2 border-gray-200">
                     <div className="text-xs font-medium text-gray-700">{c.author_name}</div>
-                    <div className="text-xs text-gray-600 mt-0.5 whitespace-pre-wrap">{renderMessageWithImages(c.message)}</div>
+                    <div className="text-xs text-gray-600 mt-0.5 whitespace-pre-wrap">{renderMessageWithImages(c.message, (src) => setLightBox({ src, alt: 'Comment image' }))}</div>
                     <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(c.created_at)}</div>
                   </div>
                 ))}
@@ -613,6 +634,7 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
         visibility: 'public',
         message: '',
       });
+      setComposerUploadMessage(null);
       setComposerSuccess('Message submitted successfully.');
       setShowComposer(false);
       onFeedbackSubmitted?.();
@@ -642,9 +664,10 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
   };
 
   return (
+    <>
     <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
       <div className="border-b bg-gray-50 px-4 py-3">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">{SiteConfig.feedback.sectionTitle}</h2>
@@ -653,7 +676,7 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => { setShowComposer((v) => !v); setComposerSuccess(null); setComposerError(null); }}
+                onClick={() => { setShowComposer((v) => !v); setComposerSuccess(null); setComposerError(null); setComposerUploadMessage(null); }}
                 className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   showComposer
                     ? 'bg-gray-200 text-gray-700'
@@ -678,6 +701,12 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
           </div>
         </div>
       </div>
+
+      {composerSuccess && (
+        <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+          {composerSuccess}
+        </div>
+      )}
 
       {showComposer && (
         <div className="border-b border-gray-200 bg-gray-50 px-4 py-4">
@@ -742,9 +771,14 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
                 <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                   Upload Image
-                  <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setUploadingImage(true); for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setComposerForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); } } setUploadingImage(false); } }} />
+                  <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setUploadingImage(true); setComposerUploadMessage(null); let uploaded = 0; for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setComposerForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); uploaded++; } } setUploadingImage(false); setComposerUploadMessage(uploaded > 0 ? { type: 'success', text: 'Image uploaded successfully.' } : { type: 'error', text: 'Image upload failed. Please try again.' }); e.target.value = ''; } }} />
                 </label>
                 {uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
+                {composerUploadMessage && (
+                  <span className={`text-xs ${composerUploadMessage.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
+                    {composerUploadMessage.text}
+                  </span>
+                )}
               </div>
              {composerErrors.message && <span className="text-xs text-red-600">{composerErrors.message}</span>}
             </label>
@@ -892,5 +926,31 @@ export default function SiteFeedback({ accessToken = null, creatorLogin = null, 
         </div>
       </div>
     </section>
+      {lightBox && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightBox(null)}
+        >
+          <button
+            type="button"
+            aria-label="Close image"
+            className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/40"
+            onClick={(e) => { e.stopPropagation(); setLightBox(null); }}
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={lightBox.src}
+            alt={lightBox.alt}
+            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+            onClick={(e: ReactMouseEvent<HTMLImageElement>) => e.stopPropagation()}
+          />
+       </div>
+     )}
+    </>
   );
 }

@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- SeqEdge â€” Supabase Database Schema
 -- ============================================================
 -- Run this SQL in your Supabase SQL Editor to create all
@@ -238,3 +238,68 @@ DROP POLICY IF EXISTS "Public update site_feedback" ON site_feedback;
 CREATE POLICY "Public update site_feedback" ON site_feedback FOR UPDATE TO anon USING (true);
 DROP POLICY IF EXISTS "Public update feedback_comments" ON feedback_comments;
 CREATE POLICY "Public update feedback_comments" ON feedback_comments FOR UPDATE TO anon USING (true);
+
+-- ============================================================
+-- Download metadata (creator-edited file info, hide/password) and download count
+-- ============================================================
+CREATE TABLE IF NOT EXISTS download_metadata (
+  download_key TEXT PRIMARY KEY,
+  custom_label TEXT,
+  custom_size_bytes BIGINT,
+  custom_file_type TEXT,
+  custom_description TEXT,
+  hidden BOOLEAN NOT NULL DEFAULT FALSE,
+  password_hash TEXT,
+  storage_provider TEXT NOT NULL DEFAULT 'public_url',
+  storage_bucket TEXT,
+  storage_path TEXT,
+  signed_url_ttl_seconds INTEGER NOT NULL DEFAULT 900,
+  md5_checksum TEXT,
+  sha256_checksum TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS storage_provider TEXT NOT NULL DEFAULT 'public_url';
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS storage_bucket TEXT;
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS storage_path TEXT;
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS signed_url_ttl_seconds INTEGER NOT NULL DEFAULT 900;
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS md5_checksum TEXT;
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS sha256_checksum TEXT;
+ALTER TABLE download_metadata ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'download_metadata_storage_provider_check'
+  ) THEN
+    ALTER TABLE download_metadata
+      ADD CONSTRAINT download_metadata_storage_provider_check
+      CHECK (storage_provider IN ('public_url', 'supabase_private'));
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS download_events (
+  id BIGSERIAL PRIMARY KEY,
+  download_key TEXT NOT NULL,
+  ip_hash TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS download_events_key_idx ON download_events (download_key);
+
+ALTER TABLE download_metadata ENABLE ROW LEVEL SECURITY;
+ALTER TABLE download_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read download_metadata" ON download_metadata;
+CREATE POLICY "Public read download_metadata" ON download_metadata FOR SELECT TO anon USING (true);
+
+DROP POLICY IF EXISTS "Public insert download_metadata" ON download_metadata;
+CREATE POLICY "Public insert download_metadata" ON download_metadata FOR INSERT TO anon WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public update download_metadata" ON download_metadata;
+CREATE POLICY "Public update download_metadata" ON download_metadata FOR UPDATE TO anon USING (true);
+
+DROP POLICY IF EXISTS "Public read download_events" ON download_events;
+CREATE POLICY "Public read download_events" ON download_events FOR SELECT TO anon USING (true);
+
+DROP POLICY IF EXISTS "Public insert download_events" ON download_events;
+CREATE POLICY "Public insert download_events" ON download_events FOR INSERT TO anon WITH CHECK (true);

@@ -90,7 +90,7 @@ export const SiteConfig = {
           'Reference FASTA and annotation files used by the embedded genome browser.',
         href: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_URL || '',
         sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_SIZE || '',
-        mode: (process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_MODE || 'direct') as 'direct' | 'cli',
+        mode: (process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_MODE || 'cli') as 'direct' | 'cli',
       },
     ],
   },

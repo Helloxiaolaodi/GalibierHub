@@ -2,8 +2,6 @@
 
 # SeqEdge
 
-![SeqEdge Screenshot](./seqedge-github-img-readme.jpg)
-
 Edge-Native Genomics Database Template
 
 An open-source template for coordinate-based genomics portals that combine searchable metadata, genome browser views, charts, and storage-decoupled deployment.
@@ -33,9 +31,14 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 - Search and filter promoter records by locus, gene, score, sample, species, tissue, cohort, and BMI class.
 - Open the embedded genome browser and jump directly from a promoter record to the matching region.
 - Inspect promoter details in a floating, resizable panel without hiding the browser.
-- Download reference bundles, release archives, and sample-level files from public storage.
+- Open a unified download modal for reference bundles, release archives, and sample-level files, with browser download, `wget`, `curl`, and `hf download` commands.
+- See file name, type, size, created / updated time, download count, access mode, MD5, and SHA256 in the same download modal.
+- Copy SHA256 with one click, and use resume-capable CLI commands for large-file transfer.
+- Generate batch download scripts for public sample files as `.sh` and `.bat` outputs.
 - Submit public or creator-only messages via the `Discussion` tab, then review thread status on the same page.
 - Sign in with the allowed GitHub creator account to publish official replies.
+- Upload images in discussion threads, view success / failure submission feedback, and click posted images to zoom them.
+- See likes and bookmarks on thread cards and inside the thread detail view.
 - Check the site uptime counter at the bottom of the page.
 
 <div align="right">
@@ -48,13 +51,124 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 
 SeqEdge uses a free-tier friendly split workflow:
 
-- Small files: show `Download`
-- Large files: show `Download`, `Copy wget`, and `Copy curl`
+- Single-file downloads: open one modal that shows browser download plus `wget -c`, `curl -L -C -`, and `hf download`
+- Large files: explicitly present resume-capable CLI commands; `hf download` is the recommended option for large Hugging Face assets
 - JBrowse streaming: use the proxy/fallback chain for indexed browser reads
-- Bulk downloads: go directly to the public file host with `?download=true`
+- Bulk downloads: generate `.sh` and `.bat` scripts for public files only
+- Integrity and metadata: show download count, MD5, SHA256, access mode, hidden/password badges, and region hints in the modal
+- Private delivery: if a file is stored in a private Supabase bucket, SeqEdge can mint a signed URL through `/api/download-metadata/resolve`
 
-This keeps multi-GB transfers off the proxy path and is the recommended setup when large files live on Hugging Face Datasets.
+This keeps multi-GB transfers off the proxy path, preserves resumable CLI flows for end users, and allows genuinely private delivery when large files are moved from public storage to Supabase private storage.
 
+## Uploading Data to Hugging Face
+
+SeqEdge hosts large data files (release archives, reference bundles, sample-level files) on a Hugging Face dataset repository, by default `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`. The project creator uploads these files with the Hugging Face CLI.
+
+### 1. Install the CLI
+
+The `hf` command is bundled with `huggingface_hub`.
+
+```bash
+pip install -q "huggingface_hub"
+```
+
+On Windows the executable may land in the per-user `Scripts` folder (not on PATH). Either add that folder to PATH or call it by full path, e.g. `C:\Users\<you>\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_...\LocalCache\local-packages\Python313\Scripts\hf.exe`.
+
+### 2. Log in
+
+Two options:
+
+```bash
+hf auth login          # paste a token from https://huggingface.co/settings/tokens
+# or set it as an environment variable:
+export HF_TOKEN=hf_xxxxxxxxxxxx   # Linux/macOS
+$env:HF_TOKEN = "hf_xxxxxxxxxxxx" # Windows PowerShell
+```
+
+Verify with `hf auth whoami`, which prints `user=<your-username>`.
+
+### 3. Upload a file or folder
+
+General form:
+
+```bash
+hf upload <namespace/dataset-name> <local-path> <path-in-repo> --repo-type dataset
+```
+
+Example (uploading a ~590 MB archive into a subfolder of the dataset; the subfolder is created if needed):
+
+```bash
+hf upload Helloxiaolaodi/seqedge-data "E:\data\817-food-biochem-materials.zip" "817-food-biochem/817-food-biochem-materials.zip" --repo-type dataset
+```
+
+- `--repo-type dataset` selects a dataset repository (not a model).
+- Subfolders are created implicitly.
+- On success a commit URL like `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/commit/<sha>` is printed.
+
+### 4. Resumable transfer
+
+Both `hf upload` and `hf download` reuse the staging already transmitted, so an interrupted run does not restart from zero. If a run times out or a network error appears, simply run the same command again and it continues.
+
+### 5. Acceleration and the Xet engine
+
+The current `huggingface_hub` (>= 0.30) replaces the old `hf_transfer` package with the Xet engine. To enable high-performance transfer set:
+
+```bash
+export HF_XET_HIGH_PERFORMANCE=1    # Linux/macOS
+$env:HF_XET_HIGH_PERFORMANCE = "1"  # Windows PowerShell
+```
+
+The legacy `HF_HUB_ENABLE_HF_TRANSFER` is deprecated. If your proxy cannot complete the TLS handshake to `*.xethub.hf.co`, fall back to the compatible HTTP channel:
+
+```bash
+export HF_HUB_DISABLE_XET=1         # Linux/macOS
+$env:HF_HUB_DISABLE_XET = "1"       # Windows PowerShell
+```
+
+### 6. Network / proxy tips
+
+Hugging Face stores long-term data in AWS S3 (US-East). From Asia, a direct connection or an Asian-noded proxy routes across the trans-Pacific backbone and usually saturates at a few hundred KB/s. Use a **United States** proxy node so the path becomes `local -> US node -> US region network -> Hugging Face`, which is dramatically faster.
+
+In a terminal set an HTTP proxy (HTTP scheme works best with the CLI):
+
+```bash
+export HTTP_PROXY=http://127.0.0.1:7897 HTTPS_PROXY=http://127.0.0.1:7897   # Linux/macOS
+$env:HTTP_PROXY="http://127.0.0.1:7897"; $env:HTTPS_PROXY="http://127.0.0.1:7897" # Windows PowerShell
+```
+
+Confirm the proxy is actually taking effect before uploading:
+
+```bash
+curl -I https://huggingface.co   # look for "HTTP/1.1 200 Connection established"
+```
+
+### 7. Field experience
+
+Uploading ~592 MB from an Asia location using a US proxy node together with `HF_HUB_DISABLE_XET=1` (the local proxy failed the Xet endpoint TLS handshake) finished in about ten minutes in one run, including an automatic resume after a timeout. Verify the uploaded file by listing the dataset tree:
+
+```bash
+curl -sL "https://huggingface.co/api/datasets/Helloxiaolaodi/seqedge-data/tree/main/817-food-biochem"
+```
+
+The response includes `size` (bytes) and the LFS `oid`, which is the file's SHA-256.
+
+### 8. Downloading large files (for users)
+
+Downloading mirrors uploading. For multi-hundred-MB to GB files prefer the HF CLI, which is resumable and multi-stream:
+
+```bash
+pip install -q "huggingface_hub"
+hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+```
+
+The classic commands also resume:
+
+```bash
+wget -c -O <name> "<resolve url>"        # -c continues a partial download
+curl -L -C - -o <name> "<resolve url>"   # -C - resumes
+```
+
+All three methods support resumable downloads; from Asia the HF CLI gives the best throughput with the least manual retry.
 ## Deployment Model
 
 SeqEdge separates three parts:
@@ -70,6 +184,8 @@ Recommended production layout:
 3. Cloudflare Worker for Hugging Face proxying
 
 The main interface has three tabs: **Overview**, **Promoters** (promoter table + genome browser), and **Discussion**.
+
+The current shipped UI and default schema are still genomics-oriented. Template users can generalize the project later, but the repository in its present state still uses promoter- and genome-related naming in the main data surfaces.
 
 ## Quick Start
 
@@ -141,6 +257,14 @@ Run `schema.sql` in Supabase SQL Editor, then import your real metadata into at 
 - `predicted_promoters`
 - `variant_index`
 
+For the current feature set, `schema.sql` also needs to create the interaction and download-control objects used by the live UI:
+
+- `site_feedback`
+- `feedback_comments`
+- `site_reactions`
+- `download_metadata`
+- storage bucket and policies for `feedback-images`
+
 Creating the schema alone will not populate the homepage statistics.
 
 ### 4. Run locally
@@ -202,8 +326,11 @@ SeqEdge also opens the first reachable annotation track automatically so the vie
 ## Where To Configure Downloads
 
 - Overview download cards: `src/site-config.ts`
-- Sample-level download metadata: `genome_samples.vcf_download_url`, `genome_samples.fasta_download_url`
-- Large-file CLI actions: set `vcf_download_mode` or `fasta_download_mode` to `cli`
+- Sample-level download metadata: `genome_samples.vcf_download_url`, `genome_samples.fasta_download_url`, and related `*_download_mode` fields
+- Unified download metadata model and CLI generation: `src/lib/download-info.ts`
+- Single-file modal behavior and creator edit controls: `src/components/download-actions.tsx`
+- Batch script generation for public entries: `src/components/promoter-table.tsx` and `/api/samples/batch`
+- Private signed-URL resolution: `/api/download-metadata/resolve` backed by the `download_metadata` table
 
 ## User Guide Content
 
@@ -224,10 +351,13 @@ SeqEdge includes a lightweight interaction area for research communication:
 - Messages support a title, name or nickname, email, optional affiliation, category, rating, and visibility.
 - Messages can be `Public` or `Creator only` (private).
 - The `Discussion` tab shows threads split into `In progress` and `Completed`.
+- Threads can be sorted, including a `Most liked` view.
 - Creator replies appear on the site and can also be emailed when the email API is configured.
 - The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`.
 - Posted and replied timestamps are displayed for each thread.
-- Visitors can also leave `Like` and `Bookmark` reactions.
+- Visitors can leave `Like` and `Bookmark` reactions, and those counts remain visible in both list and detail views.
+- Image uploads show success or failure feedback during submission.
+- Submitted messages show explicit success feedback, and posted images can be opened in a zoomable lightbox.
 
 Required database objects for this feature are included in `schema.sql`.
 Required environment variables are listed in `.env.example`.
@@ -414,6 +544,16 @@ SeqEdge also draws inspiration from classic genomic databases such as [EPD](http
 
 </div>
 
+## Friend Links
+
+- [LINUX DO](https://linux.do/) - A next-generation Linux community
+
+<div align="right">
+
+[![][back-to-top]](#readme-top)
+
+</div>
+
 ## Minimal Files To Keep
 
 Keep these for the current feature set:
@@ -424,7 +564,6 @@ Keep these for the current feature set:
 - `README.zh-CN.md`
 - `cloudflare-templates/hf-proxy/`
 - `scripts/`
-- `public/seqedge-github-img-readme.jpg`
 
 Default template SVG assets under `public/` (file, globe, etc.) are unused and can be removed.
 
@@ -444,6 +583,34 @@ If both pass with your real environment values, the repo is ready for deployment
 [![][back-to-top]](#readme-top)
 
 </div>
+
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+<div align="right">
+
+[![][back-to-top]](#readme-top)
+
+</div>
+
+
+---
+
+## Data access control: honest limitation
+
+The per-file **Hide** and **Download password** controls are only genuine access control when the file is delivered through the signed-URL path. In the current codebase, that real protected flow is implemented for entries whose `download_metadata.storage_provider` is `supabase_private`: the site verifies optional passwords and then mints a short-lived Supabase signed URL.
+
+If the underlying file still lives on a **publicly readable** Hugging Face dataset repository, hide/password remain an **in-page convenience only**. Anyone who knows a `https://huggingface.co/datasets/<user>/<repo>/resolve/main/<path>` URL can fetch it directly with `wget`/`curl`/`hf download`, bypassing the site entirely. The same limitation applies to reusable batch scripts for public Hugging Face URLs.
+
+If you need **real access control**, choose one of:
+
+- Keep large files in a **private** Supabase Storage bucket and serve **signed, time-limited URLs** generated by an authenticated API route. This is the protection model already wired into the current code.
+- Set the Hugging Face dataset repository to **private** (only authenticated, authorized users can read). Note: the default `resolve` URL then requires an HF access token, so public website downloads stop working until you add your own gated proxy layer.
+- Move sensitive files to a provider with built-in gating (e.g. a gated dataset on Hugging Face, with token-bearing downloaders).
+
+In short: public HF URL + hide/password = discourage casual on-site download; private signed storage = prevent direct anonymous download.
 
 <!-- LINK GROUP -->
 [back-to-top]: https://img.shields.io/badge/Back_to_Top-⬆-blue?style=flat-square

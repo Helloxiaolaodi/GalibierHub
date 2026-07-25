@@ -16,6 +16,7 @@ export function useDiscussionComments() {
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [commentSubmitting, setCommentSubmitting] = useState<Record<string, boolean>>({});
   const [commentError, setCommentError] = useState<Record<string, string | null>>({});
+  const [commentSuccess, setCommentSuccess] = useState<Record<string, string | null>>({});
 
   const fetchEntryComments = useCallback(async (entryId: string) => {
     try {
@@ -31,6 +32,7 @@ export function useDiscussionComments() {
     if (!draft || draft.length < 1) return;
     setCommentSubmitting((s) => ({ ...s, [entryId]: true }));
     setCommentError((e) => ({ ...e, [entryId]: null }));
+    setCommentSuccess((e) => ({ ...e, [entryId]: null }));
     try {
       const response = await fetch('/api/feedback', {
         method: 'POST',
@@ -44,6 +46,7 @@ export function useDiscussionComments() {
       const data = await response.json() as { error?: string };
       if (!response.ok) throw new Error(data.error || 'Failed to post comment.');
       setCommentDrafts((c) => ({ ...c, [entryId]: '' }));
+      setCommentSuccess((e) => ({ ...e, [entryId]: 'Comment posted successfully.' }));
       await fetchEntryComments(entryId);
     } catch (err) {
       setCommentError((e) => ({ ...e, [entryId]: err instanceof Error ? err.message : 'Failed to post comment.' }));
@@ -60,6 +63,8 @@ export function useDiscussionComments() {
     commentSubmitting,
     commentError,
     setCommentError,
+    commentSuccess,
+    setCommentSuccess,
     fetchEntryComments,
     handleSubmitComment,
   };

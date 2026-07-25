@@ -2,8 +2,6 @@
 
 # SeqEdge
 
-![SeqEdge 截图](./seqedge-github-img-readme.jpg)
-
 边缘原生子基因组数据库模板
 
 一个开源模板，用于构建基于坐标的子基因组门户，整合可检索的元数据、基因组浏览器视图、图表与存储解耦的部署方式。
@@ -33,9 +31,14 @@
 - 按位点、基因、评分、样本、物种、组织、队列与 BMI 分级检索并筛选子记录。
 - 打开嵌入式基因组浏览器，从一条子记录直接跳转到对应区域。
 - 在可悬浮、可缩放的面板中查看子详情，浏览器视图不会被遮挡。
-- 从公共存储下载参考序列包、发布归档文件与样本级文件。
+- 通过统一的下载弹窗下载参考序列包、发布归档文件与样本级文件，并查看浏览器下载、`wget`、`curl` 与 `hf download` 命令。
+- 在下载弹窗中查看文件名、文件类型、文件大小、创建 / 更新时间、下载次数、访问模式、MD5 与 SHA256。
+- 一键复制 SHA256，并使用支持断点续传的命令行方式下载大文件。
+- 为公开的样本级文件生成批量下载脚本，导出为 `.sh` 与 `.bat`。
 - 通过 `讨论` 标签页提交公开或仅创建者可见的留言，并在同一页面查看帖子状态。
 - 使用被授权的 GitHub 创建者账号登录并发布官方回复。
+- 在讨论区上传图片，看到提交成功 / 失败提示，并点击已发布图片进行放大查看。
+- 在帖子卡片与详情视图中查看点赞和收藏情况。
 - 在页面底部查看站点运行时长计数器。
 
 <div align="right">
@@ -48,13 +51,124 @@
 
 SeqEdge 采用适合免费层级的拆分式流程：
 
-- 小文件：显示 `下载`
-- 大文件：显示 `下载`、`复制 wget` 与 `复制 curl`
+- 单文件下载：统一弹出一个下载窗口，同时提供浏览器下载、`wget -c`、`curl -L -C -` 与 `hf download`
+- 大文件：明确提供支持断点续传的命令行方案；对于 Hugging Face 大文件，优先推荐 `hf download`
 - JBrowse 流式读取：使用代理/回退链进行索引化浏览器读取
-- 批量下载：直接访问公共文件主机并通过 `?download=true` 下载
+- 批量下载：仅为公开文件生成 `.sh` 与 `.bat` 脚本
+- 完整性与元数据：在弹窗中显示下载次数、MD5、SHA256、访问模式、隐藏/密码标记与区域提示
+- 私有下载：若文件存放于 Supabase 私有 bucket，则可通过 `/api/download-metadata/resolve` 动态签发带时效的 signed URL
 
-这样可以把数 GB 级别的传输排除在代理路径之外，是大文件托管在 Hugging Face Datasets 时的推荐方案。
+这样可以把数 GB 级别的传输排除在代理路径之外，同时保留可续传的命令行下载体验；当文件迁移到 Supabase 私有存储时，也能启用真正的私有下载链路。
 
+## 上传数据到 Hugging Face
+
+SeqEdge 的大体量文件（发布归档、参考序列包、样本级文件）托管在 Hugging Face 的数据集仓库中，默认为 `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`。项目创建者用 Hugging Face 命令行工具上传这些文件。
+
+### 1. 安装命令行工具
+
+`hf` 命令随 `huggingface_hub` 一起提供：
+
+```bash
+pip install -q "huggingface_hub"
+```
+
+Windows 上，可执行文件可能装在当前用户的 `Scripts` 目录下（未加入 PATH）。可将该目录加入 PATH，或直接用全路径调用，例如 `C:\Users\<你>\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_...\LocalCache\local-packages\Python313\Scripts\hf.exe`。
+
+### 2. 登录
+
+两种方式：
+
+```bash
+hf auth login          # 粘贴 https://huggingface.co/settings/tokens 里的令牌
+# 或者用环境变量：
+export HF_TOKEN=hf_xxxxxxxxxxxx   # Linux/macOS
+$env:HF_TOKEN = "hf_xxxxxxxxxxxx" # Windows PowerShell
+```
+
+用 `hf auth whoami` 验证，会输出 `user=<你的用户名>`。
+
+### 3. 上传文件或文件夹
+
+通用格式：
+
+```bash
+hf upload <用户名/数据集名> <本地路径> <仓库内目标路径> --repo-type dataset
+```
+
+示例（把约 590 MB 的压缩包传到数据集的某个子文件夹，不存在会自动创建）：
+
+```bash
+hf upload Helloxiaolaodi/seqedge-data "E:\data\817-food-biochem-materials.zip" "817-food-biochem/817-food-biochem-materials.zip" --repo-type dataset
+```
+
+- `--repo-type dataset` 表示数据集仓库（而非模型仓库）。
+- 子文件夹在上传时隐式创建。
+- 成功后会打印一个 commit 链接，形如 `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/commit/<sha>`。
+
+### 4. 断点续传
+
+`hf upload`（以及 `hf download`）会复用已传完的暂存分片，中途中断不会从零开始。若运行超时或报网络错误，直接重跑同一命令即可续传。
+
+### 5. 加速与 Xet 引擎
+
+新版 `huggingface_hub`（>= 0.30）用 Xet 引擎取代了旧的 `hf_transfer` 包。开启高性能传输：
+
+```bash
+export HF_XET_HIGH_PERFORMANCE=1    # Linux/macOS
+$env:HF_XET_HIGH_PERFORMANCE = "1"  # Windows PowerShell
+```
+
+旧的 `HF_HUB_ENABLE_HF_TRANSFER` 已废弃。如果你的代理无法与 `*.xethub.hf.co` 完成 TLS 握手，可退回兼容的 HTTP 通道：
+
+```bash
+export HF_HUB_DISABLE_XET=1         # Linux/macOS
+$env:HF_HUB_DISABLE_XET = "1"       # Windows PowerShell
+```
+
+### 6. 代理技巧
+
+Hugging Face 的长期数据存储在 AWS S3（美东）。亚洲直连或走亚洲节点代理都要跨太平洋骨干网，上行通常只有数百 KB/s。**改用美国节点**代理，路径变为 `本地 -> 美国节点 -> 美国区内网络 -> Hugging Face`，速度有质的提升。
+
+在终端设置 HTTP 代理（用 HTTP 协议兼容性最好）：
+
+```bash
+export HTTP_PROXY=http://127.0.0.1:7897 HTTPS_PROXY=http://127.0.0.1:7897   # Linux/macOS
+$env:HTTP_PROXY="http://127.0.0.1:7897"; $env:HTTPS_PROXY="http://127.0.0.1:7897" # Windows PowerShell
+```
+
+上传前先确认代理是否真正生效：
+
+```bash
+curl -I https://huggingface.co   # 出现 "HTTP/1.1 200 Connection established" 即代理 CONNECT 成功
+```
+
+### 7. 实战经验
+
+在亚洲地区上传约 592 MB 压缩包，使用美国节点代理并设置 `HF_HUB_DISABLE_XET=1`（当地代理对 Xet 端点 TLS 握手失败），约十分钟一次成功（含超时后自动续传）。可用列出数据集目录树的方式核对已传文件：
+
+```bash
+curl -sL "https://huggingface.co/api/datasets/Helloxiaolaodi/seqedge-data/tree/main/817-food-biochem"
+```
+
+返回中包含 `size`（字节数）与 LFS 的 `oid`，后者即为文件的 SHA-256。
+
+### 8. 下载大文件（给使用者）
+
+下载是上传的镜像。几百 MB 到数 GB 的文件优先用 HF 命令行工具，支持断点续传且多并发：
+
+```bash
+pip install -q "huggingface_hub"
+hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+```
+
+经典命令同样支持断点续传：
+
+```bash
+wget -c -O <文件名> "<resolve url>"        # -c 续传未完成的下载
+curl -L -C - -o <文件名> "<resolve url>"   # -C - 续传
+```
+
+三种方式都支持断点续传；亚洲用户用 HF 命令行工具吞吐最高、手动重试最少。
 ## 部署模型
 
 SeqEdge 将三部分解耦：
@@ -69,7 +183,9 @@ SeqEdge 将三部分解耦：
 2. Cloudflare Pages 作为镜像站
 3. Cloudflare Worker 用于 Hugging Face 代理
 
-主界面有三个标签页：**总览**、**子**（子表格 + 基因组浏览器）与 **讨论**。
+主界面当前有三个标签页：**Overview**、**Promoters**（promoter 表格 + 基因组浏览器）与 **Discussion**。
+
+需要说明的是：仓库当前已发布的默认 UI 和默认数据模型仍然是偏基因组 / promoter 场景的命名。未来模板使用者可以再做泛化，但当前代码本身仍以 promoter 和 genome 相关字段为主。
 
 ## 快速开始
 
@@ -141,6 +257,14 @@ FEEDBACK_EMAIL_TO=owner@example.org
 - `predicted_promoters`
 - `variant_index`
 
+对于当前这套功能，`schema.sql` 还需要同时创建前端真实使用到的互动与下载控制对象：
+
+- `site_feedback`
+- `feedback_comments`
+- `site_reactions`
+- `download_metadata`
+- `feedback-images` 存储桶及其策略
+
 仅创建 schema 不会填充首页统计数据。
 
 ### 4. 本地运行
@@ -202,8 +326,11 @@ Cloudflare Pages：
 ## 在何处配置下载
 
 - 总览下载卡片：`src/site-config.ts`
-- 样本级下载元数据：`genome_samples.vcf_download_url`、`genome_samples.fasta_download_url`
-- 大文件 CLI 操作：将 `vcf_download_mode` 或 `fasta_download_mode` 设为 `cli`
+- 样本级下载元数据：`genome_samples.vcf_download_url`、`genome_samples.fasta_download_url` 及相关 `*_download_mode` 字段
+- 统一下载元数据结构与命令生成：`src/lib/download-info.ts`
+- 单文件下载弹窗与创建者编辑能力：`src/components/download-actions.tsx`
+- 公开文件的批量脚本生成：`src/components/promoter-table.tsx` 与 `/api/samples/batch`
+- 私有 signed URL 解析：`/api/download-metadata/resolve`，底层依赖 `download_metadata` 表
 
 ## 用户指南内容
 
@@ -224,10 +351,13 @@ SeqEdge 内置了一个面向科研交流的轻量互动区域：
 - 留言支持标题、姓名或昵称、邮箱、可选所属机构、分类、评分与可见性。
 - 留言可为 `公开` 或 `仅创建者`（私密）。
 - `讨论` 标签页将帖子分为 `进行中` 与 `已完成` 两类展示。
+- 帖子支持排序，包含 `Most liked` 视图。
 - 创建者回复会显示在站点上，配置邮件 API 时也可同时发送邮件。
 - 回复操作仅限与 `GITHUB_ADMIN_USERNAME` 匹配的 GitHub 账号。
 - 每条帖子都会显示发布与回复的时间戳。
-- 访客还可以留下 `点赞` 与 `收藏` 反馈。
+- 访客可以留下 `点赞` 与 `收藏`，并且这些计数会在列表视图和详情视图中同时显示。
+- 图片上传和留言提交都会显示成功 / 失败提示。
+- 已发布图片支持点击后放大查看。
 
 该功能所需的数据库对象已包含在 `schema.sql` 中。
 所需环境变量已在 `.env.example` 中列出。
@@ -414,6 +544,16 @@ SeqEdge 也借鉴了 [EPD](https://epd.fl.ch/)、[DBTSS](https://dbtss.hgc.jp/) 
 
 </div>
 
+## 友情链接
+
+- [LINUX DO](https://linux.do/) — 下一代 Linux 社区
+
+<div align="right">
+
+[![][back-to-top]](#readme-top)
+
+</div>
+
 ## 必要保留文件
 
 为保留当前功能集，请保留以下文件：
@@ -424,7 +564,6 @@ SeqEdge 也借鉴了 [EPD](https://epd.fl.ch/)、[DBTSS](https://dbtss.hgc.jp/) 
 - `README.zh-CN.md`
 - `cloudflare-templates/hf-proxy/`
 - `scripts/`
-- `public/seqedge-github-img-readme.jpg`
 
 `public/` 下默认的模板 SVG 资源（文件、地球等）未被使用，可删除。
 
@@ -444,6 +583,34 @@ npm run build
 [![][back-to-top]](#readme-top)
 
 </div>
+
+
+## 许可证
+
+本项目基于 [MIT 许可证](LICENSE) 授权。
+
+<div align="right">
+
+[![][back-to-top]](#readme-top)
+
+</div>
+
+
+---
+
+## 数据访问控制：诚实说明的限制
+
+只有当文件走 signed URL 这条链路时，「隐藏文件」与「下载密码」才构成真正的访问控制。当前代码中，这条真实的私有下载路径已经实现给 `download_metadata.storage_provider = supabase_private` 的条目：站点会先校验可选密码，再由后端签发短时有效的 Supabase signed URL。
+
+如果底层文件仍然放在**公开可读**的 Hugging Face dataset 仓库中，那么隐藏/密码依旧只是**站内 UI 层面的便捷控制**。任何人只要拿到 `https://huggingface.co/datasets/<用户>/<仓库>/resolve/main/<路径>` 这个 URL，就能用 `wget`/`curl`/`hf download` 直接下载，完全绕过站点。公开 Hugging Face URL 生成的批量下载脚本同样存在这个限制。
+
+如果需要**真正的访问控制**，二选一/三选一：
+
+- 把大文件放在 **私有** Supabase Storage bucket，由经过鉴权的 API 路由生成**带签名、有时限的 URL** 下发。这也是当前代码已经接入的保护方案。
+- 将 Hugging Face dataset 仓库设为 **private**（仅持有授权令牌的用户可读）。注意：此时默认 `resolve` URL 需要 HF access token，公网的站内下载会失效，除非你另外实现自己的受控代理层。
+- 把敏感文件迁移到自带 gating 的平台（如 Hugging Face 的 gated dataset，由携带令牌的用户下载）。
+
+一句话：公开 HF URL + 隐藏/密码 = 劝退站内随手下载；私有 signed storage = 阻止匿名用户直接下载。
 
 <!-- LINK GROUP -->
 [back-to-top]: https://img.shields.io/badge/Back_to_Top-⬆-blue?style=flat-square
