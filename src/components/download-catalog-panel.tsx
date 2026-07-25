@@ -123,6 +123,7 @@ export default function DownloadCatalogPanel({
   accessToken?: string | null;
 }) {
   const [items, setItems] = useState<DownloadCatalogItem[]>([]);
+  const [effectiveIsAdmin, setEffectiveIsAdmin] = useState(isAdmin);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -143,6 +144,7 @@ export default function DownloadCatalogPanel({
         if (!active) return;
         if (Array.isArray(data?.items)) {
           setItems(data.items as DownloadCatalogItem[]);
+          setEffectiveIsAdmin(Boolean(isAdmin) || Boolean(data?.isAdmin));
           setWarning(typeof data?.warning === 'string' && data.warning.trim() ? data.warning : null);
           return;
         }
@@ -157,7 +159,7 @@ export default function DownloadCatalogPanel({
     return () => {
       active = false;
     };
-  }, [accessToken]);
+  }, [accessToken, isAdmin]);
 
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
@@ -331,7 +333,7 @@ export default function DownloadCatalogPanel({
                     <div className="flex flex-wrap gap-2 text-[11px] text-gray-600">
                       <span className="rounded bg-gray-100 px-2 py-0.5">{item.providerLabel}</span>
                       <span className="rounded bg-gray-100 px-2 py-0.5">{scopeLabel(item.sourceScope)}</span>
-                      {item.hidden && isAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-700">Hidden</span>}
+                    {item.hidden && effectiveIsAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-700">Hidden</span>}
                       {item.sampleCount > 0 && <span className="rounded bg-gray-100 px-2 py-0.5">Samples: {item.sampleCount}</span>}
                       {item.kinds.length > 0 && <span className="rounded bg-gray-100 px-2 py-0.5">Types: {item.kinds.join(', ')}</span>}
                     </div>
@@ -342,7 +344,7 @@ export default function DownloadCatalogPanel({
                     sizeLabel={item.sizeLabel}
                     description={item.description}
                     showCli={item.showCli}
-                    isAdmin={isAdmin}
+                        isAdmin={effectiveIsAdmin}
                     accessToken={accessToken}
                     initialHidden={item.hidden}
                     onMetadataSaved={(next) => handleMetadataSaved(item.id, next.hidden)}

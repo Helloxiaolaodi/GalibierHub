@@ -70,7 +70,11 @@ export default function HomePage() {
   const [dataError, setDataError] = useState<string | null>(null);
 
   const expectedAdminLogin = useMemo(
-    () => (process.env.NEXT_PUBLIC_GITHUB_ADMIN_USERNAME || '').trim().toLowerCase(),
+    () => {
+      const publicEnv = (process.env.NEXT_PUBLIC_GITHUB_ADMIN_USERNAME || '').trim().toLowerCase();
+      if (publicEnv) return publicEnv;
+      return (SiteConfig.creatorCreditLabel || '').trim().replace(/^@/, '').toLowerCase();
+    },
     [],
   );
 
@@ -378,6 +382,13 @@ export default function HomePage() {
             <button type="button" onClick={() => setCreatorSignInError(null)} aria-label="Dismiss" className="shrink-0 text-red-400 hover:text-red-600">X</button>
           </div>
         )}
+        {creatorSession && (
+          <div className={`rounded-lg border px-4 py-3 text-sm ${isCreatorAdmin ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+            {isCreatorAdmin
+              ? `Creator admin recognized for @${creatorLogin || 'unknown'}. Admin controls are enabled.`
+              : `Signed in as @${creatorLogin || 'unknown'}, but this account is not recognized as creator admin. Expected: @${expectedAdminLogin || 'not configured'}.`}
+          </div>
+        )}
         {dataError && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-2">
             <div>{dataError}</div>
@@ -432,7 +443,7 @@ export default function HomePage() {
           </>
         )}
         {activeTab === 'discussion' && (
-          <SiteFeedback accessToken={creatorAccessToken} creatorLogin={creatorLogin} refreshSignal={feedbackRefreshSignal} onFeedbackSubmitted={() => setFeedbackRefreshSignal((current) => current + 1)} />
+          <SiteFeedback isAdminHint={isCreatorAdmin} accessToken={creatorAccessToken} creatorLogin={creatorLogin} refreshSignal={feedbackRefreshSignal} onFeedbackSubmitted={() => setFeedbackRefreshSignal((current) => current + 1)} />
         )}
         {activeTab === 'downloads' && (
           <DownloadCatalogPanel isAdmin={isCreatorAdmin} accessToken={creatorAccessToken} />
