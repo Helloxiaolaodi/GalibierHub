@@ -13,6 +13,20 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
   const [promoter, setPromoter] = useState<Promoter | null>(null);
   const [sample, setSample] = useState<SampleMetadata | null>(null);
   const [loading, setLoading] = useState(true);
+  const vcfDownloadUrl = getDirectDownloadUrl(sample?.vcf_download_url);
+  const fastaDownloadUrl = getDirectDownloadUrl(sample?.fasta_download_url);
+  const gbDownloadUrl = getDirectDownloadUrl(sample?.gb_download_url);
+  const bedDownloadUrl = getDirectDownloadUrl(sample?.bed_download_url);
+  const gff3DownloadUrl = getDirectDownloadUrl(sample?.gff3_download_url);
+  const { isVisible: isDownloadVisible, loaded: downloadsLoaded } = useDownloadVisibility(
+    [vcfDownloadUrl, fastaDownloadUrl, gbDownloadUrl, bedDownloadUrl, gff3DownloadUrl],
+    false,
+  );
+  const visibleVcfDownloadUrl = isDownloadVisible(vcfDownloadUrl) ? vcfDownloadUrl : '';
+  const visibleFastaDownloadUrl = isDownloadVisible(fastaDownloadUrl) ? fastaDownloadUrl : '';
+  const visibleGbDownloadUrl = isDownloadVisible(gbDownloadUrl) ? gbDownloadUrl : '';
+  const visibleBedDownloadUrl = isDownloadVisible(bedDownloadUrl) ? bedDownloadUrl : '';
+  const visibleGff3DownloadUrl = isDownloadVisible(gff3DownloadUrl) ? gff3DownloadUrl : '';
 
   useEffect(() => {
     params.then((p) => {
@@ -47,21 +61,6 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
       </div>
     );
   }
-
-  const vcfDownloadUrl = getDirectDownloadUrl(sample?.vcf_download_url);
-  const fastaDownloadUrl = getDirectDownloadUrl(sample?.fasta_download_url);
-  const gbDownloadUrl = getDirectDownloadUrl(sample?.gb_download_url);
-  const bedDownloadUrl = getDirectDownloadUrl(sample?.bed_download_url);
-  const gff3DownloadUrl = getDirectDownloadUrl(sample?.gff3_download_url);
-  const { isVisible: isDownloadVisible, loaded: downloadsLoaded } = useDownloadVisibility(
-    [vcfDownloadUrl, fastaDownloadUrl, gbDownloadUrl, bedDownloadUrl, gff3DownloadUrl],
-    false,
-  );
-  const visibleVcfDownloadUrl = isDownloadVisible(vcfDownloadUrl) ? vcfDownloadUrl : '';
-  const visibleFastaDownloadUrl = isDownloadVisible(fastaDownloadUrl) ? fastaDownloadUrl : '';
-  const visibleGbDownloadUrl = isDownloadVisible(gbDownloadUrl) ? gbDownloadUrl : '';
-  const visibleBedDownloadUrl = isDownloadVisible(bedDownloadUrl) ? bedDownloadUrl : '';
-  const visibleGff3DownloadUrl = isDownloadVisible(gff3DownloadUrl) ? gff3DownloadUrl : '';
 
   return (
     <div className="min-h-screen bg-gray-50">

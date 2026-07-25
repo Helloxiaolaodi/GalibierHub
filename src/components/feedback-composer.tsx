@@ -11,14 +11,6 @@ interface FeedbackComposerProps {
   onSubmitted?: () => void;
 }
 
-const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
-  general: 'General',
-  issue: 'Issue',
-  idea: 'Idea',
-  data: 'Data',
-  collaboration: 'Collaboration',
-};
-
 const MIN_PANEL_WIDTH = 380;
 const MAX_PANEL_WIDTH = 760;
 const MIN_PANEL_HEIGHT = 520;
