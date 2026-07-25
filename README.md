@@ -595,15 +595,7 @@ Set the start timestamp in `src/site-config.ts` under `uptime.startAt`.
 
 ## Tech Stack
 
-- [Next.js](https://nextjs.org/docs) `15.5.21`
-- [React](https://react.dev/learn) `19.2.4`
-- [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) `^2.110.7`
-- [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) `^4.3.0`
-- [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) `^3.1.0`
-- [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) `^8.21.3`
-- [ECharts](https://echarts.apache.org/handbook/en/get-started/) `^6.1.0`
-- [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) `^1.20.2`
-- [Wrangler](https://developers.cloudflare.com/workers/wrangler/) `^4.113.0`
+- See the unified tool reference below.
 
 <div align="right">
 
@@ -613,35 +605,21 @@ Set the start timestamp in `src/site-config.ts` under `uptime.startAt`.
 
 ## Acknowledgments
 
-SeqEdge builds on a strong open-source ecosystem. These projects make the template practical for research-facing genomic applications.
-
-| Project | Role |
-| --- | --- |
-| [Next.js](https://nextjs.org/) | Frontend framework and application runtime |
-| [Supabase](https://supabase.com/) | Hosted PostgreSQL and API layer |
-| [JBrowse 2](https://jbrowse.org/jb2/) | Interactive genome browser foundation |
-| [Cloudflare R2](https://www.cloudflare.com/products/r2/) | Storage layer for large genomic assets |
-| [Vercel](https://vercel.com/) | Deployment and edge delivery |
-| [TanStack Table](https://tanstack.com/table) | Data grid behavior for promoter and locus tables |
-| [Apache ECharts](https://echarts.apache.org/) | Chart rendering for summary analytics |
-| [Tailwind CSS](https://tailwindcss.com/) | Consistent UI styling |
+SeqEdge builds on an open-source stack for UI rendering, data access, browser-based reference viewing, and deployment.
 
 ### Sources & Citations
 
-| Tool | Version | Source |
-| --- | --- | --- |
-| [Next.js](https://nextjs.org/docs) | `15.5.21` | Official documentation |
-| [React](https://react.dev/learn) | `19.2.4` | Official learning docs |
-| [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) | `^2.110.7` | Supabase JavaScript client official docs |
-| [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) | `^4.3.0` | JBrowse 2 official docs |
-| [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) | `^3.1.0` | npm package page |
-| [JBrowse 2](https://www.nature.com/articles/s41587-023-01780-9) | integrated runtime | Buels R, et al. *JBrowse 2: a modular genome browser with views of synteny and structural variation*. Nature Biotechnology. 2023 |
-| [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) | `^8.21.3` | Official docs |
-| [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | Official getting-started handbook |
-| [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) | `^1.20.2` | OpenNext Cloudflare official docs |
-| [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | `^4.113.0` | Cloudflare Workers CLI official docs |
-
-SeqEdge also draws inspiration from classic genomic databases such as [EPD](https://epd.epfl.ch/), [DBTSS](https://dbtss.hgc.jp/), and [RegulonDB](https://regulondb.ccg.unam.mx/), updated with a cloud-native deployment model.
+| Tool | Version | Function | Reference |
+| --- | --- | --- | --- |
+| [Next.js](https://nextjs.org/docs) | `15.5.21` | App framework and runtime | Official documentation |
+| [React](https://react.dev/learn) | `19.2.4` | Component rendering and client UI state | Official learning docs |
+| [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) | `^2.110.7` | Database, auth, and storage client access | Supabase JavaScript client docs |
+| [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) | `^4.3.0` | Embedded reference browser core | JBrowse 2 docs |
+| [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) | `^3.1.0` | React wrapper for the linear browser view | npm package page |
+| [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) | `^8.21.3` | Record table rendering and interactions | Official docs |
+| [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | Summary charts and dashboard visuals | Official getting-started handbook |
+| [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) | `^1.20.2` | Cloudflare build adapter | OpenNext Cloudflare docs |
+| [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | `^4.113.0` | Cloudflare deployment CLI | Cloudflare Workers CLI docs |
 
 <div align="right">
 
