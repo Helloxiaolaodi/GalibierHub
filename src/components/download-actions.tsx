@@ -21,6 +21,8 @@ interface DownloadActionsProps {
   isAdmin?: boolean;
   accessToken?: string | null;
   className?: string;
+  initialHidden?: boolean;
+  onMetadataSaved?: (next: DownloadMetadataPayload) => void;
 }
 
 type FileMeta = { size: number | null; sha256: string | null; loading: boolean };
@@ -83,6 +85,8 @@ export default function DownloadActions({
   isAdmin = false,
   accessToken = null,
   className = '',
+  initialHidden,
+  onMetadataSaved,
 }: DownloadActionsProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -127,6 +131,10 @@ export default function DownloadActions({
     };
   }, [open, key, url, label, description]);
 
+  useEffect(() => {
+    setDbMeta((current) => (current.hidden === initialHidden ? current : { ...current, hidden: initialHidden ?? false }));
+  }, [initialHidden]);
+
   const effectiveInfo = useMemo(() => {
     const base = resolvedInfo || buildDownloadResolvedInfo(key, dbMeta, label, description);
     return {
@@ -137,7 +145,7 @@ export default function DownloadActions({
   }, [resolvedInfo, key, dbMeta, label, description, hfMeta.size, hfMeta.sha256]);
 
   const displaySize = hfMeta.loading ? 'Loading…' : formatDownloadBytes(effectiveInfo.size_bytes) || sizeLabel || '';
-  const hidden = dbMeta.hidden;
+  const hidden = dbMeta.hidden ?? initialHidden ?? false;
   const passwordProtected = dbMeta.password_protected;
   const linksVisible = isAdmin || (!hidden && (!passwordProtected || unlocked));
   const directUrlInvalid = effectiveInfo.access_mode === 'public_url' && !effectiveInfo.direct_url_valid;
@@ -266,12 +274,37 @@ export default function DownloadActions({
       const nextMeta = await readDbMeta(key);
       setDbMeta(nextMeta);
       setResolvedInfo(buildDownloadResolvedInfo(key, nextMeta, label, description));
+      onMetadataSaved?.(nextMeta);
       setSaveState({ ok: true, text: 'Saved.' });
       setEditing(false);
     } catch (error) {
       setSaveState({ ok: false, text: error instanceof Error ? error.message : 'Save failed.' });
     }
   };
+
+  const toggleHiddenQuickly = useCallback(async () => {
+    if (!isAdmin || !accessToken) return;
+    setSaveState({ ok: false, text: hidden ? 'Showing...' : 'Hiding...' });
+    try {
+      const res = await fetch('/api/download-metadata', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ download_key: key, hidden: !hidden }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setSaveState({ ok: false, text: data.error || 'Update failed.' });
+        return;
+      }
+      const nextMeta = await readDbMeta(key);
+      setDbMeta(nextMeta);
+      setResolvedInfo(buildDownloadResolvedInfo(key, nextMeta, label, description));
+      onMetadataSaved?.(nextMeta);
+      setSaveState({ ok: true, text: nextMeta.hidden ? 'Hidden.' : 'Visible.' });
+    } catch (error) {
+      setSaveState({ ok: false, text: error instanceof Error ? error.message : 'Update failed.' });
+    }
+  }, [isAdmin, accessToken, hidden, key, label, description, onMetadataSaved]);
 
   if (!url) return null;
 
@@ -295,6 +328,15 @@ export default function DownloadActions({
             className="inline-flex min-w-[9rem] items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
           >
             {label}
+          </button>
+        )}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => void toggleHiddenQuickly()}
+            className="inline-flex min-w-[8rem] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            {hidden ? 'Show to visitors' : 'Hide from visitors'}
           </button>
         )}
       </div>

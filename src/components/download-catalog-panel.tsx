@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import DownloadActions from '@/components/download-actions';
-import { useDownloadVisibility } from '@/hooks/use-download-visibility';
-import { getDirectDownloadUrl } from '@/lib/storage';
 
 type DownloadCatalogItem = {
   id: string;
@@ -17,12 +15,15 @@ type DownloadCatalogItem = {
   sampleCount: number;
   sampleIds: string[];
   kinds: string[];
+  hidden?: boolean;
 };
 
 type DownloadCatalogGroup = {
   folderPath: string;
   items: DownloadCatalogItem[];
 };
+
+type DownloadSortMode = 'folder_asc' | 'folder_desc' | 'file_asc' | 'file_desc';
 
 function deriveFolderPath(url: string): string {
   if (!url) return 'Root';
@@ -68,17 +69,25 @@ export default function DownloadCatalogPanel({
   const [items, setItems] = useState<DownloadCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [sortMode, setSortMode] = useState<DownloadSortMode>('folder_asc');
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
-    fetch('/api/download-catalog')
+    setWarning(null);
+    const headers: HeadersInit = accessToken
+      ? { Authorization: `Bearer ${accessToken}` }
+      : {};
+    fetch('/api/download-catalog', { headers })
       .then((res) => res.json())
       .then((data) => {
         if (!active) return;
         if (Array.isArray(data?.items)) {
           setItems(data.items as DownloadCatalogItem[]);
+          setWarning(typeof data?.warning === 'string' && data.warning.trim() ? data.warning : null);
           return;
         }
         setError(data?.error || 'Failed to load download catalog.');
@@ -92,48 +101,66 @@ export default function DownloadCatalogPanel({
     return () => {
       active = false;
     };
-  }, []);
+  }, [accessToken]);
 
-  const normalizedItems = useMemo(
-    () => items.map((item) => ({ ...item, url: getDirectDownloadUrl(item.url) })),
-    [items],
-  );
-
-  const { isVisible, loaded } = useDownloadVisibility(
-    normalizedItems.map((item) => item.url),
-    isAdmin,
-  );
-
-  const visibleItems = useMemo(
-    () => normalizedItems.filter((item) => isVisible(item.url)),
-    [normalizedItems, isVisible],
-  );
+  const filteredItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    if (!keyword) return items;
+    return items.filter((item) => {
+      const fileName = deriveFileName(item.url).toLowerCase();
+      const folderPath = deriveFolderPath(item.url).toLowerCase();
+      const label = item.label.toLowerCase();
+      const description = item.description.toLowerCase();
+      return fileName.includes(keyword)
+        || folderPath.includes(keyword)
+        || label.includes(keyword)
+        || description.includes(keyword);
+    });
+  }, [items, searchText]);
 
   const groupedItems = useMemo<DownloadCatalogGroup[]>(() => {
     const groups = new Map<string, DownloadCatalogItem[]>();
-    for (const item of visibleItems) {
+    for (const item of filteredItems) {
       const key = deriveFolderPath(item.url);
       const current = groups.get(key) || [];
       current.push(item);
       groups.set(key, current);
     }
+
+    const sortItems = (grouped: DownloadCatalogItem[]) => {
+      const direction = sortMode === 'file_desc' ? -1 : 1;
+      return grouped.sort((a, b) => direction * deriveFileName(a.url).localeCompare(deriveFileName(b.url)));
+    };
+
     return Array.from(groups.entries())
       .map(([folderPath, grouped]) => ({
         folderPath,
-        items: grouped.sort((a, b) => deriveFileName(a.url).localeCompare(deriveFileName(b.url))),
+        items: sortItems(grouped),
       }))
       .sort((a, b) => {
+        const direction = sortMode === 'folder_desc' ? -1 : 1;
+        if (sortMode === 'file_asc' || sortMode === 'file_desc') {
+          if (a.folderPath === 'Root') return -1;
+          if (b.folderPath === 'Root') return 1;
+          return a.folderPath.localeCompare(b.folderPath);
+        }
         if (a.folderPath === 'Root') return -1;
         if (b.folderPath === 'Root') return 1;
-        return a.folderPath.localeCompare(b.folderPath);
+        return direction * a.folderPath.localeCompare(b.folderPath);
       });
-  }, [visibleItems]);
+  }, [filteredItems, sortMode]);
 
   const totals = useMemo(() => ({
-    all: visibleItems.length,
-    hf: visibleItems.filter((item) => item.providerLabel === 'Hugging Face').length,
-    cf: visibleItems.filter((item) => item.providerLabel === 'Cloudflare').length,
-  }), [visibleItems]);
+    all: filteredItems.length,
+    hf: filteredItems.filter((item) => item.providerLabel === 'Hugging Face').length,
+    cf: filteredItems.filter((item) => item.providerLabel === 'Cloudflare').length,
+  }), [filteredItems]);
+
+  const showBlockingLoader = loading && items.length === 0;
+
+  const handleMetadataSaved = (itemId: string, hidden: boolean) => {
+    setItems((current) => current.map((item) => (item.id === itemId ? { ...item, hidden } : item)));
+  };
 
   return (
     <section className="space-y-4">
@@ -151,19 +178,58 @@ export default function DownloadCatalogPanel({
             <span className="rounded bg-gray-100 px-2 py-1">Cloudflare: {totals.cf}</span>
           </div>
         </div>
+        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <input
+            type="text"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            placeholder="Filter by file name or folder"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-gray-500 lg:max-w-md"
+          />
+          <div className="flex flex-wrap gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => setSortMode('folder_asc')}
+              className={`rounded px-3 py-2 ${sortMode === 'folder_asc' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              Folder A-Z
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode('folder_desc')}
+              className={`rounded px-3 py-2 ${sortMode === 'folder_desc' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              Folder Z-A
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode('file_asc')}
+              className={`rounded px-3 py-2 ${sortMode === 'file_asc' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              File A-Z
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode('file_desc')}
+              className={`rounded px-3 py-2 ${sortMode === 'file_desc' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              File Z-A
+            </button>
+          </div>
+        </div>
       </div>
 
-      {loading && <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">Loading download catalog...</div>}
+      {showBlockingLoader && <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">Loading download catalog...</div>}
       {!loading && error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">{error}</div>}
-      {!loading && !error && !loaded && <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">Checking visibility rules...</div>}
+      {!error && warning && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">{warning}</div>}
 
-      {!loading && !error && loaded && groupedItems.length === 0 && (
+      {!loading && !error && groupedItems.length === 0 && (
         <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
-          No public downloads are currently available.
+          No matching downloads were found.
         </div>
       )}
 
-      {!loading && !error && loaded && groupedItems.map((group) => (
+      {!error && groupedItems.map((group) => (
         <section key={group.folderPath} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
           <div className="border-b bg-gray-50 px-4 py-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -183,11 +249,12 @@ export default function DownloadCatalogPanel({
               return (
                 <div key={item.id} className="flex min-h-36 flex-col justify-between gap-3 border border-gray-200 bg-white p-4">
                   <div className="space-y-2">
-                    <div className="text-xs text-gray-500 break-all">{fileName}</div>
-                    <h3 className="text-sm font-semibold text-gray-900">{item.label}</h3>
+                    <div className="text-lg font-semibold text-gray-900 break-all leading-snug">{fileName}</div>
+                    <div className="text-xs font-normal text-gray-500">{item.label}</div>
                     <div className="flex flex-wrap gap-2 text-[11px] text-gray-600">
                       <span className="rounded bg-gray-100 px-2 py-0.5">{item.providerLabel}</span>
                       <span className="rounded bg-gray-100 px-2 py-0.5">{scopeLabel(item.sourceScope)}</span>
+                      {item.hidden && isAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-700">Hidden</span>}
                       {item.sampleCount > 0 && <span className="rounded bg-gray-100 px-2 py-0.5">Samples: {item.sampleCount}</span>}
                       {item.kinds.length > 0 && <span className="rounded bg-gray-100 px-2 py-0.5">Types: {item.kinds.join(', ')}</span>}
                     </div>
@@ -200,6 +267,8 @@ export default function DownloadCatalogPanel({
                     showCli={item.showCli}
                     isAdmin={isAdmin}
                     accessToken={accessToken}
+                    initialHidden={item.hidden}
+                    onMetadataSaved={(next) => handleMetadataSaved(item.id, next.hidden)}
                   />
                 </div>
               );

@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { SiteConfig } from '@/site-config';
 import { getDirectDownloadUrl, validateDirectFileUrl } from '@/lib/storage';
 import { normalizeDownloadKey } from '@/lib/download-info';
 import { isExcludedSampleId } from '@/lib/sample-exclusions';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
+import { getBearerToken, requireCreatorGithubAuth } from '@/lib/feedback-admin';
 
 type CatalogSourceScope = 'featured' | 'sample' | 'mixed';
 
@@ -19,6 +20,7 @@ type DownloadCatalogItem = {
   sampleCount: number;
   sampleIds: string[];
   kinds: string[];
+  hidden?: boolean;
 };
 
 type MutableCatalogItem = DownloadCatalogItem & {
@@ -129,7 +131,7 @@ async function fetchAllSampleRows() {
   return rows;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const items = new Map<string, MutableCatalogItem>();
 
   for (const featured of SiteConfig.downloads.featured) {
@@ -144,6 +146,7 @@ export async function GET() {
     });
   }
 
+  let sampleWarning: string | null = null;
   try {
     const sampleRows = await fetchAllSampleRows();
     for (const row of sampleRows) {
@@ -172,13 +175,10 @@ export async function GET() {
       }
     }
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to build download catalog.' },
-      { status: 500 },
-    );
+    sampleWarning = error instanceof Error ? error.message : 'Failed to load sample-linked downloads.';
   }
 
-  const result = Array.from(items.values())
+  let result = Array.from(items.values())
     .map(({ _scopes, _sampleIds, _kinds, ...item }) => ({
       ...item,
       sourceScope: _scopes.size === 2 ? 'mixed' : (_scopes.has('featured') ? 'featured' : 'sample'),
@@ -188,5 +188,42 @@ export async function GET() {
     }))
     .sort((a, b) => a.url.localeCompare(b.url));
 
-  return NextResponse.json({ items: result });
+  let metadataWarning: string | null = sampleWarning;
+  let isAdmin = false;
+
+  if (result.length > 0 && isSupabaseConfigured) {
+    const creatorAuth = await requireCreatorGithubAuth(getBearerToken(request));
+    isAdmin = creatorAuth.ok;
+
+    try {
+      const sb = getSupabase();
+      const { data, error } = await sb
+        .from('download_metadata')
+        .select('download_key, hidden')
+        .in('download_key', result.map((item) => item.id));
+
+      if (error) {
+        throw error;
+      }
+
+      const hiddenKeys = new Set(
+        (data ?? [])
+          .filter((row) => Boolean(row.hidden) && typeof row.download_key === 'string')
+          .map((row) => normalizeDownloadKey(String(row.download_key))),
+      );
+
+      result = result.map((item) => ({
+        ...item,
+        hidden: hiddenKeys.has(item.id),
+      }));
+
+      if (!isAdmin && hiddenKeys.size > 0) {
+        result = result.filter((item) => !hiddenKeys.has(item.id));
+      }
+    } catch (error) {
+      metadataWarning = metadataWarning || (error instanceof Error ? error.message : 'Failed to load download visibility metadata.');
+    }
+  }
+
+  return NextResponse.json({ items: result, warning: metadataWarning, isAdmin });
 }
