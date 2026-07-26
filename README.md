@@ -253,6 +253,35 @@ Cloudflare Pages:
 - Dedicated site-wide download catalog with hierarchical folder browsing: `src/components/download-catalog-panel.tsx` and `/api/download-catalog`
 - Private signed-URL resolution: `/api/download-metadata/resolve` backed by the `download_metadata` table
 
+### What the download modal now exposes
+
+For public files with a stable raw URL, the `Download options` modal now exposes four practical delivery paths in the same dialog:
+
+- Browser download
+- Copyable public direct URL for tools such as `Free Download Manager`, `Motrix`, and `IDM`
+- `Global (Official)` resumable commands on `huggingface.co`
+- `Asia-Pacific (Mirror)` resumable commands on `hf-mirror.com`
+
+For the example file `817-food-biochem-materials.zip`, that means the modal can show both the official route and the Asia-friendly mirror route without changing the dataset path itself.
+
+Official route:
+
+```bash
+wget -c -O "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+curl -L -C - -o "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+```
+
+Asia-Pacific mirror route:
+
+```bash
+wget -c -O "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+curl -L -C - -o "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+```
+
+This keeps the UI aligned with real network conditions instead of documenting only one nominal path.
+
 ### Add a Hugging Face file to SeqEdge
 
 The current codebase supports three practical Hugging Face integration points:
@@ -438,6 +467,8 @@ wget -c -O <name> "<resolve url>"
 curl -L -C - -o <name> "<resolve url>"
 ```
 
+For users in China and some Asia-Pacific networks, the mirror route may be materially more reliable than the official domain. SeqEdge therefore exposes both command sets in the modal instead of forcing users to discover the mirror path elsewhere.
+
 ### Genome browser notes
 
 For best JBrowse performance, configure a Cloudflare Worker proxy. SeqEdge probes in order:
@@ -461,12 +492,14 @@ SeqEdge also opens the first reachable annotation track automatically so the vie
 
 SeqEdge includes a lightweight interaction area for research communication:
 
-- Click the `Discussion` tab to browse discussions and open the floating composer. Anyone can sign in with GitHub to post.
+- Click the `Discussion` tab to browse discussions and open the floating composer.
 - Messages support a title, name or nickname, email, optional affiliation, category, rating, and visibility.
 - Messages can be `Public` or `Administrator only`.
 - The `Discussion` tab shows discussions split into `In progress` and `Completed`.
 - Discussions can be sorted, including a `Most liked` view.
-- Administrator replies appear on the site and can also be emailed when the email API is configured.
+- Every posted discussion thread and every follow-up comment is rendered back on the site inside the same thread view.
+- Administrator replies appear on the site and are shown inline in the thread once saved.
+- Follow-up comments from visitors remain visible under the thread and are loaded from `feedback_comments`.
 - The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`, while the Administrator UI in the browser also expects `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` to match the same login.
 - Posted and replied timestamps are displayed for each thread.
 - Visitors can leave `Like` and `Bookmark` reactions.
@@ -511,6 +544,12 @@ Set both `GITHUB_ADMIN_USERNAME` and `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` in `.en
 ### Email notification setup (Resend)
 
 SeqEdge uses [Resend](https://resend.com) to deliver feedback notification emails to the site Administrator.
+
+When configured, the current implementation sends:
+
+- an Administrator notification email for each new top-level discussion thread;
+- an Administrator notification email for each new follow-up comment in a discussion thread;
+- a visitor reply email when the Administrator posts an official reply and the visitor supplied an email address.
 
 #### Test mode
 

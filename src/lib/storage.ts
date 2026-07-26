@@ -257,7 +257,7 @@ function isHuggingFaceBlobUrl(url: string): boolean {
   return /huggingface\.co\/datasets\/[^/]+\/[^/]+\/blob\/main\//i.test(url);
 }
 
-function normalizeDirectDownloadUrl(url: string): string {
+export function normalizeDirectDownloadUrl(url: string): string {
   if (!isHuggingFaceBlobUrl(url)) return url;
   return url.replace('/blob/main/', '/resolve/main/');
 }
