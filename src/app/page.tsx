@@ -334,7 +334,7 @@ export default function HomePage() {
                   : tab === 'promoters'
                     ? 'Records'
                     : tab === 'discussion'
-                      ? 'Threads'
+                      ? 'Discussions'
                       : 'Downloads'}
               </button>
             ))}

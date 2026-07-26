@@ -802,7 +802,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
            <div className="border border-gray-200 bg-gray-50 p-4">
-             <div className="text-xs uppercase tracking-wide text-gray-500">Threads</div>
+             <div className="text-xs uppercase tracking-wide text-gray-500">Discussions</div>
              <div className="mt-1 text-2xl font-semibold text-gray-900">{summary.totalThreads}</div>
            </div>
            <div className="border border-gray-200 bg-gray-50 p-4">
@@ -815,7 +815,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
             </div>
           </div>
          <div className="border border-gray-200 bg-white p-4 text-sm text-gray-600">
-            Browse threads and add feedback.
+            Browse discussions and add feedback.
          </div>
         </div>
 
