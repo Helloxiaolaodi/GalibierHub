@@ -177,6 +177,14 @@ async function sendCommentEmail(payload: {
   }
 }
 
+async function trySendEmail(label: string, send: () => Promise<void>) {
+  try {
+    await send();
+  } catch (error) {
+    console.error(`[feedback-email] ${label} failed:`, error);
+  }
+}
+
 const COMMENTS_SELECT = "id, feedback_id, author_name, author_email, message, image_url, created_at";
 
 export async function GET(request: NextRequest) {
@@ -287,7 +295,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: formatFeedbackStorageError(commentErr.message) }, { status: 500 });
     }
 
-    void sendCommentEmail({
+    await trySendEmail("sendCommentEmail", () => sendCommentEmail({
       feedbackId,
       threadTitle: feedbackEntry.title || "Untitled thread",
       threadAuthor: feedbackEntry.display_name || "Visitor",
@@ -295,9 +303,7 @@ export async function POST(request: Request) {
       commentMessage,
       threadCreatedAt: feedbackEntry.created_at,
       commentCreatedAt: comment.created_at,
-    }).catch((error) => {
-      console.error("[feedback-email] sendCommentEmail failed:", error);
-    });
+    }));
 
     return NextResponse.json({ comment }, { status: 201 });
   }
@@ -387,7 +393,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
   }
 
-  void sendFeedbackEmail({
+  await trySendEmail("sendFeedbackEmail", () => sendFeedbackEmail({
     title,
     displayName,
     visitorEmail,
@@ -397,9 +403,7 @@ export async function POST(request: Request) {
     visibility: visibility as "public" | "private",
     message,
     createdAt: data.created_at,
-  }).catch((error) => {
-    console.error("[feedback-email] sendFeedbackEmail failed:", error);
-  });
+  }));
 
   return NextResponse.json({ entry: data }, { status: 201 });
 }
@@ -518,7 +522,7 @@ export async function PATCH(request: NextRequest) {
   }
   // Only send reply email when creatorReply was provided
   if (creatorReply !== undefined && data.visitor_email) {
-    void sendReplyEmail({
+    await trySendEmail("sendReplyEmail", () => sendReplyEmail({
       to: data.visitor_email,
       title: data.title || "SeqEdge message",
       displayName: data.display_name,
@@ -526,10 +530,8 @@ export async function PATCH(request: NextRequest) {
       category: data.category,
       message: data.message,
       createdAt: data.created_at,
-    repliedAt: data.replied_at || new Date().toISOString(),
-    }).catch((error) => {
-      console.error("[feedback-email] sendReplyEmail failed:", error);
-    });
+      repliedAt: data.replied_at || new Date().toISOString(),
+    }));
   }
 
   return NextResponse.json({ entry: data });
