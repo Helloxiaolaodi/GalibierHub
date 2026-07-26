@@ -4,6 +4,35 @@ import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
 
 const VALID_CATEGORIES = new Set(["general", "issue", "idea", "data", "collaboration"]);
 
+function normalizeVisibility(value: unknown): "public" | "private" | null {
+  if (typeof value !== "string") {
+    return "public";
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return "public";
+  }
+
+  if (normalized === "public") {
+    return "public";
+  }
+
+  if (
+    normalized === "private"
+    || normalized === "administrator only"
+    || normalized === "admin only"
+    || normalized === "creator only"
+    || normalized === "administrator_only"
+    || normalized === "admin_only"
+    || normalized === "creator_only"
+  ) {
+    return "private";
+  }
+
+  return null;
+}
+
 function formatFeedbackStorageError(message: string) {
   if (
     message.includes("public.site_feedback")
@@ -37,6 +66,7 @@ async function sendFeedbackEmail(payload: {
 }) {
   const { apiUrl, apiKey, to, from } = getOptionalEmailConfig();
   if (!apiUrl || !apiKey || !to) {
+    console.warn("[feedback-email] sendFeedbackEmail skipped: missing FEEDBACK_EMAIL_API_URL, FEEDBACK_EMAIL_API_KEY, or FEEDBACK_EMAIL_TO.");
     return;
   }
 
@@ -87,6 +117,7 @@ async function sendReplyEmail(payload: {
 }) {
   const { apiUrl, apiKey, from } = getOptionalEmailConfig();
   if (!apiUrl || !apiKey || !payload.to) {
+    console.warn("[feedback-email] sendReplyEmail skipped: missing FEEDBACK_EMAIL_API_URL, FEEDBACK_EMAIL_API_KEY, or visitor email.");
     return;
   }
 
@@ -140,6 +171,7 @@ async function sendCommentEmail(payload: {
 }) {
   const { apiUrl, apiKey, to, from } = getOptionalEmailConfig();
   if (!apiUrl || !apiKey || !to) {
+    console.warn("[feedback-email] sendCommentEmail skipped: missing FEEDBACK_EMAIL_API_URL, FEEDBACK_EMAIL_API_KEY, or FEEDBACK_EMAIL_TO.");
     return;
   }
 
@@ -329,9 +361,7 @@ export async function POST(request: Request) {
   const imageUrl = typeof (body as { imageUrl?: unknown }).imageUrl === "string"
     ? (body as { imageUrl: string }).imageUrl.trim()
     : "";
- const visibility = typeof (body as { visibility?: unknown }).visibility === "string"
-   ? (body as { visibility: string }).visibility.trim()
-  : "public";
+  const visibility = normalizeVisibility((body as { visibility?: unknown }).visibility);
   const ratingRaw = (body as { rating?: unknown }).rating;
   let rating = typeof ratingRaw === "number" ? ratingRaw : Number(ratingRaw);
 
@@ -360,7 +390,7 @@ export async function POST(request: Request) {
     category = "general";
  }
 
-  if (visibility !== "public" && visibility !== "private") {
+  if (!visibility) {
     return NextResponse.json({ error: "Visibility must be public or private." }, { status: 400 });
   }
 
@@ -380,9 +410,9 @@ export async function POST(request: Request) {
      display_name: displayName,
      visitor_email: visitorEmail,
      affiliation: affiliation || null,
-     category,
-     rating,
-     visibility,
+    category,
+    rating,
+    visibility,
      message,
       image_url: imageUrl || null,
    })
@@ -400,7 +430,7 @@ export async function POST(request: Request) {
     affiliation: affiliation || null,
     category,
     rating,
-    visibility: visibility as "public" | "private",
+    visibility,
     message,
     createdAt: data.created_at,
   }));
