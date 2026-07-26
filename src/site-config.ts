@@ -45,7 +45,7 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
       label: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_LABEL || 'Download Reference Bundle',
       description:
         process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_DESCRIPTION ||
-        'Reference FASTA and annotation files used by the embedded browser.',
+        'Reference FASTA and annotation files used by the Genome Browser.',
       href: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_URL || '',
       sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_SIZE || '',
       mode: (process.env.NEXT_PUBLIC_REFERENCE_BUNDLE_MODE || 'cli') as 'direct' | 'cli',
@@ -59,7 +59,7 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
         label: process.env.NEXT_PUBLIC_REFERENCE_FASTA_LABEL || 'Download Reference FASTA',
         description:
           process.env.NEXT_PUBLIC_REFERENCE_FASTA_DESCRIPTION ||
-          'Primary FASTA file used by the embedded browser and local analysis workflows.',
+          'Primary FASTA file used by the Genome Browser and local analysis workflows.',
         href: process.env.NEXT_PUBLIC_REFERENCE_FASTA || 'scov2.fa',
         sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_FASTA_SIZE || '',
         mode: (process.env.NEXT_PUBLIC_REFERENCE_FASTA_MODE || 'cli') as 'direct' | 'cli',
@@ -69,7 +69,7 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
         label: process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX_LABEL || 'Download FASTA Index',
         description:
           process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX_DESCRIPTION ||
-          'Index file paired with the reference FASTA for browser jumps and CLI access.',
+          'Index file paired with the reference FASTA for Genome Browser navigation and CLI access.',
         href: process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX || 'scov2.fa.fai',
         sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX_SIZE || '',
         mode: (process.env.NEXT_PUBLIC_REFERENCE_FASTA_INDEX_MODE || 'cli') as 'direct' | 'cli',
@@ -79,7 +79,7 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
         label: process.env.NEXT_PUBLIC_REFERENCE_BED_LABEL || 'Download Annotation BED',
         description:
           process.env.NEXT_PUBLIC_REFERENCE_BED_DESCRIPTION ||
-          'BED annotation file used by the embedded browser and downstream processing.',
+          'BED annotation file used by the Genome Browser and downstream processing.',
         href: process.env.NEXT_PUBLIC_REFERENCE_BED || 'scov2.genes.bed',
         sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_BED_SIZE || '',
         mode: (process.env.NEXT_PUBLIC_REFERENCE_BED_MODE || 'cli') as 'direct' | 'cli',
@@ -89,7 +89,7 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
         label: process.env.NEXT_PUBLIC_REFERENCE_GFF3_LABEL || 'Download Annotation GFF3',
         description:
           process.env.NEXT_PUBLIC_REFERENCE_GFF3_DESCRIPTION ||
-          'GFF3 annotation file for browser rendering, parsing, and local reuse.',
+          'GFF3 annotation file for Genome Browser rendering, parsing, and local reuse.',
         href: process.env.NEXT_PUBLIC_REFERENCE_GFF3 || 'scov2.genes.gff3',
         sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_GFF3_SIZE || '',
         mode: (process.env.NEXT_PUBLIC_REFERENCE_GFF3_MODE || 'cli') as 'direct' | 'cli',
@@ -99,7 +99,7 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
         label: process.env.NEXT_PUBLIC_REFERENCE_GENBANK_LABEL || 'Download GenBank File',
         description:
           process.env.NEXT_PUBLIC_REFERENCE_GENBANK_DESCRIPTION ||
-          'GenBank-format reference record for archive use, inspection, and local parsing.',
+          'GenBank reference file for archiving, inspection, and local parsing.',
         href: process.env.NEXT_PUBLIC_REFERENCE_GENBANK || 'scov2.gb',
         sizeLabel: process.env.NEXT_PUBLIC_REFERENCE_GENBANK_SIZE || '',
         mode: (process.env.NEXT_PUBLIC_REFERENCE_GENBANK_MODE || 'cli') as 'direct' | 'cli',
@@ -113,17 +113,18 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
 export const SiteConfig = {
   title: 'SeqEdge',
   subtitle: '',
-  creatorCreditPrefix: 'A GitHub open-source project deployed by',
+  creatorCreditPrefix: 'An open-source project maintained by',
   creatorCreditLabel: '@Helloxiaolaodi',
   creatorCreditUrl: 'https://github.com/Helloxiaolaodi',
+  adminGithubLoginFallback: 'helloxiaolaodi',
   description:
-    'Interactive database for browsing predicted promoters, whole genome annotations, and genomic data - powered by serverless edge infrastructure.',
+    'Interactive database for predicted promoters, genome annotations, and genomic data, powered by serverless edge infrastructure.',
   keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation', 'seqedge'],
   contactEmail: 'lab@university.edu',
   feedback: {
-    sectionTitle: 'Discussion',
+    sectionTitle: 'Threads',
     sectionDescription:
-      'Collect public comments, private messages, quick reactions, and reply status in one place for research communication.',
+      'A centralized space for research communication, public discussions, and feedback.',
   },
   uptime: {
     startAt: '2026-07-22T00:00:00+08:00',

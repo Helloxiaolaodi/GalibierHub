@@ -108,7 +108,7 @@ async function sendReplyEmail(payload: {
       text: [
         `Hello ${payload.displayName},`,
         "",
-        "The SeqEdge site creator has replied to your message.",
+        "The SeqEdge site Administrator has replied to your message.",
         "",
         `Title: ${payload.title}`,
         `Category: ${payload.category}`,

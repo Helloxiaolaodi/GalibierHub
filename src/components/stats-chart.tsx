@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import ExportableChart from '@/components/exportable-chart';
 import type { DashboardStats } from '@/types/genome';
@@ -13,10 +13,10 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="border rounded-lg p-4 h-72 flex items-center justify-center text-gray-400">
-          Loading statistics...
+          Loading metrics...
         </div>
         <div className="border rounded-lg p-4 h-72 flex items-center justify-center text-gray-400">
-          Loading distribution...
+          Loading charts...
         </div>
       </div>
     );
@@ -26,10 +26,10 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="border rounded-lg p-4 h-72 flex items-center justify-center text-center text-gray-500">
-          No summary statistics are available from the configured data source.
+          Metrics are unavailable from the current data source.
         </div>
         <div className="border rounded-lg p-4 h-72 flex items-center justify-center text-center text-gray-500">
-          Connect a reachable real dataset to render species and score distributions.
+          Connect a reachable dataset to display species and score distributions.
         </div>
       </div>
     );
@@ -77,7 +77,7 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
 
   const summaryCards = [
     { label: 'Total Samples', value: stats.total_samples.toLocaleString(), color: 'bg-blue-50 text-blue-700' },
-    { label: 'Total Promoters', value: stats.total_promoters.toLocaleString(), color: 'bg-emerald-50 text-emerald-700' },
+    { label: 'Total Records', value: stats.total_promoters.toLocaleString(), color: 'bg-emerald-50 text-emerald-700' },
     { label: 'Total Variants', value: stats.total_variants.toLocaleString(), color: 'bg-purple-50 text-purple-700' },
   ];
 
@@ -93,13 +93,13 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ExportableChart
-          title="Samples by Species"
+          title="Samples by species"
           option={speciesOption}
           height={260}
           exportBaseName="species-distribution"
         />
         <ExportableChart
-          title="Promoter Score Distribution"
+          title="Record score distribution"
           option={scoreOption}
           height={260}
           exportBaseName="score-distribution"

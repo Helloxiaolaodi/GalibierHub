@@ -223,7 +223,7 @@ export default function DownloadCatalogPanel({
     setItems((current) => current.map((item) => (item.id === itemId ? { ...item, hidden } : item)));
     setStatusMessage(
       hidden
-        ? 'Hidden from visitors. It remains visible to you as creator admin.'
+        ? 'Hidden from visitors. Still visible to Administrator.'
         : 'Visible to visitors.',
     );
     void loadCatalog();
@@ -245,7 +245,7 @@ export default function DownloadCatalogPanel({
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Downloads</h2>
             <p className="mt-1 text-sm text-gray-600">
-              Browse downloads by folder level. Open a folder to see its next level or files.
+              Browse files by directory.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs text-gray-600">
@@ -259,18 +259,18 @@ export default function DownloadCatalogPanel({
             type="text"
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
-            placeholder="Filter by file name or folder"
+            placeholder="Search files or folders"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-gray-500 lg:max-w-md"
           />
         </div>
         {effectiveIsAdmin && (
           <p className="mt-3 text-xs text-amber-700">
-            Hidden files stay visible to creator admin and disappear only for visitors.
+            Hidden files are visible only to Administrator.
           </p>
         )}
       </div>
 
-      {showBlockingLoader && <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">Loading download catalog...</div>}
+      {showBlockingLoader && <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">Loading files...</div>}
       {!loading && error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">{error}</div>}
       {!error && warning && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">{warning}</div>}
       {!error && statusMessage && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">{statusMessage}</div>}
@@ -307,7 +307,7 @@ export default function DownloadCatalogPanel({
                 onClick={goUp}
                 className="ml-auto rounded border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
               >
-                Up one level
+                Up
               </button>
             )}
           </div>
@@ -316,7 +316,7 @@ export default function DownloadCatalogPanel({
 
       {!loading && !error && childFolders.length === 0 && visibleFiles.length === 0 && (
         <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
-          No matching folders or files were found.
+          No matching files or folders.
         </div>
       )}
 
@@ -333,7 +333,7 @@ export default function DownloadCatalogPanel({
               >
                 <div className="text-base font-semibold text-gray-900 break-all">{folder.name}</div>
                 <div className="text-xs text-gray-500">
-                  {folder.folders.size} subfolder(s) · {folder.items.length} file(s)
+                  Folders: {folder.folders.size} | Files: {folder.items.length}
                 </div>
               </button>
             ))}

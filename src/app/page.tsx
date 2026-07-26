@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -71,7 +71,7 @@ export default function HomePage() {
   const [dataError, setDataError] = useState<string | null>(null);
 
   const expectedAdminLogin = useMemo(
-    () => resolveExpectedAdminGithubLogin({ fallbackLabel: SiteConfig.creatorCreditLabel }),
+    () => resolveExpectedAdminGithubLogin({ fallbackLabel: SiteConfig.adminGithubLoginFallback }),
     [],
   );
 
@@ -80,10 +80,10 @@ export default function HomePage() {
 
     const hints: string[] = [];
     if (dataError.includes('Supabase is not configured')) {
-      hints.push('Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to real values in .env.local or your deployment environment.');
+      hints.push('Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local or your deployment environment.');
     }
     if (dataError.includes('require a real data source')) {
-      hints.push('Import real rows into your resource tables after running schema.sql.');
+      hints.push('Load data into the resource tables after running schema.sql.');
     }
     return hints;
   }, [dataError]);
@@ -132,11 +132,11 @@ export default function HomePage() {
           return;
         }
         setStats(null);
-        setDataError(data?.error || 'Failed to load dashboard statistics from the configured data source.');
+        setDataError(data?.error || 'Unable to load dashboard metrics from the current data source.');
       })
       .catch(() => {
         setStats(null);
-        setDataError('Failed to load dashboard statistics from the configured data source.');
+        setDataError('Unable to load dashboard metrics from the current data source.');
       });
   }, []);
 
@@ -170,12 +170,12 @@ export default function HomePage() {
         }
         setPromoters([]);
         setTotalPromoters(0);
-        setDataError(data?.error || 'Failed to load resource records from the configured data source.');
+        setDataError(data?.error || 'Unable to load records from the current data source.');
       })
       .catch(() => {
         setPromoters([]);
         setTotalPromoters(0);
-        setDataError('Failed to load resource records from the configured data source.');
+        setDataError('Unable to load records from the current data source.');
       })
       .finally(() => setLoading(false));
   }, [sortMode]);
@@ -211,20 +211,20 @@ export default function HomePage() {
     }
     if (currentFilters.geneSymbol) items.push({ label: 'Feature', value: currentFilters.geneSymbol });
     if (currentFilters.minScore) items.push({ label: 'Min score', value: currentFilters.minScore });
-    if (currentFilters.sampleId) items.push({ label: 'Item ID', value: currentFilters.sampleId });
+    if (currentFilters.sampleId) items.push({ label: 'Sample ID', value: currentFilters.sampleId });
     if (currentFilters.species) items.push({ label: 'Species', value: currentFilters.species });
     if (currentFilters.tissue) items.push({ label: 'Tissue', value: currentFilters.tissue });
     if (currentFilters.cohort) items.push({ label: 'Cohort', value: currentFilters.cohort });
     if (currentFilters.bmiClass) items.push({ label: 'BMI class', value: currentFilters.bmiClass });
     items.push({
-      label: 'Sort',
+      label: 'Sort by',
       value: sortMode === 'score_desc'
-        ? 'Score high to low'
+        ? 'Score (Descending)'
         : sortMode === 'score_asc'
-          ? 'Score low to high'
+          ? 'Score (Ascending)'
           : sortMode === 'chrom_start'
-            ? 'Reference + start'
-            : 'Item ID',
+            ? 'Chromosome + Start'
+            : 'Sample ID',
     });
     return items;
   }, [currentFilters, sortMode]);
@@ -274,7 +274,7 @@ export default function HomePage() {
     });
     if (error) {
       if (error.message.includes('provider is not enabled') || error.message.includes('Unsupported provider')) {
-        setCreatorSignInError('GitHub OAuth is not enabled for this project. Enable it in your Supabase dashboard under Authentication -> Sign In / Providers -> GitHub.');
+        setCreatorSignInError('GitHub OAuth is not enabled for this project. Enable GitHub under Authentication -> Sign In / Providers in Supabase.');
       } else {
         setCreatorSignInError(error.message);
       }
@@ -334,14 +334,14 @@ export default function HomePage() {
                   : tab === 'promoters'
                     ? 'Records'
                     : tab === 'discussion'
-                      ? 'Discussion'
+                      ? 'Threads'
                       : 'Downloads'}
               </button>
             ))}
             <div className="w-px h-5 bg-gray-200 mx-1" />
             {creatorSession ? (
               <>
-                <span className="px-2 py-1 text-xs text-gray-500">@{creatorLogin || 'creator'}</span>
+                <span className="px-2 py-1 text-xs text-gray-500">@{creatorLogin || 'administrator'}</span>
                 <button type="button" onClick={() => void handleCreatorSignOut()}
                   className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
                 >
@@ -382,8 +382,8 @@ export default function HomePage() {
         {creatorSession && (
           <div className={`rounded-lg border px-4 py-3 text-sm ${isCreatorAdmin ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
             {isCreatorAdmin
-              ? `Creator admin recognized for @${creatorLogin || 'unknown'}. Admin controls are enabled.`
-              : `Signed in as @${creatorLogin || 'unknown'}, but this account is not recognized as creator admin. Expected: @${expectedAdminLogin || 'not configured'}.`}
+              ? `Administrator access enabled for @${creatorLogin || 'unknown'}.`
+              : `Signed in as @${creatorLogin || 'unknown'}, but this account does not have administrator access. Expected: @${expectedAdminLogin || 'not configured'}.`}
           </div>
         )}
         {dataError && (
@@ -409,7 +409,7 @@ export default function HomePage() {
             />
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
-                Reference Browser - Real-data view
+                Genome Browser
               </div>
               <GenomeBrowser
                 locus={browserLocus}
@@ -429,7 +429,7 @@ export default function HomePage() {
               }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick} />
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
-                Reference Browser - Real-data view
+                Genome Browser
               </div>
               <GenomeBrowser
                 locus={browserLocus}

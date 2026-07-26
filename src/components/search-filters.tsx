@@ -49,7 +49,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           Search Filters
         </h2>
         <p className="text-xs text-gray-500 mt-0.5">
-          Filter promoter records by chromosome, coordinate range, gene symbol, minimum score, sample ID, species, tissue, cohort, and BMI class.
+          Filter records by coordinate range, feature label, score, sample, and sample metadata.
         </p>
       </div>
 
@@ -59,7 +59,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           Sample metadata
         </div>
         <p className="text-xs text-gray-500 mb-2">
-          These fields first narrow matching entries in <code>genome_samples</code>, then apply the resulting <code>sample_id</code> set to promoter records.
+          Filter samples based on metadata, which will automatically update the displayed resource records.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
@@ -69,7 +69,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           </div>
           <div>
             <label htmlFor="filter-tissue" className="block text-xs text-gray-500 mb-1">Tissue</label>
-            <input id="filter-tissue" type="text" placeholder="Enter tissue or source" value={filters.tissue}
+            <input id="filter-tissue" type="text" placeholder="Enter tissue or source type" value={filters.tissue}
               onChange={(e) => set('tissue', e.target.value)} className={cellCls} />
           </div>
           <div>
@@ -95,7 +95,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
           Promoter locus
         </div>
         <p className="text-xs text-gray-500 mb-2">
-          Use locus and feature filters to query <code>predicted_promoters</code> directly by coordinate window, feature label, score cutoff, or sample ID.
+          Query records directly by coordinate window, feature label, score cutoff, or sample ID.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
