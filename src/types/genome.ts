@@ -1,4 +1,4 @@
-﻿// Genome sample metadata
+// Genome sample metadata
 export interface GenomeSample {
   id: string;
   sample_id: string;
@@ -96,7 +96,7 @@ export interface SiteFeedbackEntry {
 }
 
 export interface FeedbackSummary {
-  totalComments: number;
+  totalThreads: number;
   averageRating: number;
 }
 

@@ -176,16 +176,16 @@ export async function GET(request: NextRequest) {
       };
     });
 
-  const totalComments = entries.length;
-  const averageRating = totalComments > 0
-    ? Number((entries.reduce((sum, item) => sum + Number(item.rating || 0), 0) / totalComments).toFixed(1))
+  const totalThreads = entries.length;
+  const averageRating = totalThreads > 0
+    ? Number((entries.reduce((sum, item) => sum + Number(item.rating || 0), 0) / totalThreads).toFixed(1))
     : 0;
 
   return NextResponse.json({
     entries,
     isAdmin,
     summary: {
-      totalComments,
+      totalThreads,
       averageRating,
     },
   });

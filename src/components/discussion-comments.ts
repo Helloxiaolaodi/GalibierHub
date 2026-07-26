@@ -69,3 +69,12 @@ export function useDiscussionComments() {
     handleSubmitComment,
   };
 }
+
+export function useDiscussionThreads() {
+  const comments = useDiscussionComments();
+  return {
+    ...comments,
+    entryThreads: comments.entryComments,
+    fetchEntryThreads: comments.fetchEntryComments,
+  };
+}
