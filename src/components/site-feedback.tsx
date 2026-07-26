@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { SiteConfig } from '@/site-config';
-import { useDiscussionComments } from './discussion-comments';
+import { useDiscussionThreads } from './discussion-comments';
 import type { FeedbackSummary, ReactionCounts, SiteFeedbackEntry } from '@/types/genome';
 
 type ReactionType = 'like' | 'bookmark';
@@ -99,7 +99,7 @@ const FEEDBACK_PAGE_SIZE = 5;
 
 export default function SiteFeedback({ isAdminHint = false, accessToken = null, creatorLogin = null, refreshSignal = 0, onFeedbackSubmitted }: SiteFeedbackProps) {
   const [entries, setEntries] = useState<SiteFeedbackEntry[]>([]);
-  const [summary, setSummary] = useState<FeedbackSummary>({ totalComments: 0, averageRating: 0 });
+  const [summary, setSummary] = useState<FeedbackSummary>({ totalThreads: 0, averageRating: 0 });
  const [, setReactionCounts] = useState<ReactionCounts>({ like: 0, bookmark: 0 });
   const [entryReactionCounts, setEntryReactionCounts] = useState<Record<string, { like: number; bookmark: number }>>({});
   const [entryActiveReactions, setEntryActiveReactions] = useState<Record<string, Record<string, boolean>>>({});
@@ -151,15 +151,15 @@ const [uploadingImage, setUploadingImage] = useState(false);
     }
   }, []);
  const {
-    entryComments,
+    entryThreads,
     commentDrafts,
     setCommentDrafts,
     commentSubmitting,
     commentError,
     commentSuccess,
-    fetchEntryComments,
+    fetchEntryThreads,
     handleSubmitComment,
-  } = useDiscussionComments();
+  } = useDiscussionThreads();
 
   const fetchFeedback = useCallback(async () => {
     setLoading(true);
@@ -173,7 +173,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
         throw new Error(data.error || 'Failed to load community feedback.');
       }
       setEntries(data.entries || []);
-      setSummary(data.summary || { totalComments: 0, averageRating: 0 });
+      setSummary(data.summary || { totalThreads: 0, averageRating: 0 });
       setIsAdmin(Boolean(data.isAdmin) || isAdminHint);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load community feedback.');
@@ -309,7 +309,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
   const handleReply = useCallback(async (entryId: string) => {
     const draft = replyDrafts[entryId]?.trim() || '';
     if (!draft) {
-      setReplyError('Reply content cannot be empty.');
+      setReplyError('Reply cannot be empty.');
       return;
     }
 
@@ -329,12 +329,12 @@ const [uploadingImage, setUploadingImage] = useState(false);
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send reply.');
+        throw new Error(data.error || 'Reply failed.');
       }
       setReplyDrafts((current) => ({ ...current, [entryId]: '' }));
       await fetchFeedback();
     } catch (err) {
-      setReplyError(err instanceof Error ? err.message : 'Failed to send reply.');
+      setReplyError(err instanceof Error ? err.message : 'Reply failed.');
     } finally {
       setReplyingId(null);
     }
@@ -355,14 +355,14 @@ const [uploadingImage, setUploadingImage] = useState(false);
       });
       await fetchFeedback();
     } catch (err) {
-      setReplyError(err instanceof Error ? err.message : 'Failed to update entry visibility.');
+      setReplyError(err instanceof Error ? err.message : 'Visibility update failed.');
     }
   finally { setHideToggling(null); }
   };
 
   const handleDelete = async (entryId: string) => {
     if (!accessToken) return;
-    if (!window.confirm('Permanently delete this feedback entry?')) return;
+    if (!window.confirm('Delete this thread permanently?')) return;
     setDeletingId(entryId);
     try {
       const response = await fetch(`/api/feedback?id=${encodeURIComponent(entryId)}`, {
@@ -370,31 +370,31 @@ const [uploadingImage, setUploadingImage] = useState(false);
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const data = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(data.error || 'Failed to delete entry.');
+      if (!response.ok) throw new Error(data.error || 'Delete failed.');
       await fetchFeedback();
     } catch (err) {
-      setReplyError(err instanceof Error ? err.message : 'Failed to delete entry.');
+      setReplyError(err instanceof Error ? err.message : 'Delete failed.');
     }
     finally { setDeletingId(null); }
  };
   const renderEntry = (entry: SiteFeedbackEntry) => {
     const isExpanded = Boolean(expandedEntries[entry.id]);
-    const comments = entryComments[entry.id] || [];
+    const comments = entryThreads[entry.id] || [];
     return (
     <article key={entry.id} className="border border-gray-200 bg-white p-4">
       {/* HEADER BUTTON - wraps only the clickable header */}
-      <button type="button" onClick={() => { setExpandedEntries((c) => ({ ...c, [entry.id]: !c[entry.id] })); void fetchEntryComments(entry.id); }} className="w-full text-left focus:outline-none">
+      <button type="button" onClick={() => { setExpandedEntries((c) => ({ ...c, [entry.id]: !c[entry.id] })); void fetchEntryThreads(entry.id); }} className="w-full text-left focus:outline-none">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1 flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-semibold text-gray-900">{entry.title || 'Untitled message'}</span>
+            <span className="font-semibold text-gray-900">{entry.title || 'Untitled thread'}</span>
             <span className={`rounded px-2 py-0.5 text-xs font-medium ${entry.visibility === 'private' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
-              {entry.visibility === 'private' ? 'Creator only' : 'Public'}
+              {entry.visibility === 'private' ? 'Administrator only' : 'Public'}
             </span>
           </div>
-          <div className="text-xs text-gray-600">By {entry.display_name}</div>
+          <div className="text-xs text-gray-600">{entry.display_name}</div>
           <div className="text-xs text-gray-500">
-            Posted: {formatDateTime(entry.created_at)}
+            {formatDateTime(entry.created_at)}
           </div>
           {isAdmin && entry.visitor_email && (
             <div className="text-xs text-gray-500">Email: {entry.visitor_email}</div>
@@ -412,7 +412,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                     ? 'border-amber-400 bg-amber-50 text-amber-700'
                     : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
                 }`}
-                title={entry.pinned ? 'Unpin from top' : 'Pin to top (max 3)'}
+                title={entry.pinned ? 'Unpin' : 'Pin (max 3)'}
               >
                 <svg className="h-3 w-3" fill={entry.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -428,7 +428,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                     ? 'border-red-400 bg-red-50 text-red-700'
                     : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
                 }`}
-                title={entry.hidden ? 'Show entry' : 'Hide entry'}
+                title={entry.hidden ? 'Unhide entry' : 'Hide entry'}
               >
                 <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {entry.hidden ? (
@@ -445,12 +445,12 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 onClick={(e) => { e.stopPropagation(); void handleDelete(entry.id); }}
                 disabled={deletingId === entry.id}
                 className="inline-flex items-center gap-1 rounded border border-red-300 bg-white px-1.5 py-0.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
-                title="Delete entry permanently"
+                title="Delete permanently"
               >
                 <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                {deletingId === entry.id ? '...' : 'Del'}
+                {deletingId === entry.id ? '...' : 'Delete'}
               </button>
             </div>
           )}
@@ -485,9 +485,9 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
           {entry.creator_reply ? (
             <div className="mt-4 border-l-2 border-blue-500 bg-blue-50 px-4 py-3">
-              <div className="text-sm font-semibold text-blue-900">Creator reply</div>
+              <div className="text-sm font-semibold text-blue-900">Administrator response</div>
               <div className="mt-1 whitespace-pre-wrap text-sm text-blue-900">{renderMessageWithImages(entry.creator_reply, (src) => setLightBox({ src, alt: 'Reply image' }))}</div>
-              <div className="mt-2 text-xs text-blue-700">Replied: {formatDateTime(entry.replied_at)}</div>
+              <div className="mt-2 text-xs text-blue-700">{formatDateTime(entry.replied_at)}</div>
            </div>
          ) : isAdmin ? (
             <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
@@ -496,7 +496,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 onChange={(event) => setReplyDrafts((current) => ({ ...current, [entry.id]: event.target.value }))}
                 rows={3}
                 className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                placeholder="Add a reply to move this entry to Completed..."
+                placeholder="Reply to close this thread."
               />
               <button
                 type="button"
@@ -504,7 +504,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 disabled={replyingId === entry.id}
                 className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
               >
-                {replyingId === entry.id ? 'Moving...' : 'Move to Completed'}
+                {replyingId === entry.id ? 'Saving...' : 'Reply and close'}
               </button>
             </div>
          ) : null}
@@ -530,13 +530,13 @@ const [uploadingImage, setUploadingImage] = useState(false);
               onChange={(e) => setCommentDrafts((c) => ({ ...c, [entry.id]: e.target.value }))}
               rows={3}
               className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-              placeholder="Add a comment or reply..."
+              placeholder="Add comment"
             />
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                Upload Image
-                <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setReplyUploadingImage((c) => ({ ...c, [entry.id]: true })); setReplyUploadMessage((c) => ({ ...c, [entry.id]: null })); let uploaded = 0; for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setCommentDrafts((c) => ({ ...c, [entry.id]: (c[entry.id] || '') + ((c[entry.id] || '') ? '\n' : '') + '![image](' + url + ')' })); uploaded++; } } setReplyUploadingImage((c) => ({ ...c, [entry.id]: false })); setReplyUploadMessage((c) => ({ ...c, [entry.id]: uploaded > 0 ? { type: 'success', text: 'Image uploaded successfully.' } : { type: 'error', text: 'Image upload failed. Please try again.' } })); e.target.value = ''; } }} />
+                Attach image
+                <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setReplyUploadingImage((c) => ({ ...c, [entry.id]: true })); setReplyUploadMessage((c) => ({ ...c, [entry.id]: null })); let uploaded = 0; for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setCommentDrafts((c) => ({ ...c, [entry.id]: (c[entry.id] || '') + ((c[entry.id] || '') ? '\n' : '') + '![image](' + url + ')' })); uploaded++; } } setReplyUploadingImage((c) => ({ ...c, [entry.id]: false })); setReplyUploadMessage((c) => ({ ...c, [entry.id]: uploaded > 0 ? { type: 'success', text: 'Image uploaded.' } : { type: 'error', text: 'Image upload failed.' } })); e.target.value = ''; } }} />
               </label>
               {replyUploadingImage[entry.id] && <span className="text-xs text-gray-500">Uploading...</span>}
               {replyUploadMessage[entry.id] && (
@@ -584,28 +584,28 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
     const errors: Record<string, string> = {};
     if (!composerForm.title.trim()) {
-      errors.title = 'This field is required';
+      errors.title = 'Required.';
     } else if (composerForm.title.trim().length < 3) {
-      errors.title = 'Title must be at least 3 characters';
+      errors.title = 'Use at least 3 characters.';
     } else if (composerForm.title.trim().length > 120) {
-      errors.title = 'Title must be 120 characters or less';
+      errors.title = 'Use 120 characters or fewer.';
     }
     if (!composerForm.displayName.trim()) {
-      errors.displayName = 'This field is required';
+      errors.displayName = 'Required.';
     } else if (composerForm.displayName.trim().length > 80) {
-      errors.displayName = 'Name must be 80 characters or less';
+      errors.displayName = 'Use 80 characters or fewer.';
     }
     if (composerForm.visitorEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(composerForm.visitorEmail.trim())) {
-      errors.visitorEmail = 'Please enter a valid email address';
+      errors.visitorEmail = 'Enter a valid email address.';
     } else if (composerForm.visitorEmail.trim().length > 160) {
-      errors.visitorEmail = 'Email must be 160 characters or less';
+      errors.visitorEmail = 'Use 160 characters or fewer.';
     }
     if (!composerForm.message.trim()) {
-      errors.message = 'This field is required';
+      errors.message = 'Required.';
     } else if (composerForm.message.trim().length < 3) {
-      errors.message = 'Message must be at least 3 characters';
+      errors.message = 'Use at least 3 characters.';
     } else if (composerForm.message.trim().length > 2000) {
-      errors.message = 'Message must be 2000 characters or less';
+      errors.message = 'Use 2,000 characters or fewer.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -636,7 +636,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
         message: '',
       });
       setComposerUploadMessage(null);
-      setComposerSuccess('Message submitted successfully.');
+      setComposerSuccess('Feedback submitted.');
       setShowComposer(false);
       onFeedbackSubmitted?.();
       await fetchFeedback();
@@ -661,7 +661,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
       });
       await fetchFeedback();
     } catch (err) {
-      setReplyError(err instanceof Error ? err.message : 'Failed to update pinned state.');
+      setReplyError(err instanceof Error ? err.message : 'Pin update failed.');
     }
     finally { setPinToggling(null); }
   };
@@ -759,7 +759,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
               >
                 <option value="public">Public</option>
-                <option value="private">Creator only</option>
+                <option value="private">Administrator only</option>
               </select>
             </label>
             <label className="block space-y-1 text-sm text-gray-700">
@@ -773,8 +773,8 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <div className="mt-2 flex items-center gap-2">
                 <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  Upload Image
-                  <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setUploadingImage(true); setComposerUploadMessage(null); let uploaded = 0; for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setComposerForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); uploaded++; } } setUploadingImage(false); setComposerUploadMessage(uploaded > 0 ? { type: 'success', text: 'Image uploaded successfully.' } : { type: 'error', text: 'Image upload failed. Please try again.' }); e.target.value = ''; } }} />
+                  Attach image
+                  <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setUploadingImage(true); setComposerUploadMessage(null); let uploaded = 0; for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setComposerForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); uploaded++; } } setUploadingImage(false); setComposerUploadMessage(uploaded > 0 ? { type: 'success', text: 'Image uploaded.' } : { type: 'error', text: 'Image upload failed.' }); e.target.value = ''; } }} />
                 </label>
                 {uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
                 {composerUploadMessage && (
@@ -802,11 +802,11 @@ const [uploadingImage, setUploadingImage] = useState(false);
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
            <div className="border border-gray-200 bg-gray-50 p-4">
-             <div className="text-xs uppercase tracking-wide text-gray-500">Comments</div>
-             <div className="mt-1 text-2xl font-semibold text-gray-900">{summary.totalComments}</div>
+             <div className="text-xs uppercase tracking-wide text-gray-500">Threads</div>
+             <div className="mt-1 text-2xl font-semibold text-gray-900">{summary.totalThreads}</div>
            </div>
            <div className="border border-gray-200 bg-gray-50 p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-500">In progress</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">In Progress</div>
               <div className="mt-1 text-2xl font-semibold text-gray-900">{inProgressTotal}</div>
             </div>
             <div className="border border-gray-200 bg-gray-50 p-4">
@@ -815,7 +815,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
             </div>
           </div>
          <div className="border border-gray-200 bg-white p-4 text-sm text-gray-600">
-            Browse discussions, track reply status, and use the Leave Feedback button to start a new thread.
+            Browse threads and add feedback.
          </div>
         </div>
 
@@ -824,12 +824,12 @@ const [uploadingImage, setUploadingImage] = useState(false);
           {replyError && <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{replyError}</div>}
           {isAdmin && (
             <div className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-              Creator reply access is active{creatorLogin ? ` for @${creatorLogin}` : ''}.
+              Administrator access enabled{creatorLogin ? ` for @${creatorLogin}` : ''}.
             </div>
           )}
          <section className="space-y-3">
            <div className="flex items-center justify-between gap-3">
-             <h3 className="text-sm font-semibold text-gray-900">In progress</h3>
+             <h3 className="text-sm font-semibold text-gray-900">In Progress</h3>
               <select
                 value={inProgressSort}
                 onChange={(e) => setInProgressSort(e.target.value as 'newest' | 'oldest' | 'most_liked')}
@@ -842,16 +842,16 @@ const [uploadingImage, setUploadingImage] = useState(false);
              <span className="text-xs text-gray-500">
                 {inProgressTotal > 0
                   ? `Page ${inProgressPage + 1} of ${Math.max(1, inProgressMaxPage + 1)} (${inProgressTotal} total)`
-                  : 'Waiting for creator reply'}
+                  : 'Awaiting administrator reply'}
               </span>
             </div>
             <div className="space-y-3" style={{ maxHeight: `${FEEDBACK_LIST_MAX_HEIGHT}px`, overflowY: 'auto' }}>
               {loading ? (
-                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">Loading messages...</div>
+                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">Loading threads...</div>
               ) : inProgressPageEntries.length > 0 ? (
                 inProgressPageEntries.map(renderEntry)
               ) : (
-                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">No in-progress messages.</div>
+                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">No active threads.</div>
               )}
             </div>
             {inProgressTotal > FEEDBACK_PAGE_SIZE && (
@@ -892,16 +892,16 @@ const [uploadingImage, setUploadingImage] = useState(false);
              <span className="text-xs text-gray-500">
                 {completedTotal > 0
                   ? `Page ${completedPage + 1} of ${Math.max(1, completedMaxPage + 1)} (${completedTotal} total)`
-                  : 'Creator replied'}
+                  : 'Completed threads'}
               </span>
             </div>
             <div className="space-y-3" style={{ maxHeight: `${FEEDBACK_LIST_MAX_HEIGHT}px`, overflowY: 'auto' }}>
               {loading ? (
-                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">Loading messages...</div>
+                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">Loading threads...</div>
               ) : completedPageEntries.length > 0 ? (
                 completedPageEntries.map(renderEntry)
               ) : (
-                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">No completed threads yet.</div>
+                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">No completed threads.</div>
               )}
             </div>
             {completedTotal > FEEDBACK_PAGE_SIZE && (

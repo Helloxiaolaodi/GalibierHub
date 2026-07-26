@@ -70,7 +70,7 @@ export async function PUT(request: Request) {
   }
   if (!hasSupabaseServiceRole) {
     return NextResponse.json(
-      { error: "SUPABASE_SERVICE_ROLE_KEY is required for creator download metadata writes." },
+      { error: "SUPABASE_SERVICE_ROLE_KEY is required for Administrator download metadata writes." },
       { status: 503 },
     );
   }

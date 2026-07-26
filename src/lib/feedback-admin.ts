@@ -49,7 +49,7 @@ export async function requireCreatorGithubAuth(accessToken: string | null): Prom
   }
 
   if (!accessToken) {
-    return { ok: false, error: "Sign in with the creator GitHub account to perform admin actions." };
+    return { ok: false, error: "Sign in with the Administrator GitHub account to perform admin actions." };
   }
 
   const { data, error } = await getSupabase().auth.getUser(accessToken);

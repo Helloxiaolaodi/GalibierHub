@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -144,7 +144,7 @@ export default function DownloadActions({
     };
   }, [resolvedInfo, key, dbMeta, label, description, hfMeta.size, hfMeta.sha256]);
 
-  const displaySize = hfMeta.loading ? 'Loading…' : formatDownloadBytes(effectiveInfo.size_bytes) || sizeLabel || '';
+  const displaySize = hfMeta.loading ? 'Loading...' : formatDownloadBytes(effectiveInfo.size_bytes) || sizeLabel || '';
   const hidden = dbMeta.hidden ?? initialHidden ?? false;
   const passwordProtected = dbMeta.password_protected;
   const linksVisible = isAdmin || (!hidden && (!passwordProtected || unlocked));
@@ -320,7 +320,7 @@ export default function DownloadActions({
       )}
       <div className="flex flex-wrap gap-2">
         {hidden && !isAdmin ? (
-          <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-400">Hidden by creator</span>
+          <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-400">Hidden by Administrator</span>
         ) : (
           <button
             type="button"
@@ -343,7 +343,7 @@ export default function DownloadActions({
       {isAdmin && saveState && !open && (
         <p className={`text-xs ${saveState.ok ? 'text-emerald-700' : 'text-red-600'}`}>
           {saveState.text}
-          {saveState.ok && hidden ? ' Visible to creator admin only.' : ''}
+          {saveState.ok && hidden ? ' Visible to the administrator only.' : ''}
         </p>
       )}
 
@@ -366,7 +366,7 @@ export default function DownloadActions({
                   <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{effectiveInfo.access_mode === 'supabase_private' ? 'Private URL' : 'Public URL'}</span>
                   {hidden && <span className="rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Hidden</span>}
                   {passwordProtected && <span className="rounded bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">Password</span>}
-                  {isAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Admin</span>}
+                  {isAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Administrator</span>}
                 </div>
                 {effectiveInfo.description && <p className="text-sm text-gray-700">{effectiveInfo.description}</p>}
                 <div className="grid gap-2 text-xs text-gray-600 sm:grid-cols-2">
@@ -375,9 +375,9 @@ export default function DownloadActions({
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">SHA256:</span>
+                    <span className="text-xs text-gray-500">SHA-256:</span>
                     <code className="block max-w-full truncate font-mono text-xs text-gray-700">{effectiveInfo.sha256_checksum || 'Unavailable'}</code>
-                    {effectiveInfo.sha256_checksum && <button type="button" onClick={() => handleCopy('sha256', effectiveInfo.sha256_checksum)} className="text-xs text-blue-600 hover:underline">{copied === 'sha256' ? 'Copied' : 'Copy SHA256'}</button>}
+                    {effectiveInfo.sha256_checksum && <button type="button" onClick={() => handleCopy('sha256', effectiveInfo.sha256_checksum)} className="text-xs text-blue-600 hover:underline">{copied === 'sha256' ? 'Copied' : 'Copy SHA-256'}</button>}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">MD5:</span>
@@ -387,7 +387,7 @@ export default function DownloadActions({
               </div>
 
               {hidden && !isAdmin && (
-                <p className="text-sm text-gray-500">This file is hidden and unavailable.</p>
+                <p className="text-sm text-gray-500">This file is not publicly available.</p>
               )}
 
               {passwordProtected && !unlocked && !isAdmin && (
@@ -401,15 +401,15 @@ export default function DownloadActions({
 
               {(linksVisible || isAdmin) && (
                 <>
-                  <button type="button" onClick={handleBrowserDownload} disabled={downloading || directUrlInvalid} className="inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50">{downloading ? 'Preparing…' : 'Download in browser'}</button>
+                  <button type="button" onClick={handleBrowserDownload} disabled={downloading || directUrlInvalid} className="inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50">{downloading ? 'Preparing...' : 'Download'}</button>
 
                   {directUrlInvalid && (
                     <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
                   )}
 
                   <div className="rounded border border-gray-100 bg-gray-50 p-3 space-y-3">
-                    <div className="text-sm font-medium text-gray-800">Download methods</div>
-                    <div className="text-xs text-gray-600">Browser download is always available. CLI download supports resume for public direct URLs.</div>
+                    <div className="text-sm font-medium text-gray-800">Download options</div>
+                    <div className="text-xs text-gray-600">Browser download is always available. Public direct URLs also support resumable CLI transfers.</div>
                     {effectiveInfo.access_mode === 'supabase_private' ? (
                       <p className="text-xs text-amber-700">{effectiveInfo.access_note}</p>
                     ) : directUrlInvalid ? (
@@ -419,7 +419,7 @@ export default function DownloadActions({
                         {effectiveInfo.wget_command && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Linux / macOS — wget (resume)</span>
+                              <span className="text-sm font-medium text-gray-700">Linux/macOS: wget (resume)</span>
                               <button type="button" onClick={() => handleCopy('wget', effectiveInfo.wget_command)} className="text-xs text-blue-600 hover:underline">{copied === 'wget' ? 'Copied' : 'Copy'}</button>
                             </div>
                             <code className="block rounded bg-gray-900 px-3 py-2 font-mono text-xs text-gray-100">{effectiveInfo.wget_command}</code>
@@ -428,7 +428,7 @@ export default function DownloadActions({
                         {effectiveInfo.curl_command && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Windows / Linux / macOS — curl (resume)</span>
+                              <span className="text-sm font-medium text-gray-700">Windows/Linux/macOS: curl (resume)</span>
                               <button type="button" onClick={() => handleCopy('curl', effectiveInfo.curl_command)} className="text-xs text-blue-600 hover:underline">{copied === 'curl' ? 'Copied' : 'Copy'}</button>
                             </div>
                             <code className="block rounded bg-gray-900 px-3 py-2 font-mono text-xs text-gray-100">{effectiveInfo.curl_command}</code>
@@ -437,7 +437,7 @@ export default function DownloadActions({
                         {effectiveInfo.hf_cli_command && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Hugging Face CLI (resume, recommended)</span>
+                              <span className="text-sm font-medium text-gray-700">Hugging Face CLI (recommended)</span>
                               <button type="button" onClick={() => handleCopy('hf', effectiveInfo.hf_cli_command)} className="text-xs text-blue-600 hover:underline">{copied === 'hf' ? 'Copied' : 'Copy'}</button>
                             </div>
                             <code className="block rounded bg-gray-900 px-3 py-2 font-mono text-xs text-gray-100">{effectiveInfo.hf_cli_command}</code>
@@ -446,7 +446,7 @@ export default function DownloadActions({
                         {effectiveInfo.region_hint && <p className="text-xs text-gray-500">{effectiveInfo.region_hint}</p>}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-500">CLI commands are unavailable for this entry.</p>
+                      <p className="text-xs text-gray-500">CLI download is not available for this file.</p>
                     )}
                   </div>
                 </>
@@ -455,7 +455,7 @@ export default function DownloadActions({
               {isAdmin && (
                 <div className="space-y-3 rounded border border-amber-200 bg-amber-50/40 p-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-amber-800">Creator controls</span>
+                    <span className="text-sm font-semibold text-amber-800">Administrator controls</span>
                     {!editing ? (
                       <button type="button" onClick={startEdit} className="text-xs text-blue-600 hover:underline">Edit metadata</button>
                     ) : (
@@ -468,7 +468,7 @@ export default function DownloadActions({
                   {saveState && <p className={`text-xs ${saveState.ok ? 'text-emerald-700' : 'text-red-600'}`}>{saveState.text}</p>}
                   {editing && draft && (
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <label className="block text-xs text-gray-700">Custom label<input value={draft.custom_label} onChange={(event) => setDraft({ ...draft, custom_label: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
+                      <label className="block text-xs text-gray-700">Label<input value={draft.custom_label} onChange={(event) => setDraft({ ...draft, custom_label: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
                       <label className="block text-xs text-gray-700">File type<input value={draft.custom_file_type} onChange={(event) => setDraft({ ...draft, custom_file_type: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
                       <label className="block text-xs text-gray-700">Size (bytes)<input value={draft.custom_size_bytes} onChange={(event) => setDraft({ ...draft, custom_size_bytes: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" placeholder="Leave blank to auto-detect" /></label>
                       <label className="block text-xs text-gray-700">Signed URL TTL (seconds)<input value={draft.signed_url_ttl_seconds} onChange={(event) => setDraft({ ...draft, signed_url_ttl_seconds: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
@@ -477,15 +477,15 @@ export default function DownloadActions({
                       <label className="block text-xs text-gray-700">Storage bucket<input value={draft.storage_bucket} onChange={(event) => setDraft({ ...draft, storage_bucket: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" placeholder="private-files" /></label>
                       <label className="block text-xs text-gray-700 sm:col-span-2">Storage path<input value={draft.storage_path} onChange={(event) => setDraft({ ...draft, storage_path: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" placeholder="datasets/example/file.zip" /></label>
                       <label className="block text-xs text-gray-700">MD5 checksum<input value={draft.md5_checksum} onChange={(event) => setDraft({ ...draft, md5_checksum: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
-                      <label className="block text-xs text-gray-700">SHA256 checksum<input value={draft.sha256_checksum} onChange={(event) => setDraft({ ...draft, sha256_checksum: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
-                      <label className="flex items-center gap-2 text-xs text-gray-700 sm:col-span-2"><input type="checkbox" checked={draft.hidden} onChange={(event) => setDraft({ ...draft, hidden: event.target.checked })} /> Hide this file from public users</label>
-                      <label className="block text-xs text-gray-700 sm:col-span-2">Set / change password (leave blank to keep)<input type="text" value={draft.password} onChange={(event) => setDraft({ ...draft, password: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" placeholder="Set a new password (min 4 chars)" /></label>
+                      <label className="block text-xs text-gray-700">SHA-256 checksum<input value={draft.sha256_checksum} onChange={(event) => setDraft({ ...draft, sha256_checksum: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
+                      <label className="flex items-center gap-2 text-xs text-gray-700 sm:col-span-2"><input type="checkbox" checked={draft.hidden} onChange={(event) => setDraft({ ...draft, hidden: event.target.checked })} /> Hide this file from public view</label>
+                      <label className="block text-xs text-gray-700 sm:col-span-2">Set or change password (leave blank to keep)<input type="text" value={draft.password} onChange={(event) => setDraft({ ...draft, password: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" placeholder="Set a new password (min 4 chars)" /></label>
                     </div>
                   )}
                 </div>
               )}
 
-              <p className="text-xs text-gray-400">Download counts mainly reflect in-site browser downloads. Direct URL and CLI downloads may be undercounted.</p>
+              <p className="text-xs text-gray-400">Download counts mainly reflect in-site downloads. Direct URL and CLI transfers may be undercounted.</p>
             </div>
           </div>
         </div>

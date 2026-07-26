@@ -243,7 +243,7 @@ DROP POLICY IF EXISTS "Public update feedback_comments" ON feedback_comments;
 CREATE POLICY "Public update feedback_comments" ON feedback_comments FOR UPDATE TO anon USING (true);
 
 -- ============================================================
--- Download metadata (creator-edited file info, hide/password) and download count
+-- Download metadata (Administrator-edited file info, hide/password) and download count
 -- ============================================================
 CREATE TABLE IF NOT EXISTS download_metadata (
   download_key TEXT PRIMARY KEY,
@@ -347,7 +347,7 @@ CREATE POLICY "Service insert download_events" ON download_events FOR INSERT TO 
 
 -- ============================================================
 -- Safer RLS for feedback writes: public reads remain open, but
--- creator/admin mutations are expected to use the server-side
+-- Administrator/admin mutations are expected to use the server-side
 -- SUPABASE_SERVICE_ROLE_KEY configured in the application.
 -- ============================================================
 DROP POLICY IF EXISTS "Public update site_feedback" ON site_feedback;

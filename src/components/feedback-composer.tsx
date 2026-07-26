@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 
@@ -135,35 +135,35 @@ const [uploadingImage, setUploadingImage] = useState(false);
     // Validation
     const errors: Record<string, string> = {};
     if (!form.title.trim()) {
-      errors.title = 'This field is required';
+      errors.title = 'Required.';
     } else if (form.title.trim().length < 3) {
-      errors.title = 'Title must be at least 3 characters';
+      errors.title = 'Use at least 3 characters.';
     } else if (form.title.trim().length > 120) {
-      errors.title = 'Title must be 120 characters or less';
+      errors.title = 'Use 120 characters or fewer.';
     }
 
     if (!form.displayName.trim()) {
-      errors.displayName = 'This field is required';
+      errors.displayName = 'Required.';
     } else if (form.displayName.trim().length > 80) {
-      errors.displayName = 'Name must be 80 characters or less';
+      errors.displayName = 'Use 80 characters or fewer.';
     }
 
     if (form.visitorEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.visitorEmail.trim())) {
-      errors.visitorEmail = 'Please enter a valid email address';
+      errors.visitorEmail = 'Enter a valid email address.';
     } else if (form.visitorEmail.trim().length > 160) {
-      errors.visitorEmail = 'Email must be 160 characters or less';
+      errors.visitorEmail = 'Use 160 characters or fewer.';
     }
 
     if (form.affiliation.trim().length > 160) {
-      errors.affiliation = 'Affiliation must be 160 characters or less';
+      errors.affiliation = 'Use 160 characters or fewer.';
     }
 
     if (!form.message.trim()) {
-      errors.message = 'This field is required';
+      errors.message = 'Required.';
     } else if (form.message.trim().length < 3) {
-      errors.message = 'Message must be at least 3 characters';
+      errors.message = 'Use at least 3 characters.';
     } else if (form.message.trim().length > 2000) {
-      errors.message = 'Message must be 2000 characters or less';
+      errors.message = 'Use 2,000 characters or fewer.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -195,7 +195,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
         visibility: 'public',
         message: '',
       });
-      setSubmitSuccess('Message submitted successfully.');
+      setSubmitSuccess('Feedback submitted.');
       onSubmitted?.();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Failed to submit feedback.');
@@ -282,7 +282,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
         >
           <div>
             <h2 className="text-sm font-semibold text-gray-900">Leave Feedback</h2>
-            <p className="mt-1 text-xs text-gray-500">Submit a public message or a creator-only note.</p>
+            <p className="mt-1 text-xs text-gray-500">Post a public message or a private note to Administrator.</p>
           </div>
           <button
             type="button"
@@ -344,7 +344,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
               >
                 <option value="public">Public</option>
-                <option value="private">Creator only</option>
+                <option value="private">Administrator only</option>
               </select>
             </label>
 
@@ -359,8 +359,8 @@ const [uploadingImage, setUploadingImage] = useState(false);
             <div className="mt-2 flex items-center gap-2">
               <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-               Upload Image
-               <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const file = e.target.files?.[0]; if (file) { setUploadingImage(true); setUploadImageMessage(null); const url = await handleImageUpload(file); setUploadingImage(false); if (url) { setForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); setUploadImageMessage({ type: 'success', text: 'Image uploaded successfully.' }); } else { setUploadImageMessage({ type: 'error', text: 'Image upload failed. Please try again.' }); } e.target.value = ''; } }} />
+               Attach image
+               <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const file = e.target.files?.[0]; if (file) { setUploadingImage(true); setUploadImageMessage(null); const url = await handleImageUpload(file); setUploadingImage(false); if (url) { setForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); setUploadImageMessage({ type: 'success', text: 'Image uploaded.' }); } else { setUploadImageMessage({ type: 'error', text: 'Image upload failed.' }); } e.target.value = ''; } }} />
              </label>
               {uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
               {uploadImageMessage && (

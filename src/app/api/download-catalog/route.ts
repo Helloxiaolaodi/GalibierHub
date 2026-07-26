@@ -78,7 +78,7 @@ function upsertItem(
     current.showCli = current.showCli || Boolean(input.showCli);
     if (!current.sizeLabel && input.sizeLabel) current.sizeLabel = input.sizeLabel;
     if (current.label.startsWith('Download ') && !input.label.startsWith('Download ')) current.label = input.label;
-    if ((!current.description || current.description.includes('configured storage host')) && input.description) current.description = input.description;
+    if ((!current.description || current.description.includes('configured storage host') || current.description.includes('configured storage location')) && input.description) current.description = input.description;
     current._scopes.add(input.sourceScope);
     if (input.sampleId) current._sampleIds.add(input.sampleId);
     if (input.kind) current._kinds.add(input.kind);
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
         upsertItem(items, {
           url: entry.url,
           label: `Download ${kindLabel(entry.kind)}`,
-          description: 'Sample-level file download from the configured storage host.',
+          description: 'Sample-level file available from the configured storage location.',
           showCli: entry.showCli,
           sourceScope: 'sample',
           sampleId,

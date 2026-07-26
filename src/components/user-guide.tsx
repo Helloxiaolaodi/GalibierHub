@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect } from 'react';
 
@@ -37,7 +37,7 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
       >
         <div className="sticky top-0 flex items-center justify-between border-b bg-white px-5 py-3">
           <h2 id="seqedge-user-guide-title" className="text-base font-bold text-gray-900">
-            SeqEdge - User Guide
+            SeqEdge User Guide
           </h2>
           <button
             type="button"
@@ -55,8 +55,8 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
           <section>
             <h3 className="mb-2 font-semibold text-gray-900">1. Overview</h3>
             <ul className="space-y-2">
-              <li>Use this tab to view summary metrics, charts, and featured download entries.</li>
-              <li>Start here if you want a quick overview before opening records or downloads.</li>
+              <li>Open this tab for summary metrics, charts, and featured downloads.</li>
+              <li>Use Overview for a quick orientation before browsing records or downloads.</li>
             </ul>
           </section>
 
@@ -64,16 +64,16 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
             <h3 className="mb-2 font-semibold text-gray-900">2. Records</h3>
             <ul className="space-y-2">
               <li>Filter records by fields such as coordinate, label, score, sample, species, tissue, cohort, or class.</li>
-              <li>Click a row to open the detail panel and jump the embedded browser to the matching region.</li>
+              <li>Click a row to open the detail panel and navigate the Genome Browser to the corresponding genomic region.</li>
               <li>Use the detail panel to inspect metadata and open file downloads for that record.</li>
             </ul>
           </section>
 
           <section>
-            <h3 className="mb-2 font-semibold text-gray-900">3. Discussion</h3>
+            <h3 className="mb-2 font-semibold text-gray-900">3. Threads</h3>
             <ul className="space-y-2">
-              <li>Click <span className="font-medium text-gray-900">Leave Feedback</span> to post a message. GitHub sign-in is supported for posting.</li>
-              <li>Threads appear in <span className="font-medium text-gray-900">In progress</span> and <span className="font-medium text-gray-900">Completed</span>.</li>
+              <li>Click <span className="font-medium text-gray-900">Leave Feedback</span> to start a new thread.</li>
+              <li>Threads are categorized as <span className="font-medium text-gray-900">&quot;In Progress&quot;</span> or <span className="font-medium text-gray-900">&quot;Completed&quot;</span>.</li>
               <li>You can view likes, bookmarks, replies, and uploaded images. Click an image to enlarge it.</li>
             </ul>
           </section>
@@ -81,11 +81,11 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
           <section>
             <h3 className="mb-2 font-semibold text-gray-900">4. Downloads</h3>
             <ul className="space-y-2">
-              <li>Open this tab to browse downloadable files grouped by path.</li>
-              <li>For a single file, open its download window from <span className="font-medium text-gray-900">Overview</span>, a record detail panel in <span className="font-medium text-gray-900">Records</span>, or the file list in <span className="font-medium text-gray-900">Downloads</span>.</li>
-              <li>For batch scripts, select items in <span className="font-medium text-gray-900">Records</span> and click <span className="font-medium text-gray-900">Batch download</span>.</li>
-              <li>The download window shows file info, browser download, and command-line commands.</li>
-              <li>For large public files, prefer <code>wget -c</code>, <code>curl -L -C -</code>, or <code>hf download</code> because they support resume.</li>
+              <li>Use this tab to browse downloadable files by directory.</li>
+              <li>Open a file from <span className="font-medium text-gray-900">Overview</span>, a record detail panel in <span className="font-medium text-gray-900">Records</span>, or the file list in <span className="font-medium text-gray-900">Downloads</span>.</li>
+              <li>For batch scripts, select samples in <span className="font-medium text-gray-900">Records</span> and click <span className="font-medium text-gray-900">Batch download</span>.</li>
+              <li>The download dialog shows file metadata and browser/CLI download options.</li>
+              <li>For large public files, we recommend using command-line tools like <code>wget -c</code>, <code>curl -L -C -</code>, or <code>hf download</code>, as they support resumable downloads.</li>
               <li>Protected files may require site access or a short-lived link and may not appear in batch scripts.</li>
             </ul>
           </section>
@@ -93,7 +93,7 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
          <section>
             <h3 className="mb-2 font-semibold text-gray-900">Quick Tips</h3>
             <p className="text-xs text-gray-500">
-              Use <span className="font-medium text-gray-700">Overview</span> to orient yourself, <span className="font-medium text-gray-700">Records</span> to inspect entries, <span className="font-medium text-gray-700">Discussion</span> to post feedback, and <span className="font-medium text-gray-700">Downloads</span> to get files.
+              Use <span className="font-medium text-gray-700">Overview</span> to orient yourself, <span className="font-medium text-gray-700">Records</span> to inspect entries, <span className="font-medium text-gray-700">Threads</span> to post feedback, and <span className="font-medium text-gray-700">Downloads</span> to get files.
             </p>
           </section>
         </div>

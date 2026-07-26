@@ -46,7 +46,7 @@ export function useDiscussionComments() {
       const data = await response.json() as { error?: string };
       if (!response.ok) throw new Error(data.error || 'Failed to post comment.');
       setCommentDrafts((c) => ({ ...c, [entryId]: '' }));
-      setCommentSuccess((e) => ({ ...e, [entryId]: 'Comment posted successfully.' }));
+      setCommentSuccess((e) => ({ ...e, [entryId]: 'Comment posted.' }));
       await fetchEntryComments(entryId);
     } catch (err) {
       setCommentError((e) => ({ ...e, [entryId]: err instanceof Error ? err.message : 'Failed to post comment.' }));

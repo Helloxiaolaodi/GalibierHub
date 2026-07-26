@@ -36,7 +36,7 @@ export default function SiteUptime({ startAt }: SiteUptimeProps) {
 
   return (
     <footer className="border-t border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
-      This site has been running: <span className="font-medium text-gray-700">{text}</span>
+      Site uptime: <span className="font-medium text-gray-700">{text}</span>
     </footer>
   );
 }

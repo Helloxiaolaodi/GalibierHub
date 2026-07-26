@@ -81,7 +81,7 @@ export async function POST(request: Request) {
   };
 
   if (meta.hidden) {
-    return NextResponse.json({ error: 'This file is hidden by the creator.' }, { status: 403 });
+    return NextResponse.json({ error: 'This file is hidden by the Administrator.' }, { status: 403 });
   }
 
   if (row?.password_hash) {

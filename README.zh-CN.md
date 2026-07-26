@@ -12,7 +12,7 @@
 
 语言：**简体中文** | [English](./README.md) | [问题反馈](https://github.com/Helloxiaolaodi/SeqEdge/issues)
 
-详细搭建指南：[SeqEdge 开发者笔记](https://www.cnblogs.com/Helloxiaolaodi/p/21776736)
+详细搭建指南：[SeqEdge 开发者笔记](https://www.cnblogs.com/Administrator/p/21776736)
 
 技术栈：Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts
 
@@ -62,7 +62,7 @@ SeqEdge 采用适合免费层级的拆分式流程：
 
 ## 上传数据到 Hugging Face
 
-SeqEdge 的大体量文件（发布归档、参考序列包、样本级文件）托管在 Hugging Face 的数据集仓库中，默认为 `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`。项目创建者用 Hugging Face 命令行工具上传这些文件。
+SeqEdge 的大体量文件（发布归档、参考序列包、样本级文件）托管在 Hugging Face 的数据集仓库中，默认为 `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`。项目 Administrator 用 Hugging Face 命令行工具上传这些文件。
 
 ### 1. 安装命令行工具
 

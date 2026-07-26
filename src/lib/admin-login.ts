@@ -15,5 +15,5 @@ export function resolveExpectedAdminGithubLogin(options?: {
   const clientLogin = normalizeGithubLogin(options?.clientLogin ?? process.env.NEXT_PUBLIC_GITHUB_ADMIN_USERNAME);
   if (clientLogin) return clientLogin;
 
-  return normalizeGithubLogin(options?.fallbackLabel ?? SiteConfig.creatorCreditLabel);
+  return normalizeGithubLogin(options?.fallbackLabel ?? SiteConfig.adminGithubLoginFallback);
 }

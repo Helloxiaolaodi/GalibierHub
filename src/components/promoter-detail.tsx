@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { SiteConfig } from '@/site-config';
@@ -289,7 +289,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
               {promoter.chrom}:{promoter.start.toLocaleString()}-{promoter.end_pos.toLocaleString()} ({promoter.strand})
             </p>
             <p className="mt-1 hidden text-[11px] text-gray-400 lg:block">
-              Drag this header to reposition the detail panel.
+              Drag the header to move this panel.
             </p>
           </div>
           <button
@@ -305,7 +305,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
         </div>
 
         <div className="space-y-4 overflow-y-auto p-5">
-          <Card title="Reference coordinates">
+          <Card title="Genomic coordinates">
             <div className={`grid grid-cols-2 gap-4 ${panelWidthClass}`}>
               <KV label="Reference">{promoter.chrom}</KV>
               <KV label="Start">{promoter.start.toLocaleString()}</KV>
@@ -364,19 +364,19 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
               </div>
             ) : (
               <div className="text-sm italic text-gray-500">
-                Sequence is not stored for this record. Retrieve it from the configured FASTA source when needed.
+                Sequence is not stored for this record. Retrieve it from the FASTA source if needed.
               </div>
             )}
           </Card>
 
-          <Card title="Item metadata">
+          <Card title="Sample metadata">
             {sample === undefined ? (
-              <div className="text-sm text-gray-400">Loading item metadata...</div>
+              <div className="text-sm text-gray-400">Loading sample metadata...</div>
             ) : sample === null ? (
-              <div className="text-sm text-gray-500">No item metadata is available for this record.</div>
+              <div className="text-sm text-gray-500">No sample metadata is available for this record.</div>
             ) : (
               <div className={`grid grid-cols-2 gap-4 ${size.width >= 640 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
-                <KV label="Item ID">{sample.sample_id}</KV>
+                <KV label="Sample ID">{sample.sample_id}</KV>
                 <KV label="Cohort">
                   {sample.cohort ? (
                     <span className="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
@@ -415,7 +415,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
               onClick={handleViewInBrowser}
               className="min-w-[10rem] flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             >
-              Open in Browser
+              Open in Records
             </button>
             <button
               type="button"
@@ -436,14 +436,14 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
           </div>
 
           {((downloadsLoaded && (visibleVcfDownloadUrl || visibleFastaDownloadUrl || visibleGbDownloadUrl || visibleBedDownloadUrl || visibleGff3DownloadUrl)) || isAdmin) && (
-            <Card title="File downloads">
+            <Card title="Downloads">
               <div className="space-y-4">
-                {!downloadsLoaded && !isAdmin && <p className="text-sm text-gray-500">Loading downloads...</p>}
+                {!downloadsLoaded && !isAdmin && <p className="text-sm text-gray-500">Loading files...</p>}
                 {visibleVcfDownloadUrl && (
                   <DownloadActions
                     url={visibleVcfDownloadUrl}
                     label="Download VCF"
-                    description="Sample-level file download from the configured storage host."
+                    description="Sample-level file available from the configured storage location."
                     showCli={showVcfCli}
                     isAdmin={isAdmin}
                     accessToken={accessToken}
@@ -453,7 +453,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                  <DownloadActions
                    url={visibleFastaDownloadUrl}
                    label="Download FASTA"
-                   description="Sample-level file download from the configured storage host."
+                   description="Sample-level file available from the configured storage location."
                    showCli={showFastaCli}
                    isAdmin={isAdmin}
                    accessToken={accessToken}
@@ -463,7 +463,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                  <DownloadActions
                    url={visibleGbDownloadUrl}
                    label="Download Package"
-                   description="Sample-level file download from the configured storage host."
+                   description="Sample-level file available from the configured storage location."
                    showCli={true}
                    isAdmin={isAdmin}
                    accessToken={accessToken}
@@ -473,7 +473,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                  <DownloadActions
                    url={visibleBedDownloadUrl}
                    label="Download BED"
-                   description="Sample-level file download from the configured storage host."
+                   description="Sample-level file available from the configured storage location."
                    showCli={true}
                    isAdmin={isAdmin}
                    accessToken={accessToken}
@@ -483,14 +483,14 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
                  <DownloadActions
                    url={visibleGff3DownloadUrl}
                    label="Download GFF3"
-                   description="Sample-level file download from the configured storage host."
+                   description="Sample-level file available from the configured storage location."
                    showCli={true}
                    isAdmin={isAdmin}
                    accessToken={accessToken}
                  />
                )}
                {downloadsLoaded && !isAdmin && !visibleVcfDownloadUrl && !visibleFastaDownloadUrl && !visibleGbDownloadUrl && !visibleBedDownloadUrl && !visibleGff3DownloadUrl && (
-                 <p className="text-sm text-gray-500">No public downloads are available for this item.</p>
+                 <p className="text-sm text-gray-500">No public files are available for this sample.</p>
                )}
               </div>
             </Card>

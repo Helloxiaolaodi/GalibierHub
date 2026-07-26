@@ -12,7 +12,7 @@ An open-source template for coordinate-based genomics portals that combine searc
 
 Language: **English** | [简体中文](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/SeqEdge/issues)
 
-Detailed build guide: [SeqEdge Developer Notes](https://www.cnblogs.com/Helloxiaolaodi/p/21776736)
+Detailed build guide: [SeqEdge Developer Notes](https://www.cnblogs.com/Administrator/p/21776736)
 
 Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts
 
@@ -35,8 +35,8 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 - See file name, type, size, created / updated time, download count, access mode, MD5, and SHA256 in the same download modal.
 - Copy SHA256 with one click, and use resume-capable CLI commands for large-file transfer.
 - Generate batch download scripts for public sample files as `.sh` and `.bat` outputs.
-- Submit public or creator-only messages via the `Discussion` tab, then review thread status on the same page.
-- Sign in with the allowed GitHub creator account to publish official replies.
+- Submit public or Administrator-only messages via the `Discussion` tab, then review thread status on the same page.
+- Sign in with the allowed GitHub Administrator account to publish official replies.
 - Upload images in discussion threads, view success / failure submission feedback, and click posted images to zoom them.
 - See likes and bookmarks on thread cards and inside the thread detail view.
 - Check the site uptime counter at the bottom of the page.
@@ -62,7 +62,7 @@ This keeps multi-GB transfers off the proxy path, preserves resumable CLI flows 
 
 ## Uploading Data to Hugging Face
 
-SeqEdge hosts large data files (release archives, reference bundles, sample-level files) on a Hugging Face dataset repository, by default `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`. The project creator uploads these files with the Hugging Face CLI.
+SeqEdge hosts large data files (release archives, reference bundles, sample-level files) on a Hugging Face dataset repository, by default `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`. The project Administrator uploads these files with the Hugging Face CLI.
 
 ### 1. Install the CLI
 
@@ -233,7 +233,7 @@ NEXT_PUBLIC_REFERENCE_BUNDLE_SIZE=180 MB
 NEXT_PUBLIC_REFERENCE_BUNDLE_MODE=direct
 ```
 
-Optional creator-reply and email variables:
+Optional Administrator-reply and email variables:
 
 ```bash
 GITHUB_ADMIN_USERNAME=your-github-login
@@ -245,14 +245,14 @@ FEEDBACK_EMAIL_TO=owner@example.org
 
 Notes:
 
-- `SUPABASE_SERVICE_ROLE_KEY` is required for creator-only write actions such as hiding or showing files in `Downloads`, saving `download_metadata`, issuing private signed URLs, and other privileged server-side mutations.
+- `SUPABASE_SERVICE_ROLE_KEY` is required for Administrator-only write actions such as hiding or showing files in `Downloads`, saving `download_metadata`, issuing private signed URLs, and other privileged server-side mutations.
 - To copy it, open Supabase Dashboard -> **Settings** -> **API** -> **Project API keys** -> copy the `service_role` key. Keep it server-side only and never expose it through any `NEXT_PUBLIC_*` variable.
 - To configure it on Vercel, open your project -> **Settings** -> **Environment Variables** -> add `SUPABASE_SERVICE_ROLE_KEY` with the copied `service_role` value -> enable Production at minimum, and Preview / Development if needed -> save -> redeploy.
 - To configure it on Cloudflare Pages, open your project -> **Settings** -> **Environment variables** -> add `SUPABASE_SERVICE_ROLE_KEY` with the same value -> save -> redeploy.
-- Without a new deployment, the current build does not receive the new value. If this variable is missing, public browsing still works, but creator actions such as `Hide from visitors` fail because server-side writes to `download_metadata` require `service_role` privileges.
+- Without a new deployment, the current build does not receive the new value. If this variable is missing, public browsing still works, but Administrator actions such as `Hide from visitors` fail because server-side writes to `download_metadata` require `service_role` privileges.
 - If files live in a subfolder, include that prefix in `NEXT_PUBLIC_STORAGE_BASE_URL`.
 - Direct Hugging Face reads are supported, but the Worker is the most reliable JBrowse path.
-- To enable creator replies: enable GitHub auth provider in Supabase (see [Creator Reply Setup](#creator-reply-setup)), set `GITHUB_ADMIN_USERNAME` for server-side reply authorization, and set `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` for the client-side creator controls.
+- To enable Administrator replies: enable GitHub auth provider in Supabase (see [Administrator Reply Setup](#administrator-reply-setup)), set `GITHUB_ADMIN_USERNAME` for server-side reply authorization, and set `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` for the client-side Administrator controls.
 
 ### 3. Initialize the database
 
@@ -333,7 +333,7 @@ SeqEdge also opens the first reachable annotation track automatically so the vie
 - Featured download cards on the Overview tab: `src/site-config.ts`
 - Sample-level download metadata: `genome_samples.vcf_download_url`, `genome_samples.fasta_download_url`, `genome_samples.gb_download_url`, `genome_samples.bed_download_url`, `genome_samples.gff3_download_url`, and related `*_download_mode` fields
 - Unified download metadata model and CLI generation: `src/lib/download-info.ts`
-- Single-file modal behavior and creator edit controls: `src/components/download-actions.tsx`
+- Single-file modal behavior and Administrator edit controls: `src/components/download-actions.tsx`
 - Batch script generation for public entries: `src/components/promoter-table.tsx` and `/api/samples/batch`
 - Dedicated site-wide download catalog with hierarchical folder browsing: `src/components/download-catalog-panel.tsx` and `/api/download-catalog`
 - Private signed-URL resolution: `/api/download-metadata/resolve` backed by the `download_metadata` table
@@ -450,7 +450,7 @@ The in-app User Guide is now visitor-facing and concise. It explains only how to
 3. Discussion
 4. Downloads
 
-Its purpose is to help a visitor start using the site quickly, not to document deployment or creator-only setup.
+Its purpose is to help a visitor start using the site quickly, not to document deployment or Administrator-only setup.
 
 ## Discussion
 
@@ -458,11 +458,11 @@ SeqEdge includes a lightweight interaction area for research communication:
 
 - Click the `Discussion` tab to browse threads and open the floating composer. Anyone can sign in with GitHub to post.
 - Messages support a title, name or nickname, email, optional affiliation, category, rating, and visibility.
-- Messages can be `Public` or `Creator only` (private).
+- Messages can be `Public` or `Administrator only` (private).
 - The `Discussion` tab shows threads split into `In progress` and `Completed`.
 - Threads can be sorted, including a `Most liked` view.
-- Creator replies appear on the site and can also be emailed when the email API is configured.
-- The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`, while the creator UI in the browser also expects `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` to match the same login.
+- Administrator replies appear on the site and can also be emailed when the email API is configured.
+- The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`, while the Administrator UI in the browser also expects `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` to match the same login.
 - Posted and replied timestamps are displayed for each thread.
 - Visitors can leave `Like` and `Bookmark` reactions, and those counts remain visible in both list and detail views.
 - Image uploads show success or failure feedback during submission.
@@ -477,7 +477,7 @@ Required environment variables are listed in `.env.example`.
 
 </div>
 
-## Creator Reply Setup
+## Administrator Reply Setup
 
 To let the site owner sign in and reply from the browser:
 
@@ -511,7 +511,7 @@ If the Site URL is left as the default http://localhost:3000, OAuth sign-in will
 
 ### 4. Configure Environment
 
-Set both `GITHUB_ADMIN_USERNAME` and `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the same GitHub login that may reply. Any other signed-in GitHub account can read but cannot send creator replies.
+Set both `GITHUB_ADMIN_USERNAME` and `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the same GitHub login that may reply. Any other signed-in GitHub account can read but cannot send Administrator replies.
 
 Then sign in from the top-right `Log in with GitHub` button on the site.
 
@@ -523,7 +523,7 @@ Then sign in from the top-right `Log in with GitHub` button on the site.
 
 ## Email Notification Setup (Resend)
 
-SeqEdge uses [Resend](https://resend.com) to deliver feedback notification emails to the site creator.
+SeqEdge uses [Resend](https://resend.com) to deliver feedback notification emails to the site Administrator.
 
 ### Test Mode (no domain required)
 

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -245,7 +245,7 @@ export default function PromoterTable({
           if (url) files.push({ sample_id: sid, kind, url });
         }
       }
-      if (files.length === 0) setBatchError('No downloadable files were found for the selected items.');
+      if (files.length === 0) setBatchError('No downloadable files found for the selected samples.');
       if (files.length > 0) {
         setBatchMetaLoading(true);
         const uniqueUrls = [...new Set(files.map((file) => file.url))];
@@ -326,7 +326,7 @@ export default function PromoterTable({
         header: () => (
           <input
             type="checkbox"
-            aria-label="Select all items on this page"
+            aria-label="Select all samples on this page"
             checked={allPageSelected}
             ref={(el) => { if (el) el.indeterminate = somePageSelected; }}
             onChange={toggleAllPage}
@@ -337,7 +337,7 @@ export default function PromoterTable({
         cell: ({ row }) => (
           <input
             type="checkbox"
-            aria-label={`Select item ${row.original.sample_id}`}
+            aria-label={`Select sample ${row.original.sample_id}`}
             checked={selectedSampleIds.has(row.original.sample_id)}
             onChange={() => toggleSample(row.original.sample_id)}
             onClick={(e) => e.stopPropagation()}
@@ -402,7 +402,7 @@ export default function PromoterTable({
       },
       {
         accessorKey: 'sample_id',
-        header: 'Item ID',
+        header: 'Sample ID',
         size: 120,
       },
     ],
@@ -435,24 +435,24 @@ export default function PromoterTable({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800">
-          Resource Records ({totalCount} total)
+          Resource Records ({totalCount.toLocaleString()} total)
         </h2>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-xs text-gray-500">
-            <span>Sort</span>
+            <span>Sort by</span>
             <select
               value={sortMode}
               onChange={(e) => onSortModeChange(e.target.value as PromoterSortMode)}
               className="rounded border px-2 py-1 text-sm text-gray-700 bg-white"
             >
-              <option value="score_desc">Score high to low</option>
-              <option value="score_asc">Score low to high</option>
-              <option value="chrom_start">Reference + start</option>
-              <option value="sample_id">Item ID</option>
+              <option value="score_desc">Score (Descending)</option>
+              <option value="score_asc">Score (Ascending)</option>
+              <option value="chrom_start">Chromosome + Start</option>
+              <option value="sample_id">Sample ID</option>
             </select>
           </label>
           {loading ? (
-            <span className="text-xs text-gray-500">Loading page...</span>
+            <span className="text-xs text-gray-500">Refreshing results...</span>
           ) : null}
         </div>
       </div>
@@ -471,19 +471,19 @@ export default function PromoterTable({
               ))}
             </div>
           ) : (
-            <p className="mt-2 text-sm text-gray-500">No active filters. Add reference, feature, score, item, or metadata constraints to narrow the full result set.</p>
+            <p className="mt-2 text-sm text-gray-500">No filters applied. Add chromosome, feature, score, sample, or metadata filters to narrow results.</p>
           )}
         </div>
 
         <div className="rounded-lg border bg-white px-4 py-3">
           <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-            Quick view
+            Page summary
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {([
               { key: 'overview', label: 'Overview' },
-              { key: 'sample', label: 'Group by item' },
-              { key: 'chromosome', label: 'Group by reference' },
+              { key: 'sample', label: 'Group by sample' },
+              { key: 'chromosome', label: 'Group by chromosome' },
             ] as const).map((option) => (
               <button
                 key={option.key}
@@ -498,32 +498,32 @@ export default function PromoterTable({
           {summaryMode === 'overview' ? (
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
-                <div className="text-xs font-medium text-gray-500">Top references on this page</div>
+                <div className="text-xs font-medium text-gray-500">Top chromosomes on this page</div>
                 <div className="mt-1 space-y-1 text-sm text-gray-700">
                   {topChromosomes.length > 0 ? topChromosomes.map((item) => (
                     <div key={item.label} className="flex items-center justify-between gap-2">
                       <span className="truncate">{item.label}</span>
                       <span className="tabular-nums text-gray-500">{item.count}</span>
                     </div>
-                  )) : <div className="text-gray-500">No rows on this page.</div>}
+                  )) : <div className="text-gray-500">No records on this page.</div>}
                 </div>
               </div>
               <div>
-                <div className="text-xs font-medium text-gray-500">Top items on this page</div>
+                <div className="text-xs font-medium text-gray-500">Top samples on this page</div>
                 <div className="mt-1 space-y-1 text-sm text-gray-700">
                   {topSamples.length > 0 ? topSamples.map((item) => (
                     <div key={item.label} className="flex items-center justify-between gap-2">
                       <span className="truncate">{item.label}</span>
                       <span className="tabular-nums text-gray-500">{item.count}</span>
                     </div>
-                  )) : <div className="text-gray-500">No rows on this page.</div>}
+                  )) : <div className="text-gray-500">No records on this page.</div>}
                 </div>
               </div>
             </div>
           ) : (
             <div className="mt-3">
               <div className="text-xs font-medium text-gray-500">
-                {summaryMode === 'sample' ? 'Item groups on this page' : 'Reference groups on this page'} ({visibleCount} visible rows)
+                {summaryMode === 'sample' ? 'Sample groups' : 'Chromosome groups'} ({visibleCount} visible rows)
               </div>
               <div className="mt-2 space-y-1 text-sm text-gray-700">
                 {groupedItems.length > 0 ? groupedItems.map((item) => (
@@ -531,7 +531,7 @@ export default function PromoterTable({
                     <span className="truncate">{item.label}</span>
                     <span className="tabular-nums text-gray-500">{item.count}</span>
                   </div>
-                )) : <div className="text-gray-500">No rows on this page.</div>}
+                )) : <div className="text-gray-500">No records on this page.</div>}
               </div>
             </div>
           )}
@@ -541,7 +541,7 @@ export default function PromoterTable({
       {selectedSampleIds.size > 0 && (
         <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50/95 px-4 py-2 shadow-sm">
           <span className="text-sm font-medium text-blue-800">
-            {selectedSampleIds.size} item{selectedSampleIds.size === 1 ? '' : 's'} selected for batch download
+            {selectedSampleIds.size} sample{selectedSampleIds.size === 1 ? '' : 's'} selected for batch download
           </span>
           <div className="flex items-center gap-2">
             <button type="button" onClick={clearSelection} className="rounded border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700 hover:bg-gray-50">Clear</button>
@@ -571,7 +571,7 @@ export default function PromoterTable({
             {table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-3 py-6 text-center text-sm text-gray-500">
-                  No resource records matched the current filters.
+                  No records matched the current filters.
                 </td>
               </tr>
             ) : table.getRowModel().rows.map((row) => (
@@ -629,7 +629,7 @@ export default function PromoterTable({
 
         <div className="flex flex-wrap items-center gap-3 lg:justify-end">
           <span>
-            Showing {rangeStart}-{rangeEnd} of {totalCount.toLocaleString()} records
+            Showing {rangeStart}-{rangeEnd} of {totalCount.toLocaleString()}
           </span>
 
           <label className="flex items-center gap-2">
@@ -652,7 +652,7 @@ export default function PromoterTable({
           </span>
 
           <label className="flex items-center gap-2">
-            <span>Jump to</span>
+            <span>Page</span>
             <input
               type="number"
               min={1}
@@ -681,29 +681,29 @@ export default function PromoterTable({
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4" role="dialog" aria-modal="true" onClick={() => setBatchOpen(false)}>
           <div className="my-8 w-full max-w-6xl rounded-lg border border-gray-200 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between border-b border-gray-200 px-5 py-3">
-              <h3 className="text-base font-semibold text-gray-900">Batch download generator</h3>
+              <h3 className="text-base font-semibold text-gray-900">Batch download</h3>
               <button type="button" onClick={() => setBatchOpen(false)} aria-label="Close" className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             <div className="space-y-4 px-5 py-4">
               <p className="text-sm text-gray-600">
-                Review downloads for <span className="font-medium text-gray-900">{selectedSampleIds.size}</span> selected item{selectedSampleIds.size === 1 ? '' : 's'}. Public direct files can be exported to resume-capable scripts. Protected or non-direct files are listed but excluded from reusable scripts.
+                Review downloads for <span className="font-medium text-gray-900">{selectedSampleIds.size}</span> selected sample{selectedSampleIds.size === 1 ? '' : 's'}. Public direct URLs can be exported as resumable scripts. Protected or indirect files are listed but excluded.
               </p>
-              {batchLoading && <p className="text-sm text-gray-500">Resolving files...</p>}
-              {!batchLoading && batchMetaLoading && <p className="text-sm text-gray-500">Loading metadata...</p>}
+              {batchLoading && <p className="text-sm text-gray-500">Resolving download links...</p>}
+              {!batchLoading && batchMetaLoading && <p className="text-sm text-gray-500">Loading file metadata...</p>}
               {batchError && <p className="text-sm text-red-600">{batchError}</p>}
               {!batchLoading && !batchError && batchItems.length > 0 && (
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
-                    <span>{batchItems.length} file(s). {batchPublicCount} scriptable, {batchPrivateCount} excluded.</span>
-                    {allSha256Text && <button type="button" onClick={() => handleCopy('sha256-all', allSha256Text)} className="text-blue-600 hover:underline">{copied === 'sha256-all' ? 'Copied' : 'Copy all SHA256'}</button>}
+                    <span>{batchItems.length} files. {batchPublicCount} public, {batchPrivateCount} excluded.</span>
+                    {allSha256Text && <button type="button" onClick={() => handleCopy('sha256-all', allSha256Text)} className="text-blue-600 hover:underline">{copied === 'sha256-all' ? 'Copied' : 'Copy all SHA-256'}</button>}
                   </div>
                   <div className="max-h-[32rem] overflow-auto rounded border border-gray-100 bg-gray-50">
                     <table className="min-w-full text-xs text-gray-700">
                       <thead className="sticky top-0 bg-gray-100 text-gray-600">
                         <tr>
-                          <th className="px-3 py-2 text-left font-medium">Item</th>
+                          <th className="px-3 py-2 text-left font-medium">Sample</th>
                           <th className="px-3 py-2 text-left font-medium">Type</th>
                           <th className="px-3 py-2 text-left font-medium">Access</th>
                           <th className="px-3 py-2 text-left font-medium">Batch</th>
@@ -727,7 +727,7 @@ export default function PromoterTable({
                                 <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px]">{FILE_KIND_LABELS[item.kind] || item.kind}</span>
                               </td>
                               <td className="px-3 py-2">
-                                <span className={`rounded px-1.5 py-0.5 text-[10px] ${item.access_mode === 'public_url' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{item.access_mode === 'public_url' ? 'Public URL' : 'Private signed URL'}</span>
+                                <span className={`rounded px-1.5 py-0.5 text-[10px] ${item.access_mode === 'public_url' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{item.access_mode === 'public_url' ? 'Public URL' : 'Signed URL'}</span>
                               </td>
                               <td className="px-3 py-2 text-gray-600">
                                 {item.batch_eligible ? (
@@ -769,8 +769,8 @@ export default function PromoterTable({
                     </table>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <button type="button" onClick={() => downloadText('seqedge-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">Download .sh (Linux/macOS, resume)</button>
-                    <button type="button" onClick={() => downloadText('seqedge-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">Download .bat (Windows, resume)</button>
+                    <button type="button" onClick={() => downloadText('seqedge-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">Download .sh (Linux/macOS, resumable)</button>
+                    <button type="button" onClick={() => downloadText('seqedge-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">Download .bat (Windows, resumable)</button>
                   </div>
                   <div className="grid gap-3 lg:grid-cols-2">
                     <details className="text-xs text-gray-500">
@@ -782,7 +782,7 @@ export default function PromoterTable({
                       <pre className="mt-2 max-h-56 overflow-auto rounded bg-gray-900 p-3 font-mono text-[11px] text-gray-100 whitespace-pre-wrap">{buildBat(batchItems)}</pre>
                     </details>
                   </div>
-                  <p className="text-xs text-gray-400">Public scripts use resume (`wget -c` / `curl -C -`). Protected signed URLs and non-direct links are excluded. SHA256 appears when available. MD5 stays `N/A` unless you set it. Counts mainly reflect browser downloads triggered through the site.</p>
+                  <p className="text-xs text-gray-400">Public scripts support resume (`wget -c` / `curl -C -`). Protected signed URLs and non-direct links are excluded. SHA-256 appears when available. MD5 remains `N/A` unless set. Counts mainly reflect downloads started on the site.</p>
                 </>
               )}
             </div>

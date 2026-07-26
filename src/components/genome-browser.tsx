@@ -26,10 +26,10 @@ const JBrowseViewer = dynamic(() => import('./jbrowse-viewer'), {
   loading: () => (
     <div className="border rounded-lg overflow-hidden bg-white">
       <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
-        Genome Browser - Loading...
+        Genome Browser
       </div>
       <div className="p-6 text-center text-gray-400 text-sm animate-pulse">
-        Initializing JBrowse 2 genome browser...
+        Loading genome browser...
       </div>
     </div>
   ),
@@ -175,10 +175,10 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
     return (
       <div className="border rounded-lg overflow-hidden bg-white">
         <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
-          Genome Browser - Checking data availability...
+          Genome Browser
         </div>
         <div className="p-6 text-center text-gray-400 text-sm animate-pulse">
-          Probing {assemblyNames.length} assembly(s) across {candidateBases.length} storage base(s) in parallel...
+          Checking reference data across {assemblyNames.length} assemblies and {candidateBases.length} storage locations...
         </div>
       </div>
     );
@@ -189,20 +189,20 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
     const probeUrl = getStorageUrl(firstFai, candidateBases[0] || configuredBase, { preferProxy: false });
     const accessHint =
       storageMode === 'unset'
-        ? 'No real genome storage base is configured. Replace the placeholder NEXT_PUBLIC_STORAGE_BASE_URL or NEXT_PUBLIC_R2_PUBLIC_URL value with a reachable public object-storage or HF proxy URL.'
+        ? 'No genome storage base is configured. Set NEXT_PUBLIC_STORAGE_BASE_URL or NEXT_PUBLIC_R2_PUBLIC_URL to a reachable public storage URL or Hugging Face proxy endpoint.'
         : storageMode === 'hf-proxy'
-        ? 'SeqEdge is configured to prefer your Cloudflare Worker proxy for Hugging Face assets. If the Worker is unreachable, SeqEdge now tries the built-in /api/hf-proxy route and then direct Hugging Face reads for the browser probe. Confirm that NEXT_PUBLIC_HF_PROXY_URL is deployed or that the configured reference files are reachable in the target dataset path.'
+        ? 'SeqEdge is configured to use a Cloudflare Worker proxy for Hugging Face assets. Confirm NEXT_PUBLIC_HF_PROXY_URL is deployed and that the reference files are reachable.'
         : storageMode === 'hf-direct'
-          ? 'SeqEdge is reading from Hugging Face storage. The browser now also tries the built-in /api/hf-proxy route before falling back to direct HF reads, but NEXT_PUBLIC_HF_PROXY_URL remains the most reliable production path.'
-          : 'SeqEdge is configured to use only your real genome storage. Set NEXT_PUBLIC_STORAGE_BASE_URL to a public CORS-enabled object store and make sure the configured reference files are reachable.';
+          ? 'SeqEdge is reading reference files from Hugging Face. A deployed NEXT_PUBLIC_HF_PROXY_URL is still recommended for production reliability.'
+          : 'SeqEdge is configured to use your storage endpoint directly. Confirm NEXT_PUBLIC_STORAGE_BASE_URL points to a public CORS-enabled object store and that the reference files are reachable.';
     return (
       <div className="border rounded-lg overflow-hidden bg-white">
         <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
-          Genome Browser - Reference data unreachable
+          Genome browser unavailable
         </div>
         <div className="p-6 text-center space-y-3">
           <p className="text-gray-600">
-            The reference sequence index could not be reached at{' '}
+            The reference index could not be reached at{' '}
             <code className="bg-gray-100 px-1 rounded break-all">{probeUrl || '[unset storage base]'}</code>.
           </p>
           <p className="text-sm text-gray-500">
@@ -220,7 +220,7 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
     <div className="space-y-2">
       {missingTrackNames.length > 0 && (
         <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-1.5">
-          Optional tracks hidden because required files were not reachable: {missingTrackNames.join(', ')}.
+          Some optional tracks are hidden because required files were unavailable: {missingTrackNames.join(', ')}.
         </div>
       )}
       <JBrowseViewer
