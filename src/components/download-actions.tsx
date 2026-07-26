@@ -463,7 +463,7 @@ export default function DownloadActions({
                                   ? 'Optimized routing via community mirrors for faster and more reliable downloads in China and the Asia-Pacific region. Paste this link into Free Download Manager, Motrix, IDM, or another resumable download client.'
                                   : 'Direct downloads from Hugging Face official servers. Paste this public direct link into Free Download Manager, Motrix, IDM, or another resumable download client.'}
                               </p>
-                              <code className={`mt-2 block break-all rounded px-3 py-2 font-mono text-[11px] ring-1 ${downloadRegion === 'apac' ? 'bg-white text-emerald-950 ring-emerald-100' : 'bg-white text-blue-950 ring-blue-100'}`}>{activePublicUrl}</code>
+                              <code className={`mt-2 block break-all rounded px-3 py-2 font-mono text-[11px] ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-100 text-emerald-950 ring-emerald-200' : 'bg-blue-50 text-blue-950 ring-blue-100'}`}>{activePublicUrl}</code>
                             </div>
                           </div>
                         )}
