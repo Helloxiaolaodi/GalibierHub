@@ -410,7 +410,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium transition-colors ${
                   entry.pinned
                     ? 'border-amber-400 bg-amber-50 text-amber-700'
-                    : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
+                    : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
                 }`}
                 title={entry.pinned ? 'Unpin' : 'Pin (max 3)'}
               >
@@ -426,7 +426,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium transition-colors ${
                   entry.hidden
                     ? 'border-red-400 bg-red-50 text-red-700'
-                    : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
+                    : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                 }`}
                 title={entry.hidden ? 'Unhide entry' : 'Hide entry'}
               >
@@ -682,8 +682,8 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 onClick={() => { setShowComposer((v) => !v); setComposerSuccess(null); setComposerError(null); setComposerUploadMessage(null); }}
                 className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   showComposer
-                    ? 'bg-gray-200 text-gray-700'
-                    : 'bg-gray-900 text-white hover:bg-gray-800'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -790,7 +790,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
             <button
               type="submit"
               disabled={composerSubmitting}
-              className="inline-flex items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
+              className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
             >
               {composerSubmitting ? 'Submitting...' : 'Submit'}
             </button>
@@ -860,7 +860,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                   type="button"
                   onClick={() => setInProgressPage((p) => Math.max(0, p - 1))}
                   disabled={inProgressPage <= 0}
-                  className="rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 disabled:opacity-40"
+                  className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40"
                 >
                   Previous
                 </button>
@@ -869,7 +869,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                   type="button"
                   onClick={() => setInProgressPage((p) => Math.min(inProgressMaxPage, p + 1))}
                   disabled={inProgressPage >= inProgressMaxPage}
-                  className="rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 disabled:opacity-40"
+                  className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40"
                 >
                   Next
                 </button>
@@ -910,7 +910,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                   type="button"
                   onClick={() => setCompletedPage((p) => Math.max(0, p - 1))}
                   disabled={completedPage <= 0}
-                  className="rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 disabled:opacity-40"
+                  className="rounded border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
                 >
                   Previous
                 </button>
@@ -919,7 +919,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                   type="button"
                   onClick={() => setCompletedPage((p) => Math.min(completedMaxPage, p + 1))}
                   disabled={completedPage >= completedMaxPage}
-                  className="rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 disabled:opacity-40"
+                  className="rounded border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
                 >
                   Next
                 </button>

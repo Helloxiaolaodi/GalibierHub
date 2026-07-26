@@ -253,6 +253,35 @@ Cloudflare Pages：
 - 站点级下载目录与层级浏览：`src/components/download-catalog-panel.tsx` 与 `/api/download-catalog`
 - 私有 signed URL 解析：`/api/download-metadata/resolve`，后端依赖 `download_metadata` 表
 
+### 当前下载弹窗实际会展示什么
+
+对于能够解析出稳定原始直链的公开文件，`Download options` 弹窗现在会在同一个窗口里统一提供四类交付入口：
+
+- 浏览器下载
+- 可直接复制给 `Free Download Manager`、`Motrix`、`IDM` 等工具使用的公开直链
+- 基于 `huggingface.co` 的 `Global (Official)` 断点续传命令
+- 基于 `hf-mirror.com` 的 `Asia-Pacific (Mirror)` 断点续传命令
+
+以 `817-food-biochem-materials.zip` 为例，弹窗会在不改变数据集路径的前提下，同时提供官方线路和亚洲镜像线路。
+
+官方线路：
+
+```bash
+wget -c -O "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+curl -L -C - -o "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+```
+
+亚洲镜像线路：
+
+```bash
+wget -c -O "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+curl -L -C - -o "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+```
+
+这样做的目的，是让站点展示的不是名义上的下载入口，而是真正更贴近不同地区网络条件的可执行交付路径。
+
 ### 如何把 Hugging Face 文件接入 SeqEdge
 
 当前代码支持三种常见接入方式：
@@ -438,6 +467,8 @@ wget -c -O <文件名> "<resolve url>"
 curl -L -C - -o <文件名> "<resolve url>"
 ```
 
+对于中国和部分亚太网络环境，镜像线路往往比官方域名更稳定，因此 SeqEdge 当前会在下载弹窗里同时展示两套命令，而不是只给一套默认说明。
+
 ### 基因组浏览器说明
 
 为了获得更稳定的 JBrowse 体验，建议配置 Cloudflare Worker 代理。SeqEdge 的探测顺序如下：
@@ -461,12 +492,14 @@ curl -L -C - -o <文件名> "<resolve url>"
 
 SeqEdge 内置了轻量研究交流区：
 
-- 点击 `Discussion` 标签页即可浏览讨论并打开浮动编辑器，任何人都可以使用 GitHub 登录后发帖。
+- 点击 `Discussion` 标签页即可浏览讨论并打开浮动编辑器。
 - 留言支持标题、姓名或昵称、邮箱、单位、分类、评分与可见性。
 - 留言可设为 `Public` 或 `Administrator only`。
 - `Discussion` 页面会按 `In progress` 与 `Completed` 归类展示帖子。
 - 支持排序，包括 `Most liked` 视图。
-- 创建者回复会直接显示在站内，若邮件 API 已配置，也可以同步发邮件通知。
+- 每一个留言主题和每一个后续评论都会在站内同一条讨论线程下显示出来。
+- 管理员回复会直接显示在站内，并以内联方式出现在对应线程中。
+- 访客后续评论会写入 `feedback_comments`，并在展开线程后显示在页面中。
 - 回复权限受 `GITHUB_ADMIN_USERNAME` 限制，浏览器中的创建者操作界面同时依赖 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME`。
 - 帖子的发布时间与回复时间都会显示。
 - 访客可进行 `Like` 与 `Bookmark` 操作。
@@ -511,6 +544,12 @@ SeqEdge 内置了轻量研究交流区：
 ### 邮件通知设置（Resend）
 
 SeqEdge 使用 [Resend](https://resend.com) 向站点创建者发送反馈通知邮件。
+
+当前实现中，若邮件配置完整，则会发送以下几类通知：
+
+- 每一条新的顶层讨论留言，都会发邮件通知管理员；
+- 每一条新的讨论评论，都会发邮件通知管理员；
+- 当管理员发布官方回复且访客填写了邮箱时，系统会向访客发送回复通知邮件。
 
 #### 测试模式
 

@@ -146,7 +146,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
                 setFilters(EMPTY);
                 onSearch(EMPTY);
               }}
-              className="px-4 py-1.5 border hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
             >
               Reset
             </button>

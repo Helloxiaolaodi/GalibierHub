@@ -25,7 +25,7 @@ const JBrowseViewer = dynamic(() => import('./jbrowse-viewer'), {
   ssr: false,
   loading: () => (
     <div className="border rounded-lg overflow-hidden bg-white">
-      <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
+      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
         Genome Browser
       </div>
       <div className="p-6 text-center text-gray-400 text-sm animate-pulse">
@@ -174,7 +174,7 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
   if (probe === 'checking' || probe === 'idle') {
     return (
       <div className="border rounded-lg overflow-hidden bg-white">
-        <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
+        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
           Genome Browser
         </div>
         <div className="p-6 text-center text-gray-400 text-sm animate-pulse">
@@ -197,7 +197,7 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
           : 'SeqEdge is configured to use your storage endpoint directly. Confirm NEXT_PUBLIC_STORAGE_BASE_URL points to a public CORS-enabled object store and that the reference files are reachable.';
     return (
       <div className="border rounded-lg overflow-hidden bg-white">
-        <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
+        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
           Genome browser unavailable
         </div>
         <div className="p-6 text-center space-y-3">

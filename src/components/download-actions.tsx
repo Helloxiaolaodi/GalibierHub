@@ -100,6 +100,7 @@ export default function DownloadActions({
   const [draft, setDraft] = useState<EditDraft | null>(null);
   const [saveState, setSaveState] = useState<{ ok: boolean; text: string } | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [downloadRegion, setDownloadRegion] = useState<'global' | 'apac'>('global');
 
   const key = normalizeDownloadKey(url);
 
@@ -114,6 +115,7 @@ export default function DownloadActions({
     setEditing(false);
     setDraft(null);
     setSaveState(null);
+    setDownloadRegion('global');
     if (url.includes('huggingface.co')) {
       readFileMeta(url).then((meta) => {
         if (active) setHfMeta({ ...meta, loading: false });
@@ -149,6 +151,13 @@ export default function DownloadActions({
   const passwordProtected = dbMeta.password_protected;
   const linksVisible = isAdmin || (!hidden && (!passwordProtected || unlocked));
   const directUrlInvalid = effectiveInfo.access_mode === 'public_url' && !effectiveInfo.direct_url_valid;
+  const publicRouteAvailable = effectiveInfo.access_mode === 'public_url' && !directUrlInvalid && Boolean(effectiveInfo.public_url || effectiveInfo.mirror_public_url);
+  const activePublicUrl = downloadRegion === 'apac' ? (effectiveInfo.mirror_public_url || effectiveInfo.public_url) : effectiveInfo.public_url;
+  const activeWgetCommand = downloadRegion === 'apac' ? (effectiveInfo.mirror_wget_command || effectiveInfo.wget_command) : effectiveInfo.wget_command;
+  const activeCurlCommand = downloadRegion === 'apac' ? (effectiveInfo.mirror_curl_command || effectiveInfo.curl_command) : effectiveInfo.curl_command;
+  const activeHfCliCommand = downloadRegion === 'apac' ? (effectiveInfo.mirror_hf_cli_command || effectiveInfo.hf_cli_command) : effectiveInfo.hf_cli_command;
+  const activeRegionHint = downloadRegion === 'apac' ? (effectiveInfo.mirror_region_hint || effectiveInfo.region_hint) : effectiveInfo.region_hint;
+  const cliOptionsVisible = publicRouteAvailable && (showCli || effectiveInfo.cli_supported);
 
   const handleCopy = useCallback(async (copyKey: string, text: string | null | undefined) => {
     if (!text) return;
@@ -325,7 +334,7 @@ export default function DownloadActions({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex min-w-[9rem] items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+            className="inline-flex min-w-[9rem] items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
           >
             {label}
           </button>
@@ -334,7 +343,7 @@ export default function DownloadActions({
           <button
             type="button"
             onClick={() => void toggleHiddenQuickly()}
-            className="inline-flex min-w-[8rem] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            className="inline-flex min-w-[8rem] items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
           >
             {hidden ? 'Show to visitors' : 'Hide from visitors'}
           </button>
@@ -395,13 +404,13 @@ export default function DownloadActions({
                   <label className="block text-sm font-medium text-gray-700">Password required</label>
                   <input type="password" value={pwInput} onChange={(event) => setPwInput(event.target.value)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" placeholder="Enter password" />
                   {pwError && <p className="text-xs text-red-600">{pwError}</p>}
-                  <button type="button" onClick={verifyPassword} className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">Unlock</button>
+                  <button type="button" onClick={verifyPassword} className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Unlock</button>
                 </div>
               )}
 
               {(linksVisible || isAdmin) && (
                 <>
-                  <button type="button" onClick={handleBrowserDownload} disabled={downloading || directUrlInvalid} className="inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50">{downloading ? 'Preparing...' : 'Download'}</button>
+                  <button type="button" onClick={handleBrowserDownload} disabled={downloading || directUrlInvalid} className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50">{downloading ? 'Preparing...' : 'Download'}</button>
 
                   {directUrlInvalid && (
                     <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
@@ -409,41 +418,83 @@ export default function DownloadActions({
 
                   <div className="rounded border border-gray-100 bg-gray-50 p-3 space-y-3">
                     <div className="text-sm font-medium text-gray-800">Download options</div>
-                    <div className="text-xs text-gray-600">Browser download is always available. Public direct URLs also support resumable CLI transfers.</div>
+                    <div className="text-xs text-gray-600">Browser download is always available. Public direct URLs also support resumable CLI transfers and download managers.</div>
                     {effectiveInfo.access_mode === 'supabase_private' ? (
                       <p className="text-xs text-amber-700">{effectiveInfo.access_note}</p>
                     ) : directUrlInvalid ? (
                       <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
-                    ) : showCli ? (
+                    ) : publicRouteAvailable ? (
                       <div className="space-y-3">
-                        {effectiveInfo.wget_command && (
+                        {(effectiveInfo.public_url || effectiveInfo.mirror_public_url) && (
+                          <div className="space-y-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-medium text-blue-900">Regional download routing</div>
+                                <div className="text-xs text-blue-800">
+                                  Pick the endpoint that matches the downloader network location.
+                                </div>
+                              </div>
+                              <div className="inline-flex rounded-lg border border-blue-200 bg-white p-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setDownloadRegion('global')}
+                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-700 hover:bg-blue-50'}`}
+                                >
+                                  Global (Official)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDownloadRegion('apac')}
+                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'apac' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-50'}`}
+                                >
+                                  Asia-Pacific (Mirror)
+                                </button>
+                              </div>
+                            </div>
+                            <div className={`rounded-md border px-3 py-3 ${downloadRegion === 'apac' ? 'border-emerald-200 bg-emerald-50' : 'border-blue-200 bg-white'}`}>
+                              <div className="flex items-center justify-between gap-3">
+                                <span className={`text-sm font-medium ${downloadRegion === 'apac' ? 'text-emerald-900' : 'text-blue-900'}`}>
+                                  {downloadRegion === 'apac' ? 'Mirror direct URL for Free Download Manager and similar tools' : 'Official direct URL for Free Download Manager and similar tools'}
+                                </span>
+                                <button type="button" onClick={() => handleCopy('public-url', activePublicUrl)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-700' : 'text-blue-700'}`}>{copied === 'public-url' ? 'Copied' : 'Copy direct URL'}</button>
+                              </div>
+                              <p className={`mt-2 text-xs leading-5 ${downloadRegion === 'apac' ? 'text-emerald-800' : 'text-blue-800'}`}>
+                                {downloadRegion === 'apac'
+                                  ? 'Optimized routing via community mirrors for faster and more reliable downloads in China and the Asia-Pacific region. Paste this link into Free Download Manager, Motrix, IDM, or another resumable download client.'
+                                  : 'Direct downloads from Hugging Face official servers. Paste this public direct link into Free Download Manager, Motrix, IDM, or another resumable download client.'}
+                              </p>
+                              <code className={`mt-2 block break-all rounded px-3 py-2 font-mono text-[11px] ring-1 ${downloadRegion === 'apac' ? 'bg-white text-emerald-950 ring-emerald-100' : 'bg-white text-blue-950 ring-blue-100'}`}>{activePublicUrl}</code>
+                            </div>
+                          </div>
+                        )}
+                        {cliOptionsVisible && activeWgetCommand && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">Linux/macOS: wget (resume)</span>
-                              <button type="button" onClick={() => handleCopy('wget', effectiveInfo.wget_command)} className="text-xs text-blue-600 hover:underline">{copied === 'wget' ? 'Copied' : 'Copy'}</button>
+                              <button type="button" onClick={() => handleCopy('wget', activeWgetCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-blue-600'}`}>{copied === 'wget' ? 'Copied' : 'Copy'}</button>
                             </div>
-                            <code className="block rounded bg-gray-900 px-3 py-2 font-mono text-xs text-gray-100">{effectiveInfo.wget_command}</code>
+                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-blue-50 text-blue-950 ring-blue-100'}`}>{activeWgetCommand}</code>
                           </div>
                         )}
-                        {effectiveInfo.curl_command && (
+                        {cliOptionsVisible && activeCurlCommand && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">Windows/Linux/macOS: curl (resume)</span>
-                              <button type="button" onClick={() => handleCopy('curl', effectiveInfo.curl_command)} className="text-xs text-blue-600 hover:underline">{copied === 'curl' ? 'Copied' : 'Copy'}</button>
+                              <button type="button" onClick={() => handleCopy('curl', activeCurlCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-blue-600'}`}>{copied === 'curl' ? 'Copied' : 'Copy'}</button>
                             </div>
-                            <code className="block rounded bg-gray-900 px-3 py-2 font-mono text-xs text-gray-100">{effectiveInfo.curl_command}</code>
+                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-blue-50 text-blue-950 ring-blue-100'}`}>{activeCurlCommand}</code>
                           </div>
                         )}
-                        {effectiveInfo.hf_cli_command && (
+                        {cliOptionsVisible && activeHfCliCommand && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Hugging Face CLI (recommended)</span>
-                              <button type="button" onClick={() => handleCopy('hf', effectiveInfo.hf_cli_command)} className="text-xs text-blue-600 hover:underline">{copied === 'hf' ? 'Copied' : 'Copy'}</button>
+                              <span className="text-sm font-medium text-gray-700">{downloadRegion === 'apac' ? 'Hugging Face CLI (mirror endpoint)' : 'Hugging Face CLI (recommended)'}</span>
+                              <button type="button" onClick={() => handleCopy('hf', activeHfCliCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-blue-600'}`}>{copied === 'hf' ? 'Copied' : 'Copy'}</button>
                             </div>
-                            <code className="block rounded bg-gray-900 px-3 py-2 font-mono text-xs text-gray-100">{effectiveInfo.hf_cli_command}</code>
+                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-blue-50 text-blue-950 ring-blue-100'}`}>{activeHfCliCommand}</code>
                           </div>
                         )}
-                        {effectiveInfo.region_hint && <p className="text-xs text-gray-500">{effectiveInfo.region_hint}</p>}
+                        {activeRegionHint && <p className="text-xs text-gray-500">{activeRegionHint}</p>}
                       </div>
                     ) : (
                       <p className="text-xs text-gray-500">CLI download is not available for this file.</p>
@@ -460,8 +511,8 @@ export default function DownloadActions({
                       <button type="button" onClick={startEdit} className="text-xs text-blue-600 hover:underline">Edit metadata</button>
                     ) : (
                       <div className="flex gap-2">
-                        <button type="button" onClick={saveEdit} className="rounded bg-gray-900 px-3 py-1 text-xs font-medium text-white hover:bg-gray-800">Save</button>
-                        <button type="button" onClick={() => setEditing(false)} className="rounded border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-100">Cancel</button>
+                        <button type="button" onClick={saveEdit} className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700">Save</button>
+                        <button type="button" onClick={() => setEditing(false)} className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-700 hover:bg-blue-100">Cancel</button>
                       </div>
                     )}
                   </div>

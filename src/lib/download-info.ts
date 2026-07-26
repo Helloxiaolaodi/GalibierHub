@@ -1,4 +1,9 @@
-import { getDirectDownloadUrl, NOT_DIRECT_FILE_URL_MESSAGE, validateDirectFileUrl } from '@/lib/storage';
+import {
+  getDirectDownloadUrl,
+  normalizeDirectDownloadUrl,
+  NOT_DIRECT_FILE_URL_MESSAGE,
+  validateDirectFileUrl,
+} from '@/lib/storage';
 
 export type DownloadStorageProvider = 'public_url' | 'supabase_private';
 
@@ -23,6 +28,7 @@ export interface DownloadMetadataPayload {
 export interface DownloadResolvedInfo extends DownloadMetadataPayload {
   download_key: string;
   public_url: string | null;
+  mirror_public_url: string | null;
   normalized_public_url: string | null;
   file_name: string;
   file_type: string;
@@ -33,10 +39,14 @@ export interface DownloadResolvedInfo extends DownloadMetadataPayload {
   cli_supported: boolean;
   resume_supported: boolean;
   hf_cli_command: string | null;
+  mirror_hf_cli_command: string | null;
   wget_command: string | null;
+  mirror_wget_command: string | null;
   curl_command: string | null;
+  mirror_curl_command: string | null;
   access_note: string | null;
   region_hint: string | null;
+  mirror_region_hint: string | null;
   direct_url_valid: boolean;
   invalid_reason: string | null;
 }
@@ -60,7 +70,10 @@ export const DEFAULT_DOWNLOAD_METADATA: DownloadMetadataPayload = {
 };
 
 export const HF_REGION_HINT =
-  'Hosted on Hugging Face (US-East). In Asia, use the Hugging Face CLI for more reliable resumed large-file downloads.';
+  'Direct downloads from the official Hugging Face endpoint. If you are downloading from China or nearby Asia-Pacific networks, switch to the mirror tab when the official endpoint is slow or blocked.';
+
+export const HF_MIRROR_REGION_HINT =
+  'Uses the hf-mirror.com community mirror for users in China and nearby Asia-Pacific networks where the official Hugging Face endpoint may be slow or unreachable.';
 
 export const PRIVATE_ACCESS_NOTE =
   'This file uses a private Supabase signed URL. Browser download works. Public CLI commands are hidden.';
@@ -137,6 +150,26 @@ export function parseHfDownloadCommand(url: string | null | undefined): string |
   return null;
 }
 
+export function buildHfMirrorUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const normalizedUrl = /^https?:\/\//i.test(url) ? normalizeDirectDownloadUrl(url) : url;
+  try {
+    const parsed = new URL(normalizedUrl);
+    if (!/^huggingface\.co$/i.test(parsed.hostname)) return null;
+    if (!/\/datasets\/[^/]+\/[^/]+\/resolve\/main\//i.test(parsed.pathname)) return null;
+    parsed.protocol = 'https:';
+    parsed.hostname = 'hf-mirror.com';
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+export function buildMirrorHfCliCommand(url: string | null | undefined): string | null {
+  const baseCommand = parseHfDownloadCommand(url);
+  return baseCommand ? `HF_ENDPOINT=https://hf-mirror.com ${baseCommand}` : null;
+}
+
 export function buildWgetCommand(url: string): string {
   return `wget -c -O "${extractDownloadFileName(url)}" "${url}"`;
 }
@@ -167,10 +200,13 @@ export function buildDownloadResolvedInfo(
   const fileType = meta.custom_file_type || inferDownloadFileType(fileName);
   const description = meta.custom_description ?? fallbackDescription ?? null;
   const effectivePublicUrl = accessMode === 'public_url' && validation.valid ? (publicUrl || null) : null;
+  const mirrorPublicUrl = effectivePublicUrl ? buildHfMirrorUrl(effectivePublicUrl) : null;
   const hfCli = effectivePublicUrl ? parseHfDownloadCommand(effectivePublicUrl) : null;
+  const mirrorHfCli = mirrorPublicUrl ? buildMirrorHfCliCommand(mirrorPublicUrl) : null;
   const cliSupported = Boolean(effectivePublicUrl) && accessMode === 'public_url';
   const resumeSupported = cliSupported;
   const regionHint = hfCli ? HF_REGION_HINT : null;
+  const mirrorRegionHint = mirrorPublicUrl ? HF_MIRROR_REGION_HINT : null;
   const accessNote = accessMode === 'supabase_private'
     ? PRIVATE_ACCESS_NOTE
     : (!validation.valid ? NOT_DIRECT_FILE_URL_MESSAGE : null);
@@ -179,6 +215,7 @@ export function buildDownloadResolvedInfo(
     ...meta,
     download_key: downloadKey,
     public_url: effectivePublicUrl,
+    mirror_public_url: mirrorPublicUrl,
     normalized_public_url: publicUrl,
     file_name: fileName,
     file_type: fileType,
@@ -189,10 +226,14 @@ export function buildDownloadResolvedInfo(
     cli_supported: cliSupported,
     resume_supported: resumeSupported,
     hf_cli_command: hfCli,
+    mirror_hf_cli_command: mirrorHfCli,
     wget_command: effectivePublicUrl ? buildWgetCommand(effectivePublicUrl) : null,
+    mirror_wget_command: mirrorPublicUrl ? buildWgetCommand(mirrorPublicUrl) : null,
     curl_command: effectivePublicUrl ? buildCurlCommand(effectivePublicUrl) : null,
+    mirror_curl_command: mirrorPublicUrl ? buildCurlCommand(mirrorPublicUrl) : null,
     access_note: accessNote,
     region_hint: regionHint,
+    mirror_region_hint: mirrorRegionHint,
     direct_url_valid: accessMode !== 'public_url' ? true : validation.valid,
     invalid_reason: accessMode !== 'public_url' ? null : validation.reason,
   };

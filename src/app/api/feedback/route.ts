@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
-import { getBearerToken, requireCreatorGithubAuth, requireGithubAuth } from "@/lib/feedback-admin";
+import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
 
 const VALID_CATEGORIES = new Set(["general", "issue", "idea", "data", "collaboration"]);
 
@@ -129,6 +129,54 @@ async function sendReplyEmail(payload: {
   }
 }
 
+async function sendCommentEmail(payload: {
+  feedbackId: string;
+  threadTitle: string;
+  threadAuthor: string;
+  commentAuthor: string;
+  commentMessage: string;
+  threadCreatedAt: string;
+  commentCreatedAt: string;
+}) {
+  const { apiUrl, apiKey, to, from } = getOptionalEmailConfig();
+  if (!apiUrl || !apiKey || !to) {
+    return;
+  }
+
+  if (!from) {
+    console.warn("[feedback-email] FEEDBACK_EMAIL_FROM is empty; Resend requires a `from` sender. Skipping.");
+    return;
+  }
+
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      to,
+      from,
+      subject: `[SeqEdge] New discussion reply: ${payload.threadTitle}`,
+      text: [
+        `Thread id: ${payload.feedbackId}`,
+        `Thread title: ${payload.threadTitle}`,
+        `Thread author: ${payload.threadAuthor}`,
+        `Comment author: ${payload.commentAuthor}`,
+        `Thread created at: ${payload.threadCreatedAt}`,
+        `Comment created at: ${payload.commentCreatedAt}`,
+        "",
+        "Comment:",
+        payload.commentMessage,
+      ].join("\n"),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Email provider responded with ${response.status}`);
+  }
+}
+
 const COMMENTS_SELECT = "id, feedback_id, author_name, author_email, message, image_url, created_at";
 
 export async function GET(request: NextRequest) {
@@ -218,6 +266,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Comment message must be between 1 and 2000 characters." }, { status: 400 });
     }
     const sbComments = getSupabase();
+    const { data: feedbackEntry, error: feedbackLookupErr } = await sbComments
+      .from("site_feedback")
+      .select("id, title, display_name, visibility, created_at")
+      .eq("id", feedbackId)
+      .maybeSingle();
+    if (feedbackLookupErr) {
+      return NextResponse.json({ error: formatFeedbackStorageError(feedbackLookupErr.message) }, { status: 500 });
+    }
+    if (!feedbackEntry) {
+      return NextResponse.json({ error: "Feedback entry not found." }, { status: 404 });
+    }
+
     const { data: comment, error: commentErr } = await sbComments
       .from("feedback_comments")
       .insert({ feedback_id: feedbackId, author_name: commentAuthor, message: commentMessage })
@@ -226,6 +286,19 @@ export async function POST(request: Request) {
     if (commentErr) {
       return NextResponse.json({ error: formatFeedbackStorageError(commentErr.message) }, { status: 500 });
     }
+
+    void sendCommentEmail({
+      feedbackId,
+      threadTitle: feedbackEntry.title || "Untitled thread",
+      threadAuthor: feedbackEntry.display_name || "Visitor",
+      commentAuthor,
+      commentMessage,
+      threadCreatedAt: feedbackEntry.created_at,
+      commentCreatedAt: comment.created_at,
+    }).catch((error) => {
+      console.error("[feedback-email] sendCommentEmail failed:", error);
+    });
+
     return NextResponse.json({ comment }, { status: 201 });
   }
 
@@ -340,10 +413,8 @@ export async function PATCH(request: NextRequest) {
   }
 
   const token = getBearerToken(request);
-  const githubCheck = await requireGithubAuth(token);
   const adminCheck = await requireCreatorGithubAuth(token);
 
-  // For reply, any GitHub user is allowed. For pin/hide, admin is required.
   let payload: Record<string, unknown> = {};
   try {
     payload = await request.json() as Record<string, unknown>;
@@ -355,13 +426,7 @@ export async function PATCH(request: NextRequest) {
   const hasPin = typeof payload.pinned === "boolean";
   const hasHide = typeof payload.hidden === "boolean";
 
-  // Reply: any GitHub user
-  if (hasReply && !githubCheck.ok) {
-    return NextResponse.json({ error: githubCheck.error }, { status: 401 });
-  }
-
-  // Pin/hide: admin only
-  if ((hasPin || hasHide) && !adminCheck.ok) {
+  if ((hasReply || hasPin || hasHide) && !adminCheck.ok) {
     return NextResponse.json({ error: adminCheck.error }, { status: 401 });
   }
 

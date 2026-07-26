@@ -249,9 +249,9 @@ export default function DownloadCatalogPanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-            <span className="rounded bg-gray-100 px-2 py-1">All: {totals.all}</span>
-            <span className="rounded bg-gray-100 px-2 py-1">Hugging Face: {totals.hf}</span>
-            <span className="rounded bg-gray-100 px-2 py-1">Cloudflare: {totals.cf}</span>
+            <span className="rounded bg-blue-50 px-2 py-1 text-blue-700">All: {totals.all}</span>
+            <span className="rounded bg-blue-50 px-2 py-1 text-blue-700">Hugging Face: {totals.hf}</span>
+            <span className="rounded bg-emerald-50 px-2 py-1 text-emerald-700">Cloudflare: {totals.cf}</span>
           </div>
         </div>
         <div className="mt-4">
@@ -281,7 +281,7 @@ export default function DownloadCatalogPanel({
             <button
               type="button"
               onClick={() => goToFolder('')}
-              className={`rounded px-2 py-1 ${currentPath === '' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              className={`rounded px-2 py-1 ${currentPath === '' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
             >
               {rootLabel}
             </button>
@@ -294,7 +294,7 @@ export default function DownloadCatalogPanel({
                   <button
                     type="button"
                     onClick={() => goToFolder(path)}
-                    className={`rounded px-2 py-1 ${active ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    className={`rounded px-2 py-1 ${active ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
                   >
                     {part}
                   </button>
@@ -305,7 +305,7 @@ export default function DownloadCatalogPanel({
               <button
                 type="button"
                 onClick={goUp}
-                className="ml-auto rounded border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                className="ml-auto rounded border border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-700 hover:bg-blue-100"
               >
                 Up
               </button>
@@ -329,7 +329,7 @@ export default function DownloadCatalogPanel({
                 key={folder.path}
                 type="button"
                 onClick={() => goToFolder(folder.path)}
-                className="flex min-h-24 flex-col items-start justify-between rounded-lg border border-gray-200 bg-white p-4 text-left transition-colors hover:bg-gray-50"
+                className="flex min-h-24 flex-col items-start justify-between rounded-lg border border-blue-100 bg-white p-4 text-left transition-colors hover:border-blue-200 hover:bg-blue-50"
               >
                 <div className="text-base font-semibold text-gray-900 break-all">{folder.name}</div>
                 <div className="text-xs text-gray-500">
@@ -353,11 +353,11 @@ export default function DownloadCatalogPanel({
                     <div className="text-lg font-semibold text-gray-900 break-all leading-snug">{fileName}</div>
                     <div className="text-xs font-normal text-gray-500">{item.label}</div>
                     <div className="flex flex-wrap gap-2 text-[11px] text-gray-600">
-                      <span className="rounded bg-gray-100 px-2 py-0.5">{item.providerLabel}</span>
-                      <span className="rounded bg-gray-100 px-2 py-0.5">{scopeLabel(item.sourceScope)}</span>
+                      <span className={`rounded px-2 py-0.5 ${item.providerLabel === 'Cloudflare' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>{item.providerLabel}</span>
+                      <span className="rounded bg-blue-50 px-2 py-0.5 text-blue-700">{scopeLabel(item.sourceScope)}</span>
                     {item.hidden && effectiveIsAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-700">Hidden</span>}
-                      {item.sampleCount > 0 && <span className="rounded bg-gray-100 px-2 py-0.5">Samples: {item.sampleCount}</span>}
-                      {item.kinds.length > 0 && <span className="rounded bg-gray-100 px-2 py-0.5">Types: {item.kinds.join(', ')}</span>}
+                      {item.sampleCount > 0 && <span className="rounded bg-emerald-50 px-2 py-0.5 text-emerald-700">Samples: {item.sampleCount}</span>}
+                      {item.kinds.length > 0 && <span className="rounded bg-blue-50 px-2 py-0.5 text-blue-700">Types: {item.kinds.join(', ')}</span>}
                     </div>
                   </div>
                   <DownloadActions

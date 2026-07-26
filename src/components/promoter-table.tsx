@@ -544,8 +544,8 @@ export default function PromoterTable({
             {selectedSampleIds.size} sample{selectedSampleIds.size === 1 ? '' : 's'} selected for batch download
           </span>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={clearSelection} className="rounded border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700 hover:bg-gray-50">Clear</button>
-            <button type="button" onClick={openBatch} disabled={batchLoading} className="rounded bg-gray-900 px-3 py-1 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-50">Batch download</button>
+            <button type="button" onClick={clearSelection} className="rounded border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100">Clear</button>
+            <button type="button" onClick={openBatch} disabled={batchLoading} className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">Batch download</button>
           </div>
         </div>
       )}
@@ -597,7 +597,7 @@ export default function PromoterTable({
             type="button"
             onClick={() => onPageChange(0, pageSize)}
             disabled={!canPreviousPage}
-            className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             First
           </button>
@@ -605,7 +605,7 @@ export default function PromoterTable({
             type="button"
             onClick={() => onPageChange(Math.max(0, pageIndex - 1), pageSize)}
             disabled={!canPreviousPage}
-            className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Previous
           </button>
@@ -613,7 +613,7 @@ export default function PromoterTable({
             type="button"
             onClick={() => onPageChange(pageIndex + 1, pageSize)}
             disabled={!canNextPage}
-            className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Next
           </button>
@@ -621,7 +621,7 @@ export default function PromoterTable({
             type="button"
             onClick={() => onPageChange(pageCount - 1, pageSize)}
             disabled={!canNextPage}
-            className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Last
           </button>
@@ -670,7 +670,7 @@ export default function PromoterTable({
           <button
             type="button"
             onClick={handleJump}
-            className="px-3 py-1 border rounded hover:bg-gray-50"
+            className="rounded border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700 hover:bg-emerald-100"
           >
             Go
           </button>
@@ -769,17 +769,17 @@ export default function PromoterTable({
                     </table>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <button type="button" onClick={() => downloadText('seqedge-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">Download .sh (Linux/macOS, resumable)</button>
-                    <button type="button" onClick={() => downloadText('seqedge-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">Download .bat (Windows, resumable)</button>
+                    <button type="button" onClick={() => downloadText('seqedge-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Download .sh (Linux/macOS, resumable)</button>
+                    <button type="button" onClick={() => downloadText('seqedge-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100">Download .bat (Windows, resumable)</button>
                   </div>
                   <div className="grid gap-3 lg:grid-cols-2">
                     <details className="text-xs text-gray-500">
                       <summary className="cursor-pointer hover:text-gray-700">Preview .sh</summary>
-                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-gray-900 p-3 font-mono text-[11px] text-gray-100">{buildSh(batchItems)}</pre>
+                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-blue-50 p-3 font-mono text-[11px] text-blue-950 ring-1 ring-blue-100">{buildSh(batchItems)}</pre>
                     </details>
                     <details className="text-xs text-gray-500">
                       <summary className="cursor-pointer hover:text-gray-700">Preview .bat</summary>
-                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-gray-900 p-3 font-mono text-[11px] text-gray-100 whitespace-pre-wrap">{buildBat(batchItems)}</pre>
+                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-emerald-50 p-3 font-mono text-[11px] text-emerald-950 ring-1 ring-emerald-100 whitespace-pre-wrap">{buildBat(batchItems)}</pre>
                     </details>
                   </div>
                   <p className="text-xs text-gray-400">Public scripts support resume (`wget -c` / `curl -C -`). Protected signed URLs and non-direct links are excluded. SHA-256 appears when available. MD5 remains `N/A` unless set. Counts mainly reflect downloads started on the site.</p>

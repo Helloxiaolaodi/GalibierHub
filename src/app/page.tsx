@@ -343,14 +343,14 @@ export default function HomePage() {
               <>
                 <span className="px-2 py-1 text-xs text-gray-500">@{creatorLogin || 'administrator'}</span>
                 <button type="button" onClick={() => void handleCreatorSignOut()}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
-                >
-                  Log out
-                </button>
+                className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
+              >
+                Log out
+              </button>
               </>
             ) : (
               <button type="button" onClick={() => void handleCreatorSignIn()}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200 text-gray-700 hover:bg-gray-100"
+                className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
               >
                 Log in with GitHub
               </button>
@@ -359,7 +359,7 @@ export default function HomePage() {
               aria-expanded={guideOpen}
               aria-controls="seqedge-user-guide"
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                guideOpen ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100 border border-gray-200'
+                guideOpen ? 'bg-emerald-600 text-white' : 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -408,7 +408,7 @@ export default function HomePage() {
               }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick}
             />
             <div className="border rounded-lg overflow-hidden">
-              <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
+              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
                 Genome Browser
               </div>
               <GenomeBrowser
@@ -428,7 +428,7 @@ export default function HomePage() {
                 setPageIndex(0);
               }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick} />
             <div className="border rounded-lg overflow-hidden">
-              <div className="bg-gray-800 text-white px-4 py-2 text-sm font-medium">
+              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
                 Genome Browser
               </div>
               <GenomeBrowser
