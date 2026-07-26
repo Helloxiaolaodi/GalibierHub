@@ -70,10 +70,10 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
           </section>
 
           <section>
-            <h3 className="mb-2 font-semibold text-gray-900">3. Threads</h3>
+            <h3 className="mb-2 font-semibold text-gray-900">3. Discussions</h3>
             <ul className="space-y-2">
               <li>Click <span className="font-medium text-gray-900">Leave Feedback</span> to start a new thread.</li>
-              <li>Threads are categorized as <span className="font-medium text-gray-900">&quot;In Progress&quot;</span> or <span className="font-medium text-gray-900">&quot;Completed&quot;</span>.</li>
+              <li>Discussions are categorized as <span className="font-medium text-gray-900">&quot;In Progress&quot;</span> or <span className="font-medium text-gray-900">&quot;Completed&quot;</span>.</li>
               <li>You can view likes, bookmarks, replies, and uploaded images. Click an image to enlarge it.</li>
             </ul>
           </section>
@@ -93,7 +93,7 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
          <section>
             <h3 className="mb-2 font-semibold text-gray-900">Quick Tips</h3>
             <p className="text-xs text-gray-500">
-              Use <span className="font-medium text-gray-700">Overview</span> to orient yourself, <span className="font-medium text-gray-700">Records</span> to inspect entries, <span className="font-medium text-gray-700">Threads</span> to post feedback, and <span className="font-medium text-gray-700">Downloads</span> to get files.
+              Use <span className="font-medium text-gray-700">Overview</span> to orient yourself, <span className="font-medium text-gray-700">Records</span> to inspect entries, <span className="font-medium text-gray-700">Discussions</span> to post feedback, and <span className="font-medium text-gray-700">Downloads</span> to get files.
             </p>
           </section>
         </div>

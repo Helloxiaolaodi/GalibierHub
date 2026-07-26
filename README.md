@@ -456,11 +456,11 @@ Its purpose is to help a visitor start using the site quickly, not to document d
 
 SeqEdge includes a lightweight interaction area for research communication:
 
-- Click the `Discussion` tab to browse threads and open the floating composer. Anyone can sign in with GitHub to post.
+- Click the `Discussion` tab to browse discussions and open the floating composer. Anyone can sign in with GitHub to post.
 - Messages support a title, name or nickname, email, optional affiliation, category, rating, and visibility.
 - Messages can be `Public` or `Administrator only` (private).
-- The `Discussion` tab shows threads split into `In progress` and `Completed`.
-- Threads can be sorted, including a `Most liked` view.
+- The `Discussion` tab shows discussions split into `In progress` and `Completed`.
+- Discussions can be sorted, including a `Most liked` view.
 - Administrator replies appear on the site and can also be emailed when the email API is configured.
 - The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`, while the Administrator UI in the browser also expects `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` to match the same login.
 - Posted and replied timestamps are displayed for each thread.
