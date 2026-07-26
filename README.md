@@ -500,6 +500,8 @@ SeqEdge includes a lightweight interaction area for research communication:
 - Every posted discussion thread and every follow-up comment is rendered back on the site inside the same thread view.
 - Administrator replies appear on the site and are shown inline in the thread once saved.
 - Follow-up comments from visitors remain visible under the thread and are loaded from `feedback_comments`.
+- New top-level threads send an Administrator notification email whether the thread is `Public` or `Administrator only`.
+- New follow-up comments in an existing thread also send an Administrator notification email.
 - The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`, while the Administrator UI in the browser also expects `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` to match the same login.
 - Posted and replied timestamps are displayed for each thread.
 - Visitors can leave `Like` and `Bookmark` reactions.
@@ -548,6 +550,7 @@ SeqEdge uses [Resend](https://resend.com) to deliver feedback notification email
 When configured, the current implementation sends:
 
 - an Administrator notification email for each new top-level discussion thread;
+- that top-level thread notification also covers `Administrator only` threads, not only public threads;
 - an Administrator notification email for each new follow-up comment in a discussion thread;
 - a visitor reply email when the Administrator posts an official reply and the visitor supplied an email address.
 
