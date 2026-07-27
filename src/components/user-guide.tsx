@@ -72,8 +72,9 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
           <section>
             <h3 className="mb-2 font-semibold text-gray-900">3. Discussions</h3>
             <ul className="space-y-2">
-              <li>Click <span className="font-medium text-gray-900">Leave Feedback</span> to start a new discussion.</li>
-              <li>Discussions are categorized as <span className="font-medium text-gray-900">&quot;In Progress&quot;</span> or <span className="font-medium text-gray-900">&quot;Completed&quot;</span>.</li>
+              <li>Click <span className="font-medium text-gray-900">New Discussion</span> to open the composer.</li>
+              <li>Use the Markdown toolbar for headings, lists, quotes, code, and links, then switch to <span className="font-medium text-gray-900">Preview</span> before posting.</li>
+              <li>Discussions are organized as <span className="font-medium text-gray-900">&quot;In Progress&quot;</span> or <span className="font-medium text-gray-900">&quot;Completed&quot;</span>, with compact badges and a tighter list layout for faster scanning.</li>
               <li>You can view likes, bookmarks, replies, and uploaded images. Click an image to enlarge it.</li>
             </ul>
           </section>
@@ -81,8 +82,12 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
           <section>
             <h3 className="mb-2 font-semibold text-gray-900">4. Downloads</h3>
             <ul className="space-y-2">
-              <li>Use this tab to browse downloadable files by directory.</li>
+              <li>Use the breadcrumb path to move across the download directory tree and return to parent folders quickly.</li>
+              <li>Browse the same directory in <span className="font-medium text-gray-900">Grid</span> or <span className="font-medium text-gray-900">Table</span> view, and sort table rows by name, size, updated date, or checksum.</li>
               <li>Open a file from <span className="font-medium text-gray-900">Overview</span>, a record detail panel in <span className="font-medium text-gray-900">Records</span>, or the file list in <span className="font-medium text-gray-900">Downloads</span>.</li>
+              <li>Use <span className="font-medium text-gray-900">Copy Folder CLI</span> to export resumable commands for all files in the current directory.</li>
+              <li>Export <span className="font-medium text-gray-900">Manifest TSV</span> or <span className="font-medium text-gray-900">Manifest CSV</span> when you need pipeline-ready file maps with directory path, file name, type, byte size, direct URL, and SHA-256.</li>
+              <li>Export <span className="font-medium text-gray-900">sha256sum.txt</span> or <span className="font-medium text-gray-900">md5sum.txt</span> to verify downloaded files in bulk.</li>
               <li>For batch scripts, select samples in <span className="font-medium text-gray-900">Records</span> and click <span className="font-medium text-gray-900">Batch download</span>.</li>
               <li>The download dialog shows file metadata and browser/CLI download options.</li>
               <li>For large public files, we recommend using command-line tools like <code>wget -c</code>, <code>curl -L -C -</code>, or <code>hf download</code>, as they support resumable downloads.</li>

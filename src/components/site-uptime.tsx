@@ -2,8 +2,54 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+const VISITOR_STORAGE_KEY = 'seqedge-visitor-id';
+
 interface SiteUptimeProps {
   startAt: string;
+}
+
+interface VisitorResponse {
+  totalVisitors?: number;
+  error?: string;
+}
+
+function getStoredVisitorId() {
+  if (typeof window === 'undefined') {
+    return 'server';
+  }
+
+  try {
+    const existing = window.localStorage.getItem(VISITOR_STORAGE_KEY);
+    if (existing && existing.trim().length >= 12) {
+      return existing.trim();
+    }
+
+    const generated = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    window.localStorage.setItem(VISITOR_STORAGE_KEY, generated);
+    return generated;
+  } catch {
+    return `ephemeral-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+function buildVisitorFingerprint() {
+  if (typeof window === 'undefined') {
+    return 'server';
+  }
+
+  const parts = [
+    getStoredVisitorId(),
+    navigator.userAgent,
+    navigator.language,
+    window.screen?.width || 0,
+    window.screen?.height || 0,
+    Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
+  ];
+
+  return parts.join('|');
 }
 
 function formatDuration(startAt: string, now: number) {
@@ -33,17 +79,6 @@ export default function SiteUptime({ startAt }: SiteUptimeProps) {
       return;
     }
 
-    const buildVisitorFingerprint = () => {
-      const parts = [
-        navigator.userAgent,
-        navigator.language,
-        window.screen?.width || 0,
-        window.screen?.height || 0,
-        Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
-      ];
-      return parts.join('|');
-    };
-
     const loadVisitors = async () => {
       try {
         const response = await fetch('/api/visitors', {
@@ -51,19 +86,27 @@ export default function SiteUptime({ startAt }: SiteUptimeProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fingerprint: buildVisitorFingerprint() }),
         });
-        const data = await response.json() as { totalVisitors?: number; error?: string };
+        const data = await response.json() as VisitorResponse;
         if (!response.ok) {
           throw new Error(data.error || 'Failed to load visitor count.');
         }
-        setVisitorCount(typeof data.totalVisitors === 'number' ? data.totalVisitors : null);
+        if (typeof data.totalVisitors === 'number') {
+          setVisitorCount(data.totalVisitors);
+          return;
+        }
+        throw new Error('Visitor count payload is missing totalVisitors.');
       } catch {
         try {
           const response = await fetch('/api/visitors');
-          const data = await response.json() as { totalVisitors?: number; error?: string };
+          const data = await response.json() as VisitorResponse;
           if (!response.ok) {
             throw new Error(data.error || 'Failed to load visitor count.');
           }
-          setVisitorCount(typeof data.totalVisitors === 'number' ? data.totalVisitors : null);
+          if (typeof data.totalVisitors === 'number') {
+            setVisitorCount(data.totalVisitors);
+            return;
+          }
+          throw new Error('Visitor count payload is missing totalVisitors.');
         } catch {
           setVisitorCount(null);
         }
