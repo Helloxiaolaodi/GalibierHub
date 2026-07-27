@@ -269,6 +269,7 @@ export default function DownloadCatalogPanel({
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [folderCliOpen, setFolderCliOpen] = useState(false);
   const [folderCliCopied, setFolderCliCopied] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [readmeContent, setReadmeContent] = useState('');
   const [readmeOpen, setReadmeOpen] = useState(false);
 
@@ -431,6 +432,24 @@ export default function DownloadCatalogPanel({
     segments.pop();
     setCurrentPath(segments.join('/'));
   };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === visibleFiles.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(visibleFiles.map((item) => item.id)));
+    }
+  };
+
+  const selectedFiles = visibleFiles.filter((item) => selectedIds.has(item.id));
 
   const toggleSort = (nextKey: SortKey) => {
     if (sortKey === nextKey) {
@@ -602,6 +621,22 @@ export default function DownloadCatalogPanel({
                 >
                   Export checksum.txt
                 </button>
+                {selectedFiles.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      selectedFiles.forEach((item) => {
+                        const a = document.createElement('a');
+                        a.href = item.url;
+                        a.download = item.fileName || '';
+                        a.click();
+                      });
+                    }}
+                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    Download Selected ({selectedFiles.length})
+                  </button>
+                )}
               </div>
             </div>
             <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
@@ -665,9 +700,15 @@ export default function DownloadCatalogPanel({
           <div className="border-b bg-gray-50 px-4 py-3 text-sm font-medium text-gray-800">Files</div>
           <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
             {visibleFiles.map((item) => (
-              <div key={item.id} className="flex min-h-44 flex-col justify-between gap-4 border border-gray-200 bg-white p-4">
+              <div key={item.id} className={`flex min-h-44 flex-col justify-between gap-4 border p-4 ${selectedIds.has(item.id) ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200 bg-white'}`}>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(item.id)}
+                      onChange={() => toggleSelect(item.id)}
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="text-base font-semibold text-gray-900 break-all leading-snug">{item.fileName}</div>
                       <div className="mt-1 text-xs text-gray-500 break-all">{rootLabel}/{item.directoryPath || ''}</div>
@@ -708,6 +749,14 @@ export default function DownloadCatalogPanel({
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                 <tr>
+                  <th className="px-4 py-3 text-left font-medium w-10">
+                    <input
+                      type="checkbox"
+                      checked={visibleFiles.length > 0 && selectedIds.size === visibleFiles.length}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left font-medium">
                     <button type="button" onClick={() => toggleSort('name')} className="inline-flex items-center gap-1 text-left text-gray-600 hover:text-gray-900">
                       Name
@@ -728,7 +777,15 @@ export default function DownloadCatalogPanel({
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {visibleFiles.map((item) => (
-                  <tr key={item.id} className="align-top">
+                  <tr key={item.id} className={selectedIds.has(item.id) ? 'bg-blue-50/30' : ''}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(item.id)}
+                        onChange={() => toggleSelect(item.id)}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-start gap-3">
                         <span className="mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded bg-blue-50 px-2 text-[11px] font-medium text-blue-700">
