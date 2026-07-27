@@ -979,6 +979,8 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
          {/* Discussion replies */}
          <div className="mt-4 border-t border-gray-100 pt-4">
+           {!entry.creator_reply && (
+           <>
             <MarkdownEditor
               value={commentDrafts[entry.id] || ''}
               onChange={(nextValue) => setCommentDrafts((c) => ({ ...c, [entry.id]: nextValue }))}
@@ -1012,6 +1014,8 @@ const [uploadingImage, setUploadingImage] = useState(false);
            </div>
            {commentError[entry.id] && <div className="mt-1 text-xs text-red-600">{commentError[entry.id]}</div>}
           {commentSuccess[entry.id] && <div className="mt-1 text-xs text-emerald-700">{commentSuccess[entry.id]}</div>}
+           </>
+           )}
 
           {/* Discussion replies */}
             {comments.length > 0 && (

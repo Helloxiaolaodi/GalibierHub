@@ -220,7 +220,7 @@ function buildManifestRows(folderItems: FileRow[], rootLabel: string): Array<Rec
     File_Type: item.fileType,
     Size_Bytes: item.sizeBytes != null ? String(item.sizeBytes) : '',
     Direct_URL: item.url,
-    Checksum_SHA256: item.sha256Checksum || 'NA',
+    'SHA-256': item.sha256Checksum || 'NA',
   }));
 }
 
@@ -250,11 +250,9 @@ function buildChecksumFile(folderItems: FileRow[], algorithm: 'md5' | 'sha256'):
 export default function DownloadCatalogPanel({
   isAdmin = false,
   accessToken = null,
-  onNavigateHome,
 }: {
   isAdmin?: boolean;
   accessToken?: string | null;
-  onNavigateHome?: () => void;
 }) {
   const [items, setItems] = useState<DownloadCatalogItem[]>([]);
   const [effectiveIsAdmin, setEffectiveIsAdmin] = useState(isAdmin);
@@ -270,8 +268,10 @@ export default function DownloadCatalogPanel({
   const [folderCliOpen, setFolderCliOpen] = useState(false);
   const [folderCliCopied, setFolderCliCopied] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [readmeContent, setReadmeContent] = useState('');
   const [readmeOpen, setReadmeOpen] = useState(false);
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   const loadCatalog = useCallback(async () => {
     let active = true;
@@ -312,15 +312,6 @@ export default function DownloadCatalogPanel({
       cleanup?.();
     };
   }, [loadCatalog]);
-
-  useEffect(() => {
-    let active = true;
-    fetch('/api/download-readme')
-      .then((res) => res.json())
-      .then((data) => { if (active && data.content) setReadmeContent(data.content); })
-      .catch(() => {});
-    return () => { active = false; };
-  }, []);
 
 
   const filteredItems = useMemo(() => {
@@ -414,6 +405,22 @@ export default function DownloadCatalogPanel({
 
   const showBlockingLoader = loading && items.length === 0;
 
+  const readmeText = useMemo(() => {
+    const header = '# Directory: ' + rootLabel + (currentPath ? '/' + currentPath : '') + '\n\n';
+    const summary = 'Files: ' + visibleFiles.length + ' | Folders: ' + currentFolderSummary.folderCount + '\n\n';
+    const fileList = visibleFiles.map((item) => {
+      const size = item.sizeBytes ? formatDownloadBytes(item.sizeBytes) : (item.sizeLabel || 'Unknown');
+      return '- ' + item.fileName + '  (' + size + (item.updatedLabel ? ', ' + item.updatedLabel : '') + ')';
+    });
+    return header + summary + fileList.join('\n');
+  }, [rootLabel, currentPath, visibleFiles, currentFolderSummary]);
+
+  const totalPages = Math.max(1, Math.ceil(visibleFiles.length / pageSize));
+  const paginatedFiles = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return visibleFiles.slice(start, start + pageSize);
+  }, [visibleFiles, currentPage, pageSize]);
+
   const handleMetadataSaved = (itemId: string, hidden: boolean) => {
     setItems((current) => current.map((item) => (item.id === itemId ? { ...item, hidden } : item)));
     setStatusMessage(
@@ -504,7 +511,7 @@ export default function DownloadCatalogPanel({
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
               <span className="rounded bg-blue-50 px-2 py-1 text-blue-700">Files: {totals.all}</span>
               <span className="rounded bg-slate-100 px-2 py-1 text-slate-700">Folders: {currentFolderSummary.folderCount}</span>
-              {readmeContent && (
+              {visibleFiles.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setReadmeOpen(true)}
@@ -532,14 +539,6 @@ export default function DownloadCatalogPanel({
       {!error && (
         <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">
           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-            <button
-              type="button"
-              onClick={() => onNavigateHome?.()}
-              className="rounded px-2 py-1 text-blue-700 hover:bg-blue-50"
-            >
-              Home
-            </button>
-            <span className="text-gray-400">/</span>
             <button
               type="button"
               onClick={() => goToFolder('')}
@@ -614,24 +613,10 @@ export default function DownloadCatalogPanel({
                 >
                   Export Manifest CSV
                 </button>
-                <button
-                  type="button"
-                  onClick={() => exportChecksum('sha256')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Export checksum.txt
-                </button>
                 {selectedFiles.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => {
-                      selectedFiles.forEach((item) => {
-                        const a = document.createElement('a');
-                        a.href = item.url;
-                        a.download = item.fileName || '';
-                        a.click();
-                      });
-                    }}
+                    onClick={() => setBatchOpen(true)}
                     className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                   >
                     Download Selected ({selectedFiles.length})
@@ -699,7 +684,7 @@ export default function DownloadCatalogPanel({
         <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
           <div className="border-b bg-gray-50 px-4 py-3 text-sm font-medium text-gray-800">Files</div>
           <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
-            {visibleFiles.map((item) => (
+            {paginatedFiles.map((item) => (
               <div key={item.id} className={`flex min-h-44 flex-col justify-between gap-4 border p-4 ${selectedIds.has(item.id) ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200 bg-white'}`}>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-start gap-2">
@@ -752,7 +737,7 @@ export default function DownloadCatalogPanel({
                   <th className="px-4 py-3 text-left font-medium w-10">
                     <input
                       type="checkbox"
-                      checked={visibleFiles.length > 0 && selectedIds.size === visibleFiles.length}
+                      checked={paginatedFiles.length > 0 && paginatedFiles.every((item) => selectedIds.has(item.id))}
                       onChange={toggleSelectAll}
                       className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
@@ -776,7 +761,7 @@ export default function DownloadCatalogPanel({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {visibleFiles.map((item) => (
+                {paginatedFiles.map((item) => (
                   <tr key={item.id} className={selectedIds.has(item.id) ? 'bg-blue-50/30' : ''}>
                     <td className="px-4 py-3">
                       <input
@@ -828,6 +813,44 @@ export default function DownloadCatalogPanel({
         </section>
       )}
 
+
+      {/* Pagination controls */}
+      {visibleFiles.length > pageSize && (
+        <nav className="mt-4 flex items-center justify-between border-t border-gray-200 px-4 py-3">
+          <div className="text-sm text-gray-700">
+            Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-medium">{Math.min(currentPage * pageSize, visibleFiles.length)}</span> of <span className="font-medium">{visibleFiles.length}</span> files
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Previous
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                type="button"
+                onClick={() => setCurrentPage(page)}
+                className={`inline-flex items-center rounded px-3 py-1.5 text-sm font-medium ${page === currentPage ? 'bg-blue-600 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </nav>
+      )}
+
       {folderCliOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4" onClick={() => setFolderCliOpen(false)}>
           <div className="my-8 w-full max-w-4xl rounded-lg border border-gray-200 bg-white shadow-xl" onClick={(event) => event.stopPropagation()}>
@@ -868,8 +891,52 @@ export default function DownloadCatalogPanel({
           </div>
         </div>
       )}
+      {/* Batch download dialog */}
+      {batchOpen && selectedFiles.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4" onClick={() => setBatchOpen(false)}>
+          <div className="my-8 w-full max-w-3xl rounded-lg border border-gray-200 bg-white shadow-xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-gray-200 px-5 py-3">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Batch Download ({selectedFiles.length} files)</h3>
+                <p className="mt-1 text-sm text-gray-600">Download selected files via browser or command line.</p>
+              </div>
+              <button type="button" onClick={() => setBatchOpen(false)} aria-label="Close" className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="space-y-4 px-5 py-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-gray-800">Browser download</span>
+                </div>
+                <p className="mb-3 text-xs text-gray-600">Downloads each file directly in your browser. Multiple files will download sequentially.</p>
+                <button
+                  type="button"
+                  onClick={() => { selectedFiles.forEach((item) => { const a = document.createElement('a'); a.href = item.url; a.download = item.fileName || ''; a.click(); }); }}
+                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  Start Browser Download
+                </button>
+              </div>
+              {[
+                { key: 'wget', title: 'wget', cmd: selectedFiles.map((item) => `wget -c "${item.url}"`).join('\n') },
+                { key: 'curl', title: 'curl', cmd: selectedFiles.map((item) => `curl -L -C - -O "${item.url}"`).join('\n') },
+              ].map((block) => (
+                <div key={block.key} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-gray-800">{block.title}</span>
+                    <button type="button" onClick={() => { navigator.clipboard.writeText(block.cmd); }} className="text-xs text-blue-600 hover:underline">Copy</button>
+                  </div>
+                  <code className="block whitespace-pre-wrap break-all rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{block.cmd}</code>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* README floating card */}
-      {readmeOpen && readmeContent && (
+      {readmeOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-end overflow-y-auto bg-black/30 p-4" onClick={() => setReadmeOpen(false)}>
           <div
             className="w-full max-w-2xl rounded-lg border border-gray-200 bg-white shadow-xl"
@@ -887,7 +954,7 @@ export default function DownloadCatalogPanel({
               </button>
             </div>
             <div className="prose prose-sm max-w-none px-4 py-3 text-gray-700" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-              {readmeContent}
+              {readmeText}
             </div>
           </div>
         </div>
