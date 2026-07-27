@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { SiteConfig } from '@/site-config';
 import { useDiscussionThreads } from './discussion-comments';
-import type { FeedbackSummary, ReactionCounts, SiteFeedbackEntry } from '@/types/genome';
+import type { FeedbackCommentEntry, FeedbackSummary, ReactionCounts, SiteFeedbackEntry } from '@/types/genome';
 
 type ReactionType = 'like' | 'bookmark';
 
@@ -12,6 +12,12 @@ interface FeedbackResponse {
   entries: SiteFeedbackEntry[];
   summary: FeedbackSummary;
   isAdmin?: boolean;
+}
+
+interface CommentsResponse {
+  comments?: FeedbackCommentEntry[];
+  isAdmin?: boolean;
+  error?: string;
 }
 
 interface SiteFeedbackProps {
@@ -129,6 +135,8 @@ export default function SiteFeedback({ isAdminHint = false, accessToken = null, 
  const [pinToggling, setPinToggling] = useState<string | null>(null);
  const [hideToggling, setHideToggling] = useState<string | null>(null);
  const [deletingId, setDeletingId] = useState<string | null>(null);
+ const [commentHideToggling, setCommentHideToggling] = useState<string | null>(null);
+ const [commentDeletingId, setCommentDeletingId] = useState<string | null>(null);
  const [expandedEntries, setExpandedEntries] = useState<Record<string, boolean>>({});
   const [inProgressSort, setInProgressSort] = useState<'newest' | 'oldest' | 'most_liked'>('newest');
   const [completedSort, setCompletedSort] = useState<'newest' | 'oldest' | 'most_liked'>('newest');
@@ -150,16 +158,16 @@ const [uploadingImage, setUploadingImage] = useState(false);
       return null;
     }
   }, []);
- const {
+  const {
     entryThreads,
+    setEntryComments,
     commentDrafts,
     setCommentDrafts,
     commentSubmitting,
     commentError,
     commentSuccess,
-    fetchEntryThreads,
     handleSubmitComment,
-  } = useDiscussionThreads();
+  } = useDiscussionThreads(accessToken);
 
   const fetchFeedback = useCallback(async () => {
     setLoading(true);
@@ -221,21 +229,23 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
  const inProgressEntries = useMemo(
     () => {
-      const filtered = entries.filter((entry) => !entry.creator_reply);
+      const all = entries.filter((entry) => !entry.creator_reply && (isAdmin || !entry.hidden));
+      const pinned = all.filter((entry) => entry.pinned);
+      const unpinned = all.filter((entry) => !entry.pinned);
       if (inProgressSort === 'oldest') {
-        return [...filtered].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        return [...pinned, ...[...unpinned].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())];
       }
       if (inProgressSort === 'most_liked') {
-        return [...filtered].sort((a, b) => (entryReactionCounts[b.id]?.like || 0) - (entryReactionCounts[a.id]?.like || 0));
+        return [...pinned, ...[...unpinned].sort((a, b) => (entryReactionCounts[b.id]?.like || 0) - (entryReactionCounts[a.id]?.like || 0))];
       }
-      return filtered;
+      return [...pinned, ...unpinned];
     },
-    [entries, inProgressSort, entryReactionCounts],
- );
+    [entries, inProgressSort, entryReactionCounts, isAdmin],
+  );
 
  const completedEntries = useMemo(
    () => {
-     const all = entries.filter((entry) => Boolean(entry.creator_reply) && !entry.hidden);
+     const all = entries.filter((entry) => Boolean(entry.creator_reply) && (isAdmin || !entry.hidden));
      const pinned = all.filter((entry) => entry.pinned);
      const unpinned = all.filter((entry) => !entry.pinned);
       const sorted = completedSort === 'oldest'
@@ -245,7 +255,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
           : unpinned;
       return [...pinned, ...sorted];
    },
-    [entries, completedSort, entryReactionCounts],
+    [entries, completedSort, entryReactionCounts, isAdmin],
  );
 
   const inProgressTotal = inProgressEntries.length;
@@ -306,6 +316,21 @@ const [uploadingImage, setUploadingImage] = useState(false);
    }
  }, []);
 
+  const fetchThreadComments = useCallback(async (entryId: string) => {
+    try {
+      const response = await fetch(`/api/feedback?feedback_id=${encodeURIComponent(entryId)}`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
+      const data = await response.json() as CommentsResponse;
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load comments.');
+      }
+      setEntryComments((current) => ({ ...current, [entryId]: data.comments || [] }));
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : 'Failed to load comments.');
+    }
+  }, [accessToken, setEntryComments]);
+
   const handleReply = useCallback(async (entryId: string) => {
     const draft = replyDrafts[entryId]?.trim() || '';
     if (!draft) {
@@ -345,7 +370,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
     if (!accessToken) return;
     setHideToggling(entryId);
     try {
-      await fetch('/api/feedback', {
+      const response = await fetch('/api/feedback', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -353,6 +378,10 @@ const [uploadingImage, setUploadingImage] = useState(false);
         },
         body: JSON.stringify({ id: entryId, hidden: !currentHidden }),
       });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || 'Visibility update failed.');
+      }
       await fetchFeedback();
     } catch (err) {
       setReplyError(err instanceof Error ? err.message : 'Visibility update failed.');
@@ -362,7 +391,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
   const handleDelete = async (entryId: string) => {
     if (!accessToken) return;
-    if (!window.confirm('Delete this thread permanently?')) return;
+    if (!window.confirm('Delete this discussion permanently?')) return;
     setDeletingId(entryId);
     try {
       const response = await fetch(`/api/feedback?id=${encodeURIComponent(entryId)}`, {
@@ -376,21 +405,74 @@ const [uploadingImage, setUploadingImage] = useState(false);
       setReplyError(err instanceof Error ? err.message : 'Delete failed.');
     }
     finally { setDeletingId(null); }
- };
+  };
+
+  const handleToggleCommentHidden = async (entryId: string, commentId: string, currentHidden: boolean) => {
+    if (!accessToken) return;
+    setCommentHideToggling(commentId);
+    setReplyError(null);
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ commentId, commentHidden: !currentHidden }),
+      });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || 'Comment visibility update failed.');
+      }
+      await fetchThreadComments(entryId);
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : 'Comment visibility update failed.');
+    } finally {
+      setCommentHideToggling(null);
+    }
+  };
+
+  const handleDeleteComment = async (entryId: string, commentId: string) => {
+    if (!accessToken) return;
+    if (!window.confirm('Delete this reply permanently?')) return;
+    setCommentDeletingId(commentId);
+    setReplyError(null);
+    try {
+      const response = await fetch(`/api/feedback?comment_id=${encodeURIComponent(commentId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || 'Comment delete failed.');
+      }
+      await fetchThreadComments(entryId);
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : 'Comment delete failed.');
+    } finally {
+      setCommentDeletingId(null);
+    }
+  };
+
   const renderEntry = (entry: SiteFeedbackEntry) => {
     const isExpanded = Boolean(expandedEntries[entry.id]);
     const comments = entryThreads[entry.id] || [];
     return (
     <article key={entry.id} className="border border-gray-200 bg-white p-4">
       {/* HEADER BUTTON - wraps only the clickable header */}
-      <button type="button" onClick={() => { setExpandedEntries((c) => ({ ...c, [entry.id]: !c[entry.id] })); void fetchEntryThreads(entry.id); }} className="w-full text-left focus:outline-none">
+      <button type="button" onClick={() => { setExpandedEntries((c) => ({ ...c, [entry.id]: !c[entry.id] })); void fetchThreadComments(entry.id); }} className="w-full text-left focus:outline-none">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1 flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-semibold text-gray-900">{entry.title || 'Untitled thread'}</span>
+            <span className="font-semibold text-gray-900">{entry.title || 'Untitled discussion'}</span>
             <span className={`rounded px-2 py-0.5 text-xs font-medium ${entry.visibility === 'private' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
               {entry.visibility === 'private' ? 'Administrator only' : 'Public'}
             </span>
+            {entry.hidden && isAdmin && (
+              <span className="rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                Hidden
+              </span>
+            )}
           </div>
           <div className="text-xs text-gray-600">{entry.display_name}</div>
           <div className="text-xs text-gray-500">
@@ -496,7 +578,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 onChange={(event) => setReplyDrafts((current) => ({ ...current, [entry.id]: event.target.value }))}
                 rows={3}
                 className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-                placeholder="Reply to close this thread."
+                placeholder="Reply to close this discussion."
               />
               <button
                 type="button"
@@ -560,10 +642,31 @@ const [uploadingImage, setUploadingImage] = useState(false);
             {comments.length > 0 && (
               <div className="mt-3 space-y-2">
                 {comments.map((c) => (
-                  <div key={c.id} className="pl-3 border-l-2 border-gray-200">
+                  <div key={c.id} className={`pl-3 border-l-2 ${c.hidden ? 'border-red-200 bg-red-50/50' : 'border-gray-200'}`}>
                     <div className="text-xs font-medium text-gray-700">{c.author_name}</div>
+                    {isAdmin && c.hidden && <div className="mt-0.5 text-[11px] font-medium text-red-600">Hidden reply</div>}
                     <div className="text-xs text-gray-600 mt-0.5 whitespace-pre-wrap">{renderMessageWithImages(c.message, (src) => setLightBox({ src, alt: 'Comment image' }))}</div>
                     <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(c.created_at)}</div>
+                    {isAdmin && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleToggleCommentHidden(entry.id, c.id, Boolean(c.hidden))}
+                          disabled={commentHideToggling === c.id}
+                          className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] font-medium ${c.hidden ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-amber-300 bg-amber-50 text-amber-700'} disabled:opacity-40`}
+                        >
+                          {commentHideToggling === c.id ? '...' : c.hidden ? 'Show reply' : 'Hide reply'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteComment(entry.id, c.id)}
+                          disabled={commentDeletingId === c.id}
+                          className="inline-flex items-center gap-1 rounded border border-red-300 bg-white px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+                        >
+                          {commentDeletingId === c.id ? '...' : 'Delete reply'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -651,7 +754,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
     if (!accessToken) return;
     setPinToggling(entryId);
     try {
-      await fetch('/api/feedback', {
+      const response = await fetch('/api/feedback', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -659,6 +762,10 @@ const [uploadingImage, setUploadingImage] = useState(false);
         },
         body: JSON.stringify({ id: entryId, pinned: !currentPinned }),
       });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || 'Pin update failed.');
+      }
       await fetchFeedback();
     } catch (err) {
       setReplyError(err instanceof Error ? err.message : 'Pin update failed.');
@@ -847,11 +954,11 @@ const [uploadingImage, setUploadingImage] = useState(false);
             </div>
             <div className="space-y-3" style={{ maxHeight: `${FEEDBACK_LIST_MAX_HEIGHT}px`, overflowY: 'auto' }}>
               {loading ? (
-                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">Loading threads...</div>
+                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">Loading discussions...</div>
               ) : inProgressPageEntries.length > 0 ? (
                 inProgressPageEntries.map(renderEntry)
               ) : (
-                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">No active threads.</div>
+                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">No active discussions.</div>
               )}
             </div>
             {inProgressTotal > FEEDBACK_PAGE_SIZE && (
@@ -892,16 +999,16 @@ const [uploadingImage, setUploadingImage] = useState(false);
              <span className="text-xs text-gray-500">
                 {completedTotal > 0
                   ? `Page ${completedPage + 1} of ${Math.max(1, completedMaxPage + 1)} (${completedTotal} total)`
-                  : 'Completed threads'}
+                  : 'Completed discussions'}
               </span>
             </div>
             <div className="space-y-3" style={{ maxHeight: `${FEEDBACK_LIST_MAX_HEIGHT}px`, overflowY: 'auto' }}>
               {loading ? (
-                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">Loading threads...</div>
+                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">Loading discussions...</div>
               ) : completedPageEntries.length > 0 ? (
                 completedPageEntries.map(renderEntry)
               ) : (
-                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">No completed threads.</div>
+                <div className="border border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">No completed discussions.</div>
               )}
             </div>
             {completedTotal > FEEDBACK_PAGE_SIZE && (

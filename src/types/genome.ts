@@ -72,6 +72,7 @@ export interface DashboardStats {
   total_samples: number;
   total_promoters: number;
   total_variants: number;
+  total_visitors?: number;
   species_distribution: Record<string, number>;
   score_distribution: { range: string; count: number }[];
 }
@@ -92,6 +93,17 @@ export interface SiteFeedbackEntry {
   replied_at: string | null;
   created_at: string;
   pinned?: boolean;
+  hidden?: boolean;
+}
+
+export interface FeedbackCommentEntry {
+  id: string;
+  feedback_id: string;
+  author_name: string;
+  author_email: string | null;
+  message: string;
+  image_url: string | null;
+  created_at: string;
   hidden?: boolean;
 }
 

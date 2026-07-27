@@ -158,10 +158,12 @@ CREATE TABLE IF NOT EXISTS feedback_comments (
   author_email TEXT,
   message TEXT NOT NULL,
   image_url TEXT,
+  hidden BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS author_email TEXT;
 ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS hidden BOOLEAN DEFAULT false;
 ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
 CREATE INDEX IF NOT EXISTS idx_feedback_comments_feedback_id ON feedback_comments (feedback_id);
 CREATE INDEX IF NOT EXISTS idx_feedback_comments_created_at ON feedback_comments (created_at);
@@ -185,6 +187,26 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_site_reactions_type ON site_reactions (reaction_type);
 CREATE INDEX IF NOT EXISTS idx_site_reactions_entry ON site_reactions (entry_id);
 
+-- 7. Site visitors (browser-level cumulative visitor counter)
+CREATE TABLE IF NOT EXISTS site_visitors (
+  id BIGSERIAL PRIMARY KEY,
+  fingerprint_hash TEXT NOT NULL UNIQUE,
+  first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE site_visitors ADD COLUMN IF NOT EXISTS fingerprint_hash TEXT;
+ALTER TABLE site_visitors ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE site_visitors ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now();
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'site_visitors_fingerprint_hash_key'
+  ) THEN
+    ALTER TABLE site_visitors ADD CONSTRAINT site_visitors_fingerprint_hash_key UNIQUE (fingerprint_hash);
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_site_visitors_last_seen_at ON site_visitors (last_seen_at DESC);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE genome_samples ENABLE ROW LEVEL SECURITY;
 ALTER TABLE predicted_promoters ENABLE ROW LEVEL SECURITY;
@@ -192,6 +214,7 @@ ALTER TABLE variant_index ENABLE ROW LEVEL SECURITY;
 ALTER TABLE site_feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedback_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE site_reactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_visitors ENABLE ROW LEVEL SECURITY;
 
 -- Public read access (anon key can SELECT)
 DROP POLICY IF EXISTS "Public read genome_samples"      ON genome_samples;
@@ -203,6 +226,8 @@ DROP POLICY IF EXISTS "Public read feedback_comments"   ON feedback_comments;
 DROP POLICY IF EXISTS "Public insert feedback_comments" ON feedback_comments;
 DROP POLICY IF EXISTS "Public read site_reactions"      ON site_reactions;
 DROP POLICY IF EXISTS "Public insert site_reactions"    ON site_reactions;
+DROP POLICY IF EXISTS "Public read site_visitors"       ON site_visitors;
+DROP POLICY IF EXISTS "Public insert site_visitors"     ON site_visitors;
 
 CREATE POLICY "Public read genome_samples"      ON genome_samples      FOR SELECT TO anon USING (true);
 CREATE POLICY "Public read predicted_promoters" ON predicted_promoters FOR SELECT TO anon USING (true);
@@ -213,6 +238,8 @@ CREATE POLICY "Public read feedback_comments"   ON feedback_comments   FOR SELEC
 CREATE POLICY "Public insert feedback_comments" ON feedback_comments   FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "Public read site_reactions"      ON site_reactions      FOR SELECT TO anon USING (true);
 CREATE POLICY "Public insert site_reactions"    ON site_reactions      FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Public read site_visitors"       ON site_visitors       FOR SELECT TO anon USING (true);
+CREATE POLICY "Public insert site_visitors"     ON site_visitors       FOR INSERT TO anon WITH CHECK (true);
 
 -- ============================================================
 -- Supabase Storage bucket for feedback images (REQUIRED)
@@ -362,3 +389,13 @@ DROP POLICY IF EXISTS "Public update feedback_comments" ON feedback_comments;
 DROP POLICY IF EXISTS "Public delete site_reactions" ON site_reactions;
 DROP POLICY IF EXISTS "Service delete site_reactions" ON site_reactions;
 CREATE POLICY "Service delete site_reactions" ON site_reactions FOR DELETE TO authenticated USING (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Public update site_visitors" ON site_visitors;
+DROP POLICY IF EXISTS "Service update site_visitors" ON site_visitors;
+CREATE POLICY "Service update site_visitors" ON site_visitors FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Public delete feedback_comments" ON feedback_comments;
+DROP POLICY IF EXISTS "Service update feedback_comments" ON feedback_comments;
+DROP POLICY IF EXISTS "Service delete feedback_comments" ON feedback_comments;
+CREATE POLICY "Service update feedback_comments" ON feedback_comments FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Service delete feedback_comments" ON feedback_comments FOR DELETE TO authenticated USING (auth.role() = 'service_role');

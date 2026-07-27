@@ -84,6 +84,18 @@ async function computeScoreDistribution(sb: ReturnType<typeof getSupabase>) {
   return { scoreDistribution };
 }
 
+function isMissingVisitorsTable(message: string | undefined) {
+  if (!message) {
+    return false;
+  }
+
+  return (
+    message.includes('public.site_visitors')
+    || message.includes('relation "site_visitors" does not exist')
+    || message.includes('relation "public.site_visitors" does not exist')
+  );
+}
+
 export async function GET() {
   if (!isSupabaseConfigured) {
     return NextResponse.json(
@@ -114,6 +126,22 @@ export async function GET() {
     );
   }
 
+  let totalVisitors = 0;
+  const { count: visitorCount, error: visitorsError } = await sb
+    .from("site_visitors")
+    .select("*", { count: "exact", head: true });
+
+  if (visitorsError && !isMissingVisitorsTable(visitorsError.message)) {
+    return NextResponse.json(
+      { error: `Failed to load visitor statistics from Supabase: ${visitorsError.message}` },
+      { status: 500 },
+    );
+  }
+
+  if (!visitorsError) {
+    totalVisitors = visitorCount ?? 0;
+  }
+
   const [speciesResult, scoreResult] = await Promise.all([
     computeSpeciesDistribution(sb),
     computeScoreDistribution(sb),
@@ -137,6 +165,7 @@ export async function GET() {
     total_samples: totalSamples ?? 0,
     total_promoters: totalPromoters ?? 0,
     total_variants: totalVariants ?? 0,
+    total_visitors: totalVisitors,
     species_distribution: speciesResult.speciesDistribution,
     score_distribution: scoreResult.scoreDistribution,
   });
