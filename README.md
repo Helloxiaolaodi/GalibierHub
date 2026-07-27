@@ -256,13 +256,15 @@ Cloudflare Pages:
 
 ### What the Downloads view now supports
 
-- Breadcrumb navigation such as `Home / Downloads / seqedge-data / reference_genomes / scov2`, where every parent level remains clickable.
-- A compact control bar that combines folder search, `Copy Folder CLI`, `Export Manifest TSV`, `Export Manifest CSV`, `Export sha256sum.txt`, `Export md5sum.txt`, and grid or table view switching.
-- A table view with sortable `Name`, `Size`, `Updated`, `Checksum`, and `Actions` columns for directories that would become unwieldy in card mode.
+- Breadcrumb navigation such as `Downloads / seqedge-data / reference_genomes / scov2`, where every parent level remains clickable.
+- A compact control bar that combines folder search, `Copy Folder CLI`, `Export Manifest CSV`, a README button, batch download, and grid or table view switching.
+- A table view with sortable `Name`, `Size`, `Updated`, and `Actions` columns for directories that would become unwieldy in card mode.
 - A denser grid view that still shows size and updated time so card browsing does not hide basic metadata.
 - Split single-file actions so browser download and CLI or details entry points are visibly separated instead of competing inside one oversized button.
-- Manifest export with stable machine-readable columns: `Directory_Path`, `File_Name`, `File_Type`, `Size_Bytes`, `Direct_URL`, and `Checksum_SHA256`.
-- Directory-level checksum export so downstream users can run `md5sum -c md5sum.txt` or the SHA256 equivalent after large transfers.
+- Manifest export with stable machine-readable columns: `Directory_Path`, `File_Name`, `File_Type`, `Size_Bytes`, `Direct_URL`, and `SHA-256`.
+- Pagination with 20 files per page, so large directories stay scannable.
+- Batch selection with checkboxes and a `Download Selected` button that shows browser download, `wget`, and `curl` commands for the selected files.
+- A README button that dynamically generates a directory overview listing all files with sizes and dates.
 
 ### What the download modal now exposes
 

@@ -256,13 +256,15 @@ Cloudflare Pages：
 
 ### Downloads 页面现在支持什么
 
-- 标准面包屑路径导航，例如 `Home / Downloads / seqedge-data / reference_genomes / scov2`，其中每一级父目录都可点击返回。
-- 紧凑的控制栏，将目录搜索、`Copy Folder CLI`、`Export Manifest TSV`、`Export Manifest CSV`、`Export sha256sum.txt`、`Export md5sum.txt` 以及网格/表格视图切换集中在同一层。
-- 适合大目录的表格视图，支持按 `Name`、`Size`、`Updated`、`Checksum`、`Actions` 排序。
+- 标准面包屑路径导航，例如 `Downloads / seqedge-data / reference_genomes / scov2`，其中每一级父目录都可点击返回。
+- 紧凑的控制栏，将目录搜索、`Copy Folder CLI`、`Export Manifest CSV`、README 按钮、批量下载 以及网格/表格视图切换集中在同一层。
+- 适合大目录的表格视图，支持按 `Name`、`Size`、`Updated`、`Actions` 排序。
 - 信息密度更高的卡片视图，在保留视觉浏览体验的同时补充大小与更新时间。
 - 单文件操作入口拆分为浏览器下载与 CLI/详情两类按钮，避免一个按钮承载过多动作。
-- 可导出机器可读的 Manifest，字段固定为 `Directory_Path`、`File_Name`、`File_Type`、`Size_Bytes`、`Direct_URL`、`Checksum_SHA256`。
-- 可按目录导出 `sha256sum.txt` 与 `md5sum.txt`，便于大批量下载后的完整性校验。
+- 可导出机器可读的 Manifest，字段固定为 `Directory_Path`、`File_Name`、`File_Type`、`Size_Bytes`、`Direct_URL`、`SHA-256`。
+- 分页显示，每页 20 个文件，大目录也能保持可浏览性。
+- 批量选择与下载，支持勾选文件后统一生成浏览器下载、`wget` 和 `curl` 命令。
+- README 按钮动态生成当前目录的文件结构与基本信息。
 
 ### 当前下载弹窗实际会展示什么
 

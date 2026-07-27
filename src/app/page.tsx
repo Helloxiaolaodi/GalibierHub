@@ -446,7 +446,6 @@ export default function HomePage() {
           <DownloadCatalogPanel
             isAdmin={isCreatorAdmin}
             accessToken={creatorAccessToken}
-            onNavigateHome={() => setActiveTab('overview')}
           />
         )}
       </main>
