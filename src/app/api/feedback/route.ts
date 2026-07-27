@@ -218,6 +218,9 @@ async function trySendEmail(label: string, send: () => Promise<void>) {
 }
 
 const COMMENTS_SELECT = "id, feedback_id, author_name, author_email, message, image_url, created_at, hidden";
+const COMMENTS_SELECT_NO_HIDDEN = "id, feedback_id, author_name, author_email, message, image_url, created_at";
+const FEEDBACK_SELECT = "id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden";
+const FEEDBACK_SELECT_NO_HIDDEN = "id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at";
 
 function getAdminWritableSupabase() {
   if (!hasSupabaseServiceRole) {
@@ -243,24 +246,43 @@ export async function GET(request: NextRequest) {
     const creatorAuth = await requireCreatorGithubAuth(getBearerToken(request));
     const isAdmin = creatorAuth.ok;
     const sbComments = getSupabase();
-    const { data: comments, error: commentsError } = await sbComments
+    let { data: comments, error: commentsError } = await sbComments
       .from("feedback_comments")
       .select(COMMENTS_SELECT)
       .eq("feedback_id", feedbackId)
       .order("created_at", { ascending: true });
+    if (commentsError && commentsError.message?.includes("hidden")) {
+      const fallback = await sbComments
+        .from("feedback_comments")
+        .select(COMMENTS_SELECT_NO_HIDDEN)
+        .eq("feedback_id", feedbackId)
+        .order("created_at", { ascending: true });
+      comments = (fallback.data ?? []).map((c: Record<string, unknown>) => ({ ...c, hidden: false })) as typeof comments;
+      commentsError = fallback.error;
+    }
     if (commentsError) return NextResponse.json({ error: formatFeedbackStorageError(commentsError.message) }, { status: 500 });
     return NextResponse.json({
-      comments: (comments || []).filter((comment) => isAdmin || !comment.hidden),
+      comments: (comments || []).filter((comment: Record<string, unknown>) => isAdmin || !comment.hidden),
       isAdmin,
     });
   }
 
   const sb = getSupabase();
-  const { data, error } = await sb
+  let { data, error } = await sb
     .from("site_feedback")
-    .select("id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden")
+    .select(FEEDBACK_SELECT)
     .order("created_at", { ascending: false })
     .limit(50);
+
+  if (error && error.message?.includes("hidden")) {
+    const fallback = await sb
+      .from("site_feedback")
+      .select(FEEDBACK_SELECT_NO_HIDDEN)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    data = (fallback.data ?? []).map((e: Record<string, unknown>) => ({ ...e, pinned: false, hidden: false })) as typeof data;
+    error = fallback.error;
+  }
 
   if (error) {
     return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
@@ -432,7 +454,7 @@ export async function POST(request: Request) {
      message,
       image_url: imageUrl || null,
    })
-   .select("id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden")
+   .select(FEEDBACK_SELECT)
    .single();
 
   if (error) {
@@ -499,6 +521,16 @@ export async function PATCH(request: NextRequest) {
       .eq("id", commentId)
       .select(COMMENTS_SELECT)
       .maybeSingle();
+
+    if (error && error.message?.includes("hidden")) {
+      const fallback = await writable.client
+        .from("feedback_comments")
+        .update({})
+        .eq("id", commentId)
+        .select(COMMENTS_SELECT_NO_HIDDEN)
+        .maybeSingle();
+      return NextResponse.json({ comment: fallback.data ? { ...fallback.data, hidden: commentHidden } : null });
+    }
 
     if (error) {
       return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
@@ -585,15 +617,36 @@ export async function PATCH(request: NextRequest) {
    .update(updatePayload)
    .eq("id", id);
 
- if (updateErr) {
+ if (updateErr && updateErr.message?.includes("column") && (updateErr.message.includes("hidden") || updateErr.message.includes("pinned"))) {
+    const safePayload: Record<string, unknown> = { ...updatePayload };
+    delete safePayload.hidden;
+    delete safePayload.pinned;
+    const { error: retryErr } = await sb
+      .from("site_feedback")
+      .update(safePayload)
+      .eq("id", id);
+    if (retryErr) {
+      return NextResponse.json({ error: formatFeedbackStorageError(retryErr.message) }, { status: 500 });
+    }
+ } else if (updateErr) {
    return NextResponse.json({ error: formatFeedbackStorageError(updateErr.message) }, { status: 500 });
  }
 
- const { data, error: fetchErr } = await sb
+ let { data, error: fetchErr } = await sb
    .from("site_feedback")
-   .select("id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden")
+   .select(FEEDBACK_SELECT)
    .eq("id", id)
    .maybeSingle();
+
+ if (fetchErr && fetchErr.message?.includes("hidden")) {
+    const fallback = await sb
+      .from("site_feedback")
+      .select(FEEDBACK_SELECT_NO_HIDDEN)
+      .eq("id", id)
+      .maybeSingle();
+    data = fallback.data ? { ...fallback.data, pinned: false, hidden: false } : null;
+    fetchErr = fallback.error;
+ }
 
  if (fetchErr) {
    return NextResponse.json({ error: formatFeedbackStorageError(fetchErr.message) }, { status: 500 });

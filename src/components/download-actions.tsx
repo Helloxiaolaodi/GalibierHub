@@ -349,7 +349,7 @@ export default function DownloadActions({
               aria-label="Open CLI and file details"
               title="Open CLI and file details"
             >
-              {compact ? '>_' : 'CLI / Details'}
+              {compact ? 'CLI' : 'CLI / Details'}
             </button>
           </>
         )}

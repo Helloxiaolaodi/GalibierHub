@@ -250,5 +250,27 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Auto-fetch file sizes for items that still have no sizeBytes
+  const itemsWithoutSize = result.filter((item) => item.sizeBytes == null && !item.sizeLabel);
+  if (itemsWithoutSize.length > 0 && itemsWithoutSize.length <= 30) {
+    const sizePromises = itemsWithoutSize.map(async (item) => {
+      try {
+        const directUrl = getDirectDownloadUrl(item.url);
+        if (!validateDirectFileUrl(directUrl)) return;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const headRes = await fetch(directUrl, { method: 'HEAD', signal: controller.signal });
+        clearTimeout(timeout);
+        const contentLength = headRes.headers.get('content-length');
+        if (contentLength && /^\d+$/.test(contentLength)) {
+          item.sizeBytes = parseInt(contentLength, 10);
+        }
+      } catch {
+        // Silently ignore - size will remain null / show 'Unknown'
+      }
+    });
+    await Promise.allSettled(sizePromises);
+  }
+
   return NextResponse.json({ items: result, warning: metadataWarning, isAdmin });
 }
