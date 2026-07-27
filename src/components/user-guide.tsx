@@ -72,7 +72,7 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
           <section>
             <h3 className="mb-2 font-semibold text-gray-900">3. Discussions</h3>
             <ul className="space-y-2">
-              <li>Click <span className="font-medium text-gray-900">Leave Feedback</span> to start a new thread.</li>
+              <li>Click <span className="font-medium text-gray-900">Leave Feedback</span> to start a new discussion.</li>
               <li>Discussions are categorized as <span className="font-medium text-gray-900">&quot;In Progress&quot;</span> or <span className="font-medium text-gray-900">&quot;Completed&quot;</span>.</li>
               <li>You can view likes, bookmarks, replies, and uploaded images. Click an image to enlarge it.</li>
             </ul>

@@ -44,7 +44,7 @@ SeqEdge currently ships with four main product surfaces:
 
 - **Overview**: summary cards, featured downloads, charts, and entry points.
 - **Records**: searchable table plus embedded genome browser and record detail panel.
-- **Discussion**: public or Administrator-only message threads with image upload, likes, bookmarks, and reply workflow.
+- **Discussion**: public or Administrator-only discussions with image upload, likes, bookmarks, follow-up replies, and administrator moderation.
 - **Downloads**: site-wide file catalog with browser download and CLI download options.
 
 The current default schema and UI are still genomics-oriented. Template users can generalize the project later, but the repository in its present state still uses promoter- and genome-related naming in the main data surfaces.
@@ -73,9 +73,9 @@ The current default schema and UI are still genomics-oriented. Template users ca
 - Generate `.sh` and `.bat` batch download scripts for public sample files.
 - Submit public or Administrator-only discussions from the `Discussion` tab.
 - Sign in with the allowed GitHub Administrator account to publish official replies.
-- Upload images in discussion threads and open posted images in a zoomable lightbox.
+- Upload images in discussions and open posted images in a zoomable lightbox.
 - View likes and bookmarks in both the list and detail view.
-- See a site uptime counter in the footer.
+- See a footer counter that shows both live site uptime and cumulative unique visitors.
 
 ### Why this template is useful for fork users
 
@@ -188,7 +188,7 @@ FEEDBACK_EMAIL_TO=owner@example.org
 
 Important notes:
 
-- `SUPABASE_SERVICE_ROLE_KEY` is required for Administrator-only write actions such as hiding or showing files in `Downloads`, saving `download_metadata`, issuing private signed URLs, and other privileged server-side mutations.
+- `SUPABASE_SERVICE_ROLE_KEY` is required for Administrator-only write actions such as hiding or showing files in `Downloads`, saving `download_metadata`, issuing private signed URLs, pinning or hiding discussions, deleting discussions, posting official discussion replies, and hiding or deleting follow-up replies.
 - Get it from Supabase Dashboard -> **Settings** -> **API** -> **Project API keys** -> `service_role`.
 - Keep it server-side only. Never expose it through any `NEXT_PUBLIC_*` variable.
 - Without a new deployment, the current build does not receive the new value.
@@ -209,6 +209,7 @@ For the current feature set, `schema.sql` also needs to create the interaction a
 - `site_feedback`
 - `feedback_comments`
 - `site_reactions`
+- `site_visitors`
 - `download_metadata`
 - storage bucket and policies for `feedback-images`
 
@@ -497,13 +498,16 @@ SeqEdge includes a lightweight interaction area for research communication:
 - Messages can be `Public` or `Administrator only`.
 - The `Discussion` tab shows discussions split into `In progress` and `Completed`.
 - Discussions can be sorted, including a `Most liked` view.
-- Every posted discussion thread and every follow-up comment is rendered back on the site inside the same thread view.
-- Administrator replies appear on the site and are shown inline in the thread once saved.
-- Follow-up comments from visitors remain visible under the thread and are loaded from `feedback_comments`.
-- New top-level threads send an Administrator notification email whether the thread is `Public` or `Administrator only`.
-- New follow-up comments in an existing thread also send an Administrator notification email.
-- The reply action is restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`, while the Administrator UI in the browser also expects `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` to match the same login.
-- Posted and replied timestamps are displayed for each thread.
+- Every posted discussion and every follow-up comment is rendered back on the site inside the same discussion view.
+- Administrator replies appear on the site and are shown inline in the discussion once saved.
+- Follow-up comments from visitors remain visible under the discussion and are loaded from `feedback_comments`.
+- Administrators can pin or unpin discussions in both `In progress` and `Completed`, hide or show discussions, and permanently delete discussions after signing in with the configured GitHub account.
+- Administrators can also hide, show, and delete follow-up replies on individual discussions.
+- Hidden discussions and hidden replies remain visible to the Administrator after sign-in so moderation can be reversed from the same UI, while public visitors continue to see only visible content.
+- New top-level discussions send an Administrator notification email whether the discussion is `Public` or `Administrator only`.
+- New follow-up comments in an existing discussion also send an Administrator notification email.
+- Administrator moderation actions and official replies are restricted to the GitHub account matching `GITHUB_ADMIN_USERNAME`, while the Administrator UI in the browser also expects `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` to match the same login.
+- Posted and replied timestamps are displayed for each discussion.
 - Visitors can leave `Like` and `Bookmark` reactions.
 - Image uploads show success or failure feedback during submission.
 
@@ -511,7 +515,7 @@ Required database objects for this feature are included in `schema.sql`. Require
 
 ### Administrator reply setup
 
-To let the site owner sign in and reply from the browser:
+To let the site owner sign in and moderate discussions from the browser:
 
 #### 1. Enable GitHub Auth in Supabase
 
@@ -541,7 +545,7 @@ If the Site URL is left as `http://localhost:3000`, OAuth sign-in will redirect 
 
 #### 4. Configure environment
 
-Set both `GITHUB_ADMIN_USERNAME` and `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the same GitHub login that may reply.
+Set both `GITHUB_ADMIN_USERNAME` and `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` in `.env.local` or your deployment dashboard to the same GitHub login that may post official replies and use the moderation controls.
 
 ### Email notification setup (Resend)
 
@@ -549,9 +553,9 @@ SeqEdge uses [Resend](https://resend.com) to deliver feedback notification email
 
 When configured, the current implementation sends:
 
-- an Administrator notification email for each new top-level discussion thread;
-- that top-level thread notification also covers `Administrator only` threads, not only public threads;
-- an Administrator notification email for each new follow-up comment in a discussion thread;
+- an Administrator notification email for each new top-level discussion;
+- that top-level discussion notification also covers `Administrator only` discussions, not only public discussions;
+- an Administrator notification email for each new follow-up comment in a discussion;
 - a visitor reply email when the Administrator posts an official reply and the visitor supplied an email address.
 
 #### Test mode
@@ -599,9 +603,11 @@ Default template SVG assets under `public/` that are not used by your deployment
 
 ### Site uptime
 
-The footer shows a live uptime counter:
+The footer shows a live uptime counter together with a cumulative visitor counter:
 
-`This site has been running: X d X h X m X s`
+`Site uptime: X d X h X m X s | Visitors: N`
+
+`src/components/site-uptime.tsx` reads the configured start timestamp for the uptime display and also calls `/api/visitors` to show the cumulative unique visitor count derived from the hashed browser fingerprint written into `site_visitors`.
 
 Set the start timestamp in `src/site-config.ts` under `uptime.startAt`.
 

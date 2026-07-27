@@ -1,17 +1,11 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import type { FeedbackCommentEntry } from '@/types/genome';
 
-interface CommentEntry {
-  id: string;
-  author_name: string;
-  author_email: string | null;
-  message: string;
-  image_url: string | null;
-  created_at: string;
-}
+type CommentEntry = FeedbackCommentEntry;
 
-export function useDiscussionComments() {
+export function useDiscussionComments(accessToken?: string | null) {
   const [entryComments, setEntryComments] = useState<Record<string, CommentEntry[]>>({});
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [commentSubmitting, setCommentSubmitting] = useState<Record<string, boolean>>({});
@@ -20,12 +14,14 @@ export function useDiscussionComments() {
 
   const fetchEntryComments = useCallback(async (entryId: string) => {
     try {
-      const response = await fetch(`/api/feedback?feedback_id=${encodeURIComponent(entryId)}`);
+      const response = await fetch(`/api/feedback?feedback_id=${encodeURIComponent(entryId)}`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
       const data = await response.json() as { comments?: CommentEntry[]; error?: string };
       if (!response.ok) return;
       setEntryComments((c) => ({ ...c, [entryId]: data.comments || [] }));
     } catch { /* ignore */ }
-  }, []);
+  }, [accessToken]);
 
   const handleSubmitComment = useCallback(async (entryId: string) => {
     const draft = (commentDrafts[entryId] || '').trim();
@@ -70,8 +66,8 @@ export function useDiscussionComments() {
   };
 }
 
-export function useDiscussionThreads() {
-  const comments = useDiscussionComments();
+export function useDiscussionThreads(accessToken?: string | null) {
+  const comments = useDiscussionComments(accessToken);
   return {
     ...comments,
     entryThreads: comments.entryComments,

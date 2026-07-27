@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
+import { getServiceSupabase, getSupabase, hasSupabaseServiceRole, isSupabaseConfigured } from "@/utils/supabase";
 import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
 
 const VALID_CATEGORIES = new Set(["general", "issue", "idea", "data", "collaboration"]);
@@ -217,7 +217,18 @@ async function trySendEmail(label: string, send: () => Promise<void>) {
   }
 }
 
-const COMMENTS_SELECT = "id, feedback_id, author_name, author_email, message, image_url, created_at";
+const COMMENTS_SELECT = "id, feedback_id, author_name, author_email, message, image_url, created_at, hidden";
+
+function getAdminWritableSupabase() {
+  if (!hasSupabaseServiceRole) {
+    return {
+      ok: false as const,
+      error: "SUPABASE_SERVICE_ROLE_KEY is required for administrator discussion actions.",
+    };
+  }
+
+  return { ok: true as const, client: getServiceSupabase() };
+}
 
 export async function GET(request: NextRequest) {
   if (!isSupabaseConfigured) {
@@ -229,6 +240,8 @@ export async function GET(request: NextRequest) {
 
   const feedbackId = request.nextUrl.searchParams.get('feedback_id');
   if (feedbackId) {
+    const creatorAuth = await requireCreatorGithubAuth(getBearerToken(request));
+    const isAdmin = creatorAuth.ok;
     const sbComments = getSupabase();
     const { data: comments, error: commentsError } = await sbComments
       .from("feedback_comments")
@@ -236,7 +249,10 @@ export async function GET(request: NextRequest) {
       .eq("feedback_id", feedbackId)
       .order("created_at", { ascending: true });
     if (commentsError) return NextResponse.json({ error: formatFeedbackStorageError(commentsError.message) }, { status: 500 });
-    return NextResponse.json({ comments: comments || [] });
+    return NextResponse.json({
+      comments: (comments || []).filter((comment) => isAdmin || !comment.hidden),
+      isAdmin,
+    });
   }
 
   const sb = getSupabase();
@@ -329,7 +345,7 @@ export async function POST(request: Request) {
 
     await trySendEmail("sendCommentEmail", () => sendCommentEmail({
       feedbackId,
-      threadTitle: feedbackEntry.title || "Untitled thread",
+      threadTitle: feedbackEntry.title || "Untitled discussion",
       threadAuthor: feedbackEntry.display_name || "Visitor",
       commentAuthor,
       commentMessage,
@@ -459,9 +475,40 @@ export async function PATCH(request: NextRequest) {
   const hasReply = typeof payload.creatorReply === "string";
   const hasPin = typeof payload.pinned === "boolean";
   const hasHide = typeof payload.hidden === "boolean";
+  const commentId = typeof payload.commentId === "string" ? payload.commentId.trim() : "";
+  const hasCommentHide = typeof payload.commentHidden === "boolean";
 
-  if ((hasReply || hasPin || hasHide) && !adminCheck.ok) {
+  if ((hasReply || hasPin || hasHide || hasCommentHide || !!commentId) && !adminCheck.ok) {
     return NextResponse.json({ error: adminCheck.error }, { status: 401 });
+  }
+
+  if (commentId) {
+    const commentHidden = typeof payload.commentHidden === "boolean" ? payload.commentHidden : undefined;
+    if (commentHidden === undefined) {
+      return NextResponse.json({ error: "commentHidden must be a boolean when commentId is provided." }, { status: 400 });
+    }
+
+    const writable = getAdminWritableSupabase();
+    if (!writable.ok) {
+      return NextResponse.json({ error: writable.error }, { status: 503 });
+    }
+
+    const { data, error } = await writable.client
+      .from("feedback_comments")
+      .update({ hidden: commentHidden })
+      .eq("id", commentId)
+      .select(COMMENTS_SELECT)
+      .maybeSingle();
+
+    if (error) {
+      return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: "Comment not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({ comment: data });
   }
 
   const id = typeof payload.id === "string" ? payload.id.trim() : "";
@@ -497,7 +544,12 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "hidden must be a boolean." }, { status: 400 });
   }
 
-  const sb = getSupabase();
+  const writable = getAdminWritableSupabase();
+  if (!writable.ok) {
+    return NextResponse.json({ error: writable.error }, { status: 503 });
+  }
+
+  const sb = writable.client;
 
   // Enforce max 3 pinned when pinning an entry
   if (pinned === true) {
@@ -582,11 +634,31 @@ export async function DELETE(request: NextRequest) {
   }
 
   const id = request.nextUrl.searchParams.get('id');
-  if (!id) {
-    return NextResponse.json({ error: "Feedback id is required." }, { status: 400 });
+  const commentId = request.nextUrl.searchParams.get('comment_id');
+  if (!id && !commentId) {
+    return NextResponse.json({ error: "Feedback id or comment_id is required." }, { status: 400 });
   }
 
-  const sb = getSupabase();
+  const writable = getAdminWritableSupabase();
+  if (!writable.ok) {
+    return NextResponse.json({ error: writable.error }, { status: 503 });
+  }
+
+  const sb = writable.client;
+
+  if (commentId) {
+    const { error } = await sb
+      .from("feedback_comments")
+      .delete()
+      .eq("id", commentId);
+
+    if (error) {
+      return NextResponse.json({ error: formatFeedbackStorageError(error.message) }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  }
+
   const { error } = await sb
     .from("site_feedback")
     .delete()

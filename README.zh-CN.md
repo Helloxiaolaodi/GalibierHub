@@ -75,7 +75,7 @@ SeqEdge 当前主要包含四个核心界面：
 - 使用被授权的 GitHub 创建者账号登录并发布官方回复。
 - 在讨论区上传图片，并通过可放大的灯箱查看已发布图片。
 - 在列表与详情中查看点赞和收藏。
-- 在页脚查看站点运行时长计数器。
+- 在页脚查看同时包含站点运行时长与累积独立访客人数的计数器。
 
 ### 对 fork 使用者的价值
 
@@ -188,7 +188,7 @@ FEEDBACK_EMAIL_TO=owner@example.org
 
 重要说明：
 
-- `SUPABASE_SERVICE_ROLE_KEY` 是创建者写操作所必需的变量，用于隐藏或显示下载文件、保存 `download_metadata`、签发私有下载 URL 等服务端操作。
+- `SUPABASE_SERVICE_ROLE_KEY` 是创建者写操作所必需的变量，用于隐藏或显示下载文件、保存 `download_metadata`、签发私有下载 URL，以及对 discussion 执行置顶、隐藏、删除、发布官方回复、隐藏或删除后续回复等服务端操作。
 - 获取方式：Supabase Dashboard -> **Settings** -> **API** -> **Project API keys** -> `service_role`。
 - 该变量只能保留在服务端，不能放进任何 `NEXT_PUBLIC_*` 变量。
 - 不重新部署的话，新的环境变量不会进入当前构建产物。
@@ -209,6 +209,7 @@ FEEDBACK_EMAIL_TO=owner@example.org
 - `site_feedback`
 - `feedback_comments`
 - `site_reactions`
+- `site_visitors`
 - `download_metadata`
 - `feedback-images` 的 storage bucket 与策略
 
@@ -495,15 +496,18 @@ SeqEdge 内置了轻量研究交流区：
 - 点击 `Discussion` 标签页即可浏览讨论并打开浮动编辑器。
 - 留言支持标题、姓名或昵称、邮箱、单位、分类、评分与可见性。
 - 留言可设为 `Public` 或 `Administrator only`。
-- `Discussion` 页面会按 `In progress` 与 `Completed` 归类展示帖子。
+- `Discussion` 页面会按 `In progress` 与 `Completed` 归类展示讨论。
 - 支持排序，包括 `Most liked` 视图。
-- 每一个留言主题和每一个后续评论都会在站内同一条讨论线程下显示出来。
-- 管理员回复会直接显示在站内，并以内联方式出现在对应线程中。
-- 访客后续评论会写入 `feedback_comments`，并在展开线程后显示在页面中。
-- 无论留言被设为 `Public` 还是 `Administrator only`，新的顶层留言都会向管理员发送邮件通知。
-- 已有线程中的新评论也会向管理员发送邮件通知。
-- 回复权限受 `GITHUB_ADMIN_USERNAME` 限制，浏览器中的创建者操作界面同时依赖 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME`。
-- 帖子的发布时间与回复时间都会显示。
+- 每一条讨论留言和每一个后续评论都会在站内同一条 discussion 视图下显示出来。
+- 管理员回复会直接显示在站内，并以内联方式出现在对应 discussion 中。
+- 访客后续评论会写入 `feedback_comments`，并在展开 discussion 后显示在页面中。
+- 管理员登录后可以在 `In progress` 和 `Completed` 两个区域中置顶或取消置顶 discussion，也可以隐藏、显示或永久删除 discussion。
+- 管理员还可以对单条后续回复执行隐藏、显示和删除操作。
+- 被隐藏的 discussion 和回复在管理员登录后仍然可见，便于在同一界面中恢复显示；普通访客仍只会看到可见内容。
+- 无论留言被设为 `Public` 还是 `Administrator only`，新的顶层 discussion 都会向管理员发送邮件通知。
+- 已有 discussion 中的新评论也会向管理员发送邮件通知。
+- 回复与管理权限受 `GITHUB_ADMIN_USERNAME` 限制，浏览器中的管理员操作界面同时依赖 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME`。
+- discussion 的发布时间与回复时间都会显示。
 - 访客可进行 `Like` 与 `Bookmark` 操作。
 - 图片上传过程中会显示成功或失败反馈。
 
@@ -511,7 +515,7 @@ SeqEdge 内置了轻量研究交流区：
 
 ### 创建者回帖设置
 
-若要让站点拥有者在浏览器中登录并回帖：
+若要让站点拥有者在浏览器中登录并进行 discussion 管理：
 
 #### 1. 在 Supabase 中启用 GitHub 认证
 
@@ -541,7 +545,7 @@ SeqEdge 内置了轻量研究交流区：
 
 #### 4. 配置环境变量
 
-在 `.env.local` 或部署平台后台中，把 `GITHUB_ADMIN_USERNAME` 与 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` 设为同一个允许回帖的 GitHub 登录名。
+在 `.env.local` 或部署平台后台中，把 `GITHUB_ADMIN_USERNAME` 与 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` 设为同一个允许发布官方回复并使用管理控件的 GitHub 登录名。
 
 ### 邮件通知设置（Resend）
 
@@ -549,9 +553,9 @@ SeqEdge 使用 [Resend](https://resend.com) 向站点创建者发送反馈通知
 
 当前实现中，若邮件配置完整，则会发送以下几类通知：
 
-- 每一条新的顶层讨论留言，都会发邮件通知管理员；
-- 上述顶层留言通知同时覆盖 `Administrator only` 私有留言，而不只是公开留言；
-- 每一条新的讨论评论，都会发邮件通知管理员；
+- 每一条新的顶层 discussion，都会发邮件通知管理员；
+- 上述顶层 discussion 通知同时覆盖 `Administrator only` 私有留言，而不只是公开留言；
+- 每一条新的 discussion 评论，都会发邮件通知管理员；
 - 当管理员发布官方回复且访客填写了邮箱时，系统会向访客发送回复通知邮件。
 
 #### 测试模式
@@ -599,9 +603,11 @@ FEEDBACK_EMAIL_TO=owner@example.org
 
 ### 站点运行时长
 
-页脚会显示实时运行时长：
+页脚会同时显示实时运行时长与累积访客人数：
 
-`本站点已运行：X d X h X m X s`
+`Site uptime: X d X h X m X s | Visitors: N`
+
+`src/components/site-uptime.tsx` 会读取配置中的起始时间戳来显示运行时长，同时调用 `/api/visitors`，基于写入 `site_visitors` 的浏览器指纹哈希统计累积独立访客人数。
 
 起始时间戳请在 `src/site-config.ts` 的 `uptime.startAt` 中设置。
 
