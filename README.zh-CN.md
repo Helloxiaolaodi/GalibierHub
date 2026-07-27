@@ -32,7 +32,7 @@ SeqEdge 是一个用于构建坐标型基因组门户的开源模板，整合了
 4. [架构与部署模型](#架构与部署模型)
 5. [快速开始](#快速开始)
 6. [数据与下载工作流](#数据与下载工作流)
-7. [讨论区与创建者运维](#讨论区与创建者运维)
+7. [讨论区与管理员运维](#讨论区与管理员运维)
 8. [维护说明](#维护说明)
 9. [技术栈与参考资料](#技术栈与参考资料)
 10. [已知限制：数据访问控制](#已知限制数据访问控制)
@@ -44,7 +44,7 @@ SeqEdge 当前主要包含四个核心界面：
 
 - **Overview**：首页概览、统计卡片、特色下载入口与图表。
 - **Records**：记录表格、筛选、详情面板与嵌入式基因组浏览器。
-- **Discussion**：公开或仅创建者可见的留言讨论区，支持图片、点赞、收藏与回帖。
+- **Discussion**：公开或仅管理员可见的留言讨论区，支持图片、点赞、收藏与回帖。
 - **Downloads**：站点级文件目录，可浏览层级结构并统一调用下载弹窗。
 
 需要说明的是，当前默认数据结构与界面命名仍然偏向 promoter / genome 的基因组场景。后续 fork 使用者可以自行泛化，但仓库目前仍以基因组数据库模板为主。
@@ -71,8 +71,8 @@ SeqEdge 当前主要包含四个核心界面：
 - 查看文件名、类型、大小、创建与更新时间、下载次数、访问模式、MD5 与 SHA256。
 - 一键复制 SHA256，并通过支持断点续传的命令行下载大文件。
 - 为公开样本文件生成 `.sh` 与 `.bat` 批量下载脚本。
-- 在 `Discussion` 标签页提交公开留言或仅创建者可见留言。
-- 使用被授权的 GitHub 创建者账号登录并发布官方回复。
+- 在 `Discussion` 标签页提交公开留言或仅管理员可见留言。
+- 使用被授权的 GitHub 管理员账号登录并发布官方回复。
 - 在讨论区上传图片，并通过可放大的灯箱查看已发布图片。
 - 在列表与详情中查看点赞和收藏。
 - 在页脚查看同时包含站点运行时长与累积独立访客人数的计数器。
@@ -176,7 +176,7 @@ NEXT_PUBLIC_REFERENCE_BUNDLE_SIZE=180 MB
 NEXT_PUBLIC_REFERENCE_BUNDLE_MODE=direct
 ```
 
-创建者回帖与邮件通知相关变量：
+管理员回帖与邮件通知相关变量：
 
 ```bash
 GITHUB_ADMIN_USERNAME=your-github-login
@@ -188,13 +188,13 @@ FEEDBACK_EMAIL_TO=owner@example.org
 
 重要说明：
 
-- `SUPABASE_SERVICE_ROLE_KEY` 是创建者写操作所必需的变量，用于隐藏或显示下载文件、保存 `download_metadata`、签发私有下载 URL，以及对 discussion 执行置顶、隐藏、删除、发布官方回复、隐藏或删除后续回复等服务端操作。
+- `SUPABASE_SERVICE_ROLE_KEY` 是管理员写操作所必需的变量，用于隐藏或显示下载文件、保存 `download_metadata`、签发私有下载 URL，以及对 discussion 执行置顶、隐藏、删除、发布官方回复、隐藏或删除后续回复等服务端操作。
 - 获取方式：Supabase Dashboard -> **Settings** -> **API** -> **Project API keys** -> `service_role`。
 - 该变量只能保留在服务端，不能放进任何 `NEXT_PUBLIC_*` 变量。
 - 不重新部署的话，新的环境变量不会进入当前构建产物。
 - 若文件位于子目录，请把子目录前缀写入 `NEXT_PUBLIC_STORAGE_BASE_URL`。
 - 支持直接读取 Hugging Face，但 Worker 是更稳定的 JBrowse 读取路径。
-- 若要启用创建者回帖，需要在 Supabase 中启用 GitHub 认证，并将 `GITHUB_ADMIN_USERNAME` 与 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` 设为同一个 GitHub 登录名。
+- 若要启用管理员回帖，需要在 Supabase 中启用 GitHub 认证，并将 `GITHUB_ADMIN_USERNAME` 与 `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` 设为同一个 GitHub 登录名。
 
 ### 3. 初始化数据库
 
@@ -249,10 +249,20 @@ Cloudflare Pages：
 - Overview 标签页的特色下载卡片：`src/site-config.ts`
 - 样本级下载字段：`genome_samples.vcf_download_url`、`genome_samples.fasta_download_url`、`genome_samples.gb_download_url`、`genome_samples.bed_download_url`、`genome_samples.gff3_download_url` 及相关 `*_download_mode`
 - 统一下载元数据模型与 CLI 生成逻辑：`src/lib/download-info.ts`
-- 单文件下载弹窗与创建者编辑控制：`src/components/download-actions.tsx`
+- 单文件下载弹窗与管理员编辑控制：`src/components/download-actions.tsx`
 - 公开文件的批量脚本生成：`src/components/promoter-table.tsx` 与 `/api/samples/batch`
 - 站点级下载目录与层级浏览：`src/components/download-catalog-panel.tsx` 与 `/api/download-catalog`
 - 私有 signed URL 解析：`/api/download-metadata/resolve`，后端依赖 `download_metadata` 表
+
+### Downloads 页面现在支持什么
+
+- 标准面包屑路径导航，例如 `Home / Downloads / seqedge-data / reference_genomes / scov2`，其中每一级父目录都可点击返回。
+- 紧凑的控制栏，将目录搜索、`Copy Folder CLI`、`Export Manifest TSV`、`Export Manifest CSV`、`Export sha256sum.txt`、`Export md5sum.txt` 以及网格/表格视图切换集中在同一层。
+- 适合大目录的表格视图，支持按 `Name`、`Size`、`Updated`、`Checksum`、`Actions` 排序。
+- 信息密度更高的卡片视图，在保留视觉浏览体验的同时补充大小与更新时间。
+- 单文件操作入口拆分为浏览器下载与 CLI/详情两类按钮，避免一个按钮承载过多动作。
+- 可导出机器可读的 Manifest，字段固定为 `Directory_Path`、`File_Name`、`File_Type`、`Size_Bytes`、`Direct_URL`、`Checksum_SHA256`。
+- 可按目录导出 `sha256sum.txt` 与 `md5sum.txt`，便于大批量下载后的完整性校验。
 
 ### 当前下载弹窗实际会展示什么
 
@@ -487,17 +497,19 @@ curl -L -C - -o <文件名> "<resolve url>"
 
 当真实轨道可用时，SeqEdge 还会自动打开首个可达注释轨道，避免落在 `No tracks active` 状态。
 
-## 讨论区与创建者运维
+## 讨论区与管理员运维
 
 ### 讨论区模块
 
 SeqEdge 内置了轻量研究交流区：
 
-- 点击 `Discussion` 标签页即可浏览讨论并打开浮动编辑器。
+- 点击 `Discussion` 标签页即可浏览讨论并打开浮动的 `New Discussion` 编辑器。
+- 编辑器采用 Markdown 输入框、可视化工具栏以及 `Write` / `Preview` 双标签页，既保留纯文本效率，也能方便地插入代码块、引用、列表、表格和图片说明。
 - 留言支持标题、姓名或昵称、邮箱、单位、分类、评分与可见性。
 - 留言可设为 `Public` 或 `Administrator only`。
 - `Discussion` 页面会按 `In progress` 与 `Completed` 归类展示讨论。
 - 支持排序，包括 `Most liked` 视图。
+- 左侧统计区已压缩为紧凑徽标样式，把更多横向空间让给讨论标题和较长的技术日志内容。
 - 每一条讨论留言和每一个后续评论都会在站内同一条 discussion 视图下显示出来。
 - 管理员回复会直接显示在站内，并以内联方式出现在对应 discussion 中。
 - 访客后续评论会写入 `feedback_comments`，并在展开 discussion 后显示在页面中。
@@ -513,9 +525,9 @@ SeqEdge 内置了轻量研究交流区：
 
 相关数据库对象已包含在 `schema.sql` 中，所需环境变量见 `.env.example`。
 
-### 创建者回帖设置
+### 管理员回帖设置
 
-若要让站点拥有者在浏览器中登录并进行 discussion 管理：
+若要让站点管理员在浏览器中登录并进行 discussion 管理：
 
 #### 1. 在 Supabase 中启用 GitHub 认证
 
@@ -549,7 +561,7 @@ SeqEdge 内置了轻量研究交流区：
 
 ### 邮件通知设置（Resend）
 
-SeqEdge 使用 [Resend](https://resend.com) 向站点创建者发送反馈通知邮件。
+SeqEdge 使用 [Resend](https://resend.com) 向站点管理员发送反馈通知邮件。
 
 当前实现中，若邮件配置完整，则会发送以下几类通知：
 
@@ -607,7 +619,7 @@ FEEDBACK_EMAIL_TO=owner@example.org
 
 `Site uptime: X d X h X m X s | Visitors: N`
 
-`src/components/site-uptime.tsx` 会读取配置中的起始时间戳来显示运行时长，同时调用 `/api/visitors`，基于写入 `site_visitors` 的浏览器指纹哈希统计累积独立访客人数。
+`src/components/site-uptime.tsx` 会读取配置中的起始时间戳来显示运行时长，同时调用 `/api/visitors`，基于保存在 `localStorage` 中的持久浏览器访客 ID 计算哈希后写入 `site_visitors`，统计累积独立访客人数。这个指标更接近 `Visitors`，而不是 `Page views`：同一浏览器配置文件反复刷新通常不会重复计数，但无痕或隐私窗口由于使用隔离存储，通常会被记作新的访客。即使只配置匿名 Supabase key，首次访问也可以被计入；如果同时配置了服务端 role key，则还可以为重复访问刷新 `last_seen_at`。
 
 起始时间戳请在 `src/site-config.ts` 的 `uptime.startAt` 中设置。
 

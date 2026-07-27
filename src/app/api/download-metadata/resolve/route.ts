@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { scryptSync, timingSafeEqual } from 'crypto';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
+import { getBearerToken, requireCreatorGithubAuth } from '@/lib/feedback-admin';
 import {
   buildDownloadResolvedInfo,
   DEFAULT_DOWNLOAD_METADATA,
@@ -37,6 +38,8 @@ export async function POST(request: Request) {
   const fallbackLabel = typeof payload.label === 'string' ? payload.label : null;
   const fallbackDescription = typeof payload.description === 'string' ? payload.description : null;
   const password = typeof payload.password === 'string' ? payload.password : '';
+  const creatorAuth = await requireCreatorGithubAuth(getBearerToken(request));
+  const isAdmin = creatorAuth.ok;
 
   if (!downloadKey) {
     return NextResponse.json({ error: 'Missing download_key.' }, { status: 400 });
@@ -80,11 +83,11 @@ export async function POST(request: Request) {
     download_count: 0,
   };
 
-  if (meta.hidden) {
+  if (meta.hidden && !isAdmin) {
     return NextResponse.json({ error: 'This file is hidden by the Administrator.' }, { status: 403 });
   }
 
-  if (row?.password_hash) {
+  if (row?.password_hash && !isAdmin) {
     if (!password || !verifyPassword(password, String(row.password_hash))) {
       return NextResponse.json({ error: 'Incorrect password.' }, { status: 403 });
     }

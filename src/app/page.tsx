@@ -443,7 +443,11 @@ export default function HomePage() {
           <SiteFeedback isAdminHint={isCreatorAdmin} accessToken={creatorAccessToken} creatorLogin={creatorLogin} refreshSignal={feedbackRefreshSignal} onFeedbackSubmitted={() => setFeedbackRefreshSignal((current) => current + 1)} />
         )}
         {activeTab === 'downloads' && (
-          <DownloadCatalogPanel isAdmin={isCreatorAdmin} accessToken={creatorAccessToken} />
+          <DownloadCatalogPanel
+            isAdmin={isCreatorAdmin}
+            accessToken={creatorAccessToken}
+            onNavigateHome={() => setActiveTab('overview')}
+          />
         )}
       </main>
       {selectedPromoter && (

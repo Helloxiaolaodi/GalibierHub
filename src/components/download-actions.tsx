@@ -23,6 +23,7 @@ interface DownloadActionsProps {
   className?: string;
   initialHidden?: boolean;
   onMetadataSaved?: (next: DownloadMetadataPayload) => void;
+  compact?: boolean;
 }
 
 type FileMeta = { size: number | null; sha256: string | null; loading: boolean };
@@ -87,6 +88,7 @@ export default function DownloadActions({
   className = '',
   initialHidden,
   onMetadataSaved,
+  compact = false,
 }: DownloadActionsProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -331,13 +333,25 @@ export default function DownloadActions({
         {hidden && !isAdmin ? (
           <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-400">Hidden by Administrator</span>
         ) : (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="inline-flex min-w-[9rem] items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            {label}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => void handleBrowserDownload()}
+              disabled={downloading || (hidden && !isAdmin)}
+              className={`inline-flex items-center justify-center rounded-lg bg-blue-600 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 ${compact ? 'min-w-[7.25rem] px-3 py-2' : 'min-w-[9rem] px-4 py-2'}`}
+            >
+              {downloading ? 'Preparing...' : label}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className={`inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 ${compact ? 'min-w-[2.75rem] px-3 py-2' : 'min-w-[7rem] px-4 py-2'}`}
+              aria-label="Open CLI and file details"
+              title="Open CLI and file details"
+            >
+              {compact ? '>_' : 'CLI / Details'}
+            </button>
+          </>
         )}
         {isAdmin && (
           <button

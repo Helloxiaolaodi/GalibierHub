@@ -14,6 +14,30 @@ function formatVisitorStorageError(message: string) {
   return message;
 }
 
+function getReadClient() {
+  return hasSupabaseServiceRole ? getServiceSupabase() : getSupabase();
+}
+
+async function readVisitorCount() {
+  const sb = getReadClient();
+  const { count, error } = await sb
+    .from('site_visitors')
+    .select('*', { count: 'exact', head: true });
+
+  return { count: count ?? 0, error };
+}
+
+async function readVisitorByFingerprint(fingerprintHash: string) {
+  const sb = getReadClient();
+  const { data, error } = await sb
+    .from('site_visitors')
+    .select('id')
+    .eq('fingerprint_hash', fingerprintHash)
+    .maybeSingle();
+
+  return { data, error };
+}
+
 export async function GET() {
   if (!isSupabaseConfigured) {
     return NextResponse.json(
@@ -22,16 +46,13 @@ export async function GET() {
     );
   }
 
-  const sb = getSupabase();
-  const { count, error } = await sb
-    .from('site_visitors')
-    .select('*', { count: 'exact', head: true });
+  const { count, error } = await readVisitorCount();
 
   if (error) {
     return NextResponse.json({ error: formatVisitorStorageError(error.message) }, { status: 500 });
   }
 
-  return NextResponse.json({ totalVisitors: count ?? 0 });
+  return NextResponse.json({ totalVisitors: count, source: hasSupabaseServiceRole ? 'service_role' : 'anon' });
 }
 
 export async function POST(request: NextRequest) {
@@ -58,37 +79,30 @@ export async function POST(request: NextRequest) {
   }
 
   const fingerprintHash = hashVisitorFingerprint(fingerprint);
-  const readable = getSupabase();
-  const { count: currentCount, error: countError } = await readable
-    .from('site_visitors')
-    .select('*', { count: 'exact', head: true });
+  const { count: currentCount, error: countError } = await readVisitorCount();
 
   if (countError) {
     return NextResponse.json({ error: formatVisitorStorageError(countError.message) }, { status: 500 });
   }
 
-  if (!hasSupabaseServiceRole) {
-    return NextResponse.json({
-      totalVisitors: currentCount ?? 0,
-      counted: false,
-      error: 'SUPABASE_SERVICE_ROLE_KEY is required for server-side visitor counting writes.',
-    }, { status: 503 });
-  }
-
-  const writable = getServiceSupabase();
+  const writable = hasSupabaseServiceRole ? getServiceSupabase() : getSupabase();
   const now = new Date().toISOString();
 
-  const { data: existing, error: existingError } = await writable
-    .from('site_visitors')
-    .select('id')
-    .eq('fingerprint_hash', fingerprintHash)
-    .maybeSingle();
+  const { data: existing, error: existingError } = await readVisitorByFingerprint(fingerprintHash);
 
   if (existingError) {
     return NextResponse.json({ error: formatVisitorStorageError(existingError.message) }, { status: 500 });
   }
 
   if (existing?.id) {
+    if (!hasSupabaseServiceRole) {
+      return NextResponse.json({
+        totalVisitors: currentCount,
+        counted: false,
+        source: 'anon',
+      });
+    }
+
     const { error: updateError } = await writable
       .from('site_visitors')
       .update({ last_seen_at: now })
@@ -98,7 +112,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: formatVisitorStorageError(updateError.message) }, { status: 500 });
     }
 
-    return NextResponse.json({ totalVisitors: currentCount ?? 0, counted: false });
+    return NextResponse.json({
+      totalVisitors: currentCount,
+      counted: false,
+      source: hasSupabaseServiceRole ? 'service_role' : 'anon',
+    });
   }
 
   const { error: insertError } = await writable
@@ -106,8 +124,19 @@ export async function POST(request: NextRequest) {
     .insert({ fingerprint_hash: fingerprintHash, first_seen_at: now, last_seen_at: now });
 
   if (insertError) {
+    if (insertError.code === '23505') {
+      return NextResponse.json({
+        totalVisitors: currentCount,
+        counted: false,
+        source: hasSupabaseServiceRole ? 'service_role' : 'anon',
+      });
+    }
     return NextResponse.json({ error: formatVisitorStorageError(insertError.message) }, { status: 500 });
   }
 
-  return NextResponse.json({ totalVisitors: (currentCount ?? 0) + 1, counted: true }, { status: 201 });
+  return NextResponse.json({
+    totalVisitors: currentCount + 1,
+    counted: true,
+    source: hasSupabaseServiceRole ? 'service_role' : 'anon',
+  }, { status: 201 });
 }

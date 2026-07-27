@@ -254,6 +254,16 @@ Cloudflare Pages:
 - Dedicated site-wide download catalog with hierarchical folder browsing: `src/components/download-catalog-panel.tsx` and `/api/download-catalog`
 - Private signed-URL resolution: `/api/download-metadata/resolve` backed by the `download_metadata` table
 
+### What the Downloads view now supports
+
+- Breadcrumb navigation such as `Home / Downloads / seqedge-data / reference_genomes / scov2`, where every parent level remains clickable.
+- A compact control bar that combines folder search, `Copy Folder CLI`, `Export Manifest TSV`, `Export Manifest CSV`, `Export sha256sum.txt`, `Export md5sum.txt`, and grid or table view switching.
+- A table view with sortable `Name`, `Size`, `Updated`, `Checksum`, and `Actions` columns for directories that would become unwieldy in card mode.
+- A denser grid view that still shows size and updated time so card browsing does not hide basic metadata.
+- Split single-file actions so browser download and CLI or details entry points are visibly separated instead of competing inside one oversized button.
+- Manifest export with stable machine-readable columns: `Directory_Path`, `File_Name`, `File_Type`, `Size_Bytes`, `Direct_URL`, and `Checksum_SHA256`.
+- Directory-level checksum export so downstream users can run `md5sum -c md5sum.txt` or the SHA256 equivalent after large transfers.
+
 ### What the download modal now exposes
 
 For public files with a stable raw URL, the `Download options` modal now exposes four practical delivery paths in the same dialog:
@@ -493,11 +503,13 @@ SeqEdge also opens the first reachable annotation track automatically so the vie
 
 SeqEdge includes a lightweight interaction area for research communication:
 
-- Click the `Discussion` tab to browse discussions and open the floating composer.
+- Click the `Discussion` tab to browse discussions and open the floating `New Discussion` composer.
+- The composer now combines a Markdown editor, a formatting toolbar, and `Write` / `Preview` tabs so users can stay in plain text while still getting code blocks, quotes, lists, tables, and image-friendly formatting.
 - Messages support a title, name or nickname, email, optional affiliation, category, rating, and visibility.
 - Messages can be `Public` or `Administrator only`.
 - The `Discussion` tab shows discussions split into `In progress` and `Completed`.
 - Discussions can be sorted, including a `Most liked` view.
+- The left-side summary has been compacted into badges so more horizontal space stays available for real discussion titles and long technical logs.
 - Every posted discussion and every follow-up comment is rendered back on the site inside the same discussion view.
 - Administrator replies appear on the site and are shown inline in the discussion once saved.
 - Follow-up comments from visitors remain visible under the discussion and are loaded from `feedback_comments`.
@@ -607,7 +619,7 @@ The footer shows a live uptime counter together with a cumulative visitor counte
 
 `Site uptime: X d X h X m X s | Visitors: N`
 
-`src/components/site-uptime.tsx` reads the configured start timestamp for the uptime display and also calls `/api/visitors` to show the cumulative unique visitor count derived from the hashed browser fingerprint written into `site_visitors`.
+`src/components/site-uptime.tsx` reads the configured start timestamp for the uptime display and also calls `/api/visitors` to show the cumulative unique visitor count derived from a persistent browser visitor id stored in `localStorage` and hashed before insertion into `site_visitors`. This metric is intentionally closer to `Visitors` than to `Page views`: refreshing the same browser profile should usually not increment the count again, while an incognito or private window will usually be counted separately because it starts from isolated storage. First-time visits can still be counted with the anonymous Supabase key, while the service-role key additionally allows refreshing `last_seen_at` for repeat visits.
 
 Set the start timestamp in `src/site-config.ts` under `uptime.startAt`.
 

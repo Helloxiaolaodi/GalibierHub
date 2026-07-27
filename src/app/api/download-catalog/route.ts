@@ -14,6 +14,7 @@ type DownloadCatalogItem = {
   label: string;
   description: string;
   sizeLabel: string;
+  sizeBytes: number | null;
   showCli: boolean;
   providerLabel: string;
   sourceScope: CatalogSourceScope;
@@ -21,6 +22,9 @@ type DownloadCatalogItem = {
   sampleIds: string[];
   kinds: string[];
   hidden?: boolean;
+  updatedAt?: string | null;
+  sha256Checksum?: string | null;
+  md5Checksum?: string | null;
 };
 
 type MutableCatalogItem = DownloadCatalogItem & {
@@ -60,6 +64,7 @@ function upsertItem(
     label: string;
     description: string;
     sizeLabel?: string;
+    sizeBytes?: number | null;
     showCli?: boolean;
     sourceScope: 'featured' | 'sample';
     sampleId?: string;
@@ -77,6 +82,7 @@ function upsertItem(
   if (current) {
     current.showCli = current.showCli || Boolean(input.showCli);
     if (!current.sizeLabel && input.sizeLabel) current.sizeLabel = input.sizeLabel;
+    if (current.sizeBytes == null && typeof input.sizeBytes === 'number') current.sizeBytes = input.sizeBytes;
     if (current.label.startsWith('Download ') && !input.label.startsWith('Download ')) current.label = input.label;
     if ((!current.description || current.description.includes('configured storage host') || current.description.includes('configured storage location')) && input.description) current.description = input.description;
     current._scopes.add(input.sourceScope);
@@ -91,6 +97,7 @@ function upsertItem(
     label: input.label,
     description: input.description,
     sizeLabel: input.sizeLabel || '',
+    sizeBytes: typeof input.sizeBytes === 'number' ? input.sizeBytes : null,
     showCli: Boolean(input.showCli),
     providerLabel: inferProviderLabel(validation.normalizedUrl),
     sourceScope: input.sourceScope,
@@ -199,12 +206,18 @@ export async function GET(request: NextRequest) {
       const sb = getSupabase();
       const { data, error } = await sb
         .from('download_metadata')
-        .select('download_key, hidden')
+        .select('download_key, hidden, custom_size_bytes, updated_at, sha256_checksum, md5_checksum')
         .in('download_key', result.map((item) => item.id));
 
       if (error) {
         throw error;
       }
+
+      const metadataMap = new Map(
+        (data ?? [])
+          .filter((row) => typeof row.download_key === 'string')
+          .map((row) => [normalizeDownloadKey(String(row.download_key)), row]),
+      );
 
       const hiddenKeys = new Set(
         (data ?? [])
@@ -215,6 +228,18 @@ export async function GET(request: NextRequest) {
       result = result.map((item) => ({
         ...item,
         hidden: hiddenKeys.has(item.id),
+        sizeBytes: typeof metadataMap.get(item.id)?.custom_size_bytes === 'number'
+          ? metadataMap.get(item.id)?.custom_size_bytes ?? null
+          : item.sizeBytes,
+        updatedAt: typeof metadataMap.get(item.id)?.updated_at === 'string'
+          ? metadataMap.get(item.id)?.updated_at ?? null
+          : null,
+        sha256Checksum: typeof metadataMap.get(item.id)?.sha256_checksum === 'string'
+          ? metadataMap.get(item.id)?.sha256_checksum ?? null
+          : null,
+        md5Checksum: typeof metadataMap.get(item.id)?.md5_checksum === 'string'
+          ? metadataMap.get(item.id)?.md5_checksum ?? null
+          : null,
       }));
 
       if (!isAdmin && hiddenKeys.size > 0) {

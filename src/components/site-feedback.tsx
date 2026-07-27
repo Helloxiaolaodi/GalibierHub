@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { SiteConfig } from '@/site-config';
 import { useDiscussionThreads } from './discussion-comments';
 import type { FeedbackCommentEntry, FeedbackSummary, ReactionCounts, SiteFeedbackEntry } from '@/types/genome';
@@ -28,51 +28,418 @@ interface SiteFeedbackProps {
   onFeedbackSubmitted?: () => void;
 }
 
-function renderMessageWithImages(
+type MarkdownEditorProps = {
+  value: string;
+  onChange: (nextValue: string) => void;
+  rows?: number;
+  placeholder?: string;
+  disabled?: boolean;
+  uploadControls?: ReactNode;
+  className?: string;
+};
+
+type MarkdownBlock =
+  | { type: 'paragraph'; lines: string[] }
+  | { type: 'heading'; level: number; text: string }
+  | { type: 'blockquote'; lines: string[] }
+  | { type: 'ul'; items: string[] }
+  | { type: 'ol'; items: string[] }
+  | { type: 'code'; language: string; lines: string[] };
+
+function renderInlineMarkdown(
+  text: string,
+  onImageClick?: (src: string, alt: string) => void,
+  keyPrefix = 'md-inline',
+) {
+  const pattern = /!\[([^\]]*)\]\(([^)]+)\)|\[([^\]]+)\]\(([^)]+)\)|`([^`]+)`|\*\*([^*]+)\*\*|__([^_]+)__|\*([^*]+)\*|_([^_]+)_/g;
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(
+        <span key={`${keyPrefix}-text-${lastIndex}`} style={{ whiteSpace: 'pre-wrap' }}>
+          {text.slice(lastIndex, match.index)}
+        </span>,
+      );
+    }
+
+    if (match[1] !== undefined) {
+      const alt = match[1];
+      const src = match[2];
+      nodes.push(
+        <Image
+          key={`${keyPrefix}-img-${match.index}`}
+          src={src}
+          alt={alt}
+          width={1200}
+          height={900}
+          unoptimized
+          className={`my-2 max-w-full rounded h-auto ${onImageClick ? 'cursor-zoom-in' : ''}`}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onClick={onImageClick ? () => onImageClick(src, alt) : undefined}
+        />,
+      );
+    } else if (match[3] !== undefined) {
+      nodes.push(
+        <a
+          key={`${keyPrefix}-link-${match.index}`}
+          href={match[4]}
+          target="_blank"
+          rel="noreferrer"
+          className="text-blue-700 underline underline-offset-2 hover:text-blue-800"
+        >
+          {match[3]}
+        </a>,
+      );
+    } else if (match[5] !== undefined) {
+      nodes.push(
+        <code key={`${keyPrefix}-code-${match.index}`} className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[0.92em] text-gray-900">
+          {match[5]}
+        </code>,
+      );
+    } else if (match[6] !== undefined || match[7] !== undefined) {
+      nodes.push(
+        <strong key={`${keyPrefix}-strong-${match.index}`} className="font-semibold text-gray-900">
+          {match[6] ?? match[7]}
+        </strong>,
+      );
+    } else if (match[8] !== undefined || match[9] !== undefined) {
+      nodes.push(
+        <em key={`${keyPrefix}-em-${match.index}`} className="italic">
+          {match[8] ?? match[9]}
+        </em>,
+      );
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(
+      <span key={`${keyPrefix}-tail-${lastIndex}`} style={{ whiteSpace: 'pre-wrap' }}>
+        {text.slice(lastIndex)}
+      </span>,
+    );
+  }
+
+  if (nodes.length === 0) {
+    return [
+      <span key={`${keyPrefix}-plain`} style={{ whiteSpace: 'pre-wrap' }}>
+        {text}
+      </span>,
+    ];
+  }
+
+  return nodes;
+}
+
+function parseMarkdownBlocks(text: string) {
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  const blocks: MarkdownBlock[] = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      index += 1;
+      continue;
+    }
+
+    if (trimmed.startsWith('```')) {
+      const language = trimmed.slice(3).trim();
+      const codeLines: string[] = [];
+      index += 1;
+      while (index < lines.length && !lines[index].trim().startsWith('```')) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length) {
+        index += 1;
+      }
+      blocks.push({ type: 'code', language, lines: codeLines });
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (headingMatch) {
+      blocks.push({ type: 'heading', level: headingMatch[1].length, text: headingMatch[2] });
+      index += 1;
+      continue;
+    }
+
+    if (/^>\s?/.test(trimmed)) {
+      const quoteLines: string[] = [];
+      while (index < lines.length && /^>\s?/.test(lines[index].trim())) {
+        quoteLines.push(lines[index].trim().replace(/^>\s?/, ''));
+        index += 1;
+      }
+      blocks.push({ type: 'blockquote', lines: quoteLines });
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (index < lines.length && /^[-*]\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^[-*]\s+/, ''));
+        index += 1;
+      }
+      blocks.push({ type: 'ul', items });
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (index < lines.length && /^\d+\.\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^\d+\.\s+/, ''));
+        index += 1;
+      }
+      blocks.push({ type: 'ol', items });
+      continue;
+    }
+
+    const paragraphLines: string[] = [];
+    while (index < lines.length) {
+      const current = lines[index];
+      const currentTrimmed = current.trim();
+      if (!currentTrimmed) break;
+      if (
+        currentTrimmed.startsWith('```') ||
+        /^(#{1,6})\s+/.test(currentTrimmed) ||
+        /^>\s?/.test(currentTrimmed) ||
+        /^[-*]\s+/.test(currentTrimmed) ||
+        /^\d+\.\s+/.test(currentTrimmed)
+      ) {
+        break;
+      }
+      paragraphLines.push(current);
+      index += 1;
+    }
+    blocks.push({ type: 'paragraph', lines: paragraphLines });
+  }
+
+  return blocks;
+}
+
+function renderMarkdownMessage(
   text: string | null | undefined,
   onImageClick?: (src: string, alt: string) => void,
 ) {
-  if (!text) return text;
-  const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-  const parts: (string | { type: 'img'; alt: string; src: string })[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = imageRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    parts.push({ type: 'img', alt: match[1], src: match[2] });
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
-  if (parts.length === 0) return <>{text}</>;
+  if (!text) return null;
+
+  const blocks = parseMarkdownBlocks(text);
+
   return (
-    <>
-      {parts.map((part, i) => {
-        if (typeof part === 'string') {
-          return <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{part}</span>;
+    <div className="space-y-3">
+      {blocks.map((block, blockIndex) => {
+        const keyPrefix = `md-${block.type}-${blockIndex}`;
+
+        if (block.type === 'heading') {
+          const level = Math.min(block.level, 6);
+          const classes = [
+            'text-xl font-semibold text-gray-900',
+            'text-lg font-semibold text-gray-900',
+            'text-base font-semibold text-gray-900',
+            'text-sm font-semibold text-gray-900',
+            'text-sm font-medium text-gray-900',
+            'text-sm font-medium text-gray-800',
+          ][level - 1];
+          const content = renderInlineMarkdown(block.text, onImageClick, keyPrefix);
+
+          switch (level) {
+            case 1:
+              return <h1 key={keyPrefix} className={classes}>{content}</h1>;
+            case 2:
+              return <h2 key={keyPrefix} className={classes}>{content}</h2>;
+            case 3:
+              return <h3 key={keyPrefix} className={classes}>{content}</h3>;
+            case 4:
+              return <h4 key={keyPrefix} className={classes}>{content}</h4>;
+            case 5:
+              return <h5 key={keyPrefix} className={classes}>{content}</h5>;
+            default:
+              return <h6 key={keyPrefix} className={classes}>{content}</h6>;
+          }
         }
+
+        if (block.type === 'blockquote') {
+          return (
+            <blockquote key={keyPrefix} className="border-l-2 border-gray-300 bg-gray-50 px-4 py-2 text-sm text-gray-700">
+              {block.lines.map((line, lineIndex) => (
+                <p key={`${keyPrefix}-${lineIndex}`} className={lineIndex > 0 ? 'mt-2' : undefined}>
+                  {renderInlineMarkdown(line, onImageClick, `${keyPrefix}-${lineIndex}`)}
+                </p>
+              ))}
+            </blockquote>
+          );
+        }
+
+        if (block.type === 'ul') {
+          return (
+            <ul key={keyPrefix} className="list-disc space-y-1 pl-5 text-sm leading-6 text-gray-700">
+              {block.items.map((item, itemIndex) => (
+                <li key={`${keyPrefix}-${itemIndex}`}>{renderInlineMarkdown(item, onImageClick, `${keyPrefix}-${itemIndex}`)}</li>
+              ))}
+            </ul>
+          );
+        }
+
+        if (block.type === 'ol') {
+          return (
+            <ol key={keyPrefix} className="list-decimal space-y-1 pl-5 text-sm leading-6 text-gray-700">
+              {block.items.map((item, itemIndex) => (
+                <li key={`${keyPrefix}-${itemIndex}`}>{renderInlineMarkdown(item, onImageClick, `${keyPrefix}-${itemIndex}`)}</li>
+              ))}
+            </ol>
+          );
+        }
+
+        if (block.type === 'code') {
+          return (
+            <div key={keyPrefix} className="overflow-hidden rounded border border-gray-200 bg-gray-950">
+              {block.language && <div className="border-b border-gray-800 bg-gray-900 px-3 py-1 text-[11px] uppercase tracking-wide text-gray-400">{block.language}</div>}
+              <pre className="overflow-x-auto px-3 py-3 text-xs leading-6 text-gray-100">
+                <code>{block.lines.join('\n')}</code>
+              </pre>
+            </div>
+          );
+        }
+
         return (
-          <Image
-            key={i}
-            src={part.src}
-            alt={part.alt}
-            width={1200}
-            height={900}
-            unoptimized
-            className={`max-w-full h-auto rounded my-2 ${onImageClick ? 'cursor-zoom-in' : ''}`}
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            onClick={onImageClick ? () => onImageClick(part.src, part.alt) : undefined}
-          />
+          <p key={keyPrefix} className="text-sm leading-6 text-gray-700">
+            {renderInlineMarkdown(block.lines.join('\n'), onImageClick, keyPrefix)}
+          </p>
         );
       })}
-    </>
+    </div>
   );
 }
+
+function MarkdownEditor({
+  value,
+  onChange,
+  rows = 4,
+  placeholder,
+  disabled = false,
+  uploadControls,
+  className,
+}: MarkdownEditorProps) {
+  const [tab, setTab] = useState<'write' | 'preview'>('write');
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const updateSelection = useCallback((start: number, end: number) => {
+    window.requestAnimationFrame(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      textarea.focus();
+      textarea.setSelectionRange(start, end);
+    });
+  }, []);
+
+  const insertWrappedText = useCallback((prefix: string, suffix: string, fallbackText: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = value.slice(start, end) || fallbackText;
+    const nextValue = `${value.slice(0, start)}${prefix}${selected}${suffix}${value.slice(end)}`;
+    onChange(nextValue);
+    updateSelection(start + prefix.length, start + prefix.length + selected.length);
+  }, [onChange, updateSelection, value]);
+
+  const insertLinePrefix = useCallback((prefix: string, fallbackText: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = value.slice(start, end);
+    const lineStart = value.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+    const lineEndIndex = value.indexOf('\n', end);
+    const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
+    const base = selected || value.slice(lineStart, lineEnd) || fallbackText;
+    const nextBlock = base
+      .split('\n')
+      .map((line) => `${prefix}${line || fallbackText}`)
+      .join('\n');
+
+    const replaceStart = selected ? start : lineStart;
+    const replaceEnd = selected ? end : lineEnd;
+    const nextValue = `${value.slice(0, replaceStart)}${nextBlock}${value.slice(replaceEnd)}`;
+    onChange(nextValue);
+    updateSelection(replaceStart, replaceStart + nextBlock.length);
+  }, [onChange, updateSelection, value]);
+
+  return (
+    <div className={className || 'space-y-2'}>
+      <div className="overflow-hidden border border-gray-300 bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-2 py-2">
+          <div className="flex flex-wrap items-center gap-1">
+            {[
+              { label: 'B', title: 'Bold', action: () => insertWrappedText('**', '**', 'bold text') },
+              { label: 'I', title: 'Italic', action: () => insertWrappedText('*', '*', 'italic text') },
+              { label: '</>', title: 'Inline code', action: () => insertWrappedText('`', '`', 'code') },
+              { label: 'H', title: 'Heading', action: () => insertLinePrefix('## ', 'Heading') },
+              { label: '>', title: 'Quote', action: () => insertLinePrefix('> ', 'Quoted text') },
+              { label: 'UL', title: 'Bullet list', action: () => insertLinePrefix('- ', 'List item') },
+              { label: '1.', title: 'Numbered list', action: () => insertLinePrefix('1. ', 'List item') },
+              { label: '[]', title: 'Link', action: () => insertWrappedText('[', '](https://example.com)', 'link text') },
+            ].map((tool) => (
+              <button
+                key={tool.title}
+                type="button"
+                onClick={tool.action}
+                disabled={disabled}
+                title={tool.title}
+                className="inline-flex h-8 min-w-8 items-center justify-center rounded border border-gray-300 bg-white px-2 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {tool.label}
+              </button>
+            ))}
+          </div>
+          <div className="inline-flex items-center rounded border border-gray-300 bg-white p-0.5 text-xs font-medium text-gray-700">
+            <button
+              type="button"
+              onClick={() => setTab('write')}
+              className={`rounded px-2 py-1 ${tab === 'write' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+            >
+              Write
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('preview')}
+              className={`rounded px-2 py-1 ${tab === 'preview' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+            >
+              Preview
+            </button>
+          </div>
+        </div>
+
+        {tab === 'write' ? (
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            rows={rows}
+            disabled={disabled}
+            placeholder={placeholder}
+            className="w-full resize-y border-0 px-3 py-2 text-sm text-gray-900 outline-none focus:ring-0"
+          />
+        ) : (
+          <div className="min-h-[8rem] px-3 py-3">
+            {value.trim() ? renderMarkdownMessage(value) : <div className="text-sm text-gray-500">Nothing to preview yet.</div>}
+          </div>
+        )}
+      </div>
+      {uploadControls}
+    </div>
+  );
+}
+
 function formatDateTime(value: string | null | undefined) {
   if (!value) return 'Unknown time';
   const date = new Date(value);
@@ -461,22 +828,23 @@ const [uploadingImage, setUploadingImage] = useState(false);
     <article key={entry.id} className="border border-gray-200 bg-white p-4">
       {/* HEADER BUTTON - wraps only the clickable header */}
       <button type="button" onClick={() => { setExpandedEntries((c) => ({ ...c, [entry.id]: !c[entry.id] })); void fetchThreadComments(entry.id); }} className="w-full text-left focus:outline-none">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1 flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-semibold text-gray-900">{entry.title || 'Untitled discussion'}</span>
-            <span className={`rounded px-2 py-0.5 text-xs font-medium ${entry.visibility === 'private' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+          <div className="flex flex-wrap items-center gap-2 text-sm leading-5">
+            <span className="min-w-0 font-semibold text-gray-900">{entry.title || 'Untitled discussion'}</span>
+            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${entry.visibility === 'private' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
               {entry.visibility === 'private' ? 'Administrator only' : 'Public'}
             </span>
             {entry.hidden && isAdmin && (
-              <span className="rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+              <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-red-700">
                 Hidden
               </span>
             )}
           </div>
-          <div className="text-xs text-gray-600">{entry.display_name}</div>
-          <div className="text-xs text-gray-500">
-            {formatDateTime(entry.created_at)}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+            <span>{entry.display_name}</span>
+            <span className="text-gray-300">|</span>
+            <span>{formatDateTime(entry.created_at)}</span>
           </div>
           {isAdmin && entry.visitor_email && (
             <div className="text-xs text-gray-500">Email: {entry.visitor_email}</div>
@@ -563,21 +931,20 @@ const [uploadingImage, setUploadingImage] = useState(false);
       {/* EXPANDED CONTENT - outside the header button */}
       {isExpanded && (
         <>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{renderMessageWithImages(entry.message, (src) => setLightBox({ src, alt: entry.title || 'Image' }))}</p>
+          <div className="mt-3">{renderMarkdownMessage(entry.message, (src) => setLightBox({ src, alt: entry.title || 'Image' }))}</div>
 
           {entry.creator_reply ? (
             <div className="mt-4 border-l-2 border-blue-500 bg-blue-50 px-4 py-3">
               <div className="text-sm font-semibold text-blue-900">Administrator response</div>
-              <div className="mt-1 whitespace-pre-wrap text-sm text-blue-900">{renderMessageWithImages(entry.creator_reply, (src) => setLightBox({ src, alt: 'Reply image' }))}</div>
+              <div className="mt-2 text-sm text-blue-950">{renderMarkdownMessage(entry.creator_reply, (src) => setLightBox({ src, alt: 'Reply image' }))}</div>
               <div className="mt-2 text-xs text-blue-700">{formatDateTime(entry.replied_at)}</div>
            </div>
          ) : isAdmin ? (
             <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
-              <textarea
+              <MarkdownEditor
                 value={replyDrafts[entry.id] || ''}
-                onChange={(event) => setReplyDrafts((current) => ({ ...current, [entry.id]: event.target.value }))}
-                rows={3}
-                className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                onChange={(nextValue) => setReplyDrafts((current) => ({ ...current, [entry.id]: nextValue }))}
+                rows={4}
                 placeholder="Reply to close this discussion."
               />
               <button
@@ -605,27 +972,30 @@ const [uploadingImage, setUploadingImage] = useState(false);
            </button>
          </div>
 
-         {/* Thread comments */}
+         {/* Discussion replies */}
          <div className="mt-4 border-t border-gray-100 pt-4">
-            <textarea
+            <MarkdownEditor
               value={commentDrafts[entry.id] || ''}
-              onChange={(e) => setCommentDrafts((c) => ({ ...c, [entry.id]: e.target.value }))}
-              rows={3}
-              className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-              placeholder="Add comment"
+              onChange={(nextValue) => setCommentDrafts((c) => ({ ...c, [entry.id]: nextValue }))}
+              rows={4}
+              placeholder="Add reply"
+              uploadControls={(
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    Attach image
+                    <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setReplyUploadingImage((c) => ({ ...c, [entry.id]: true })); setReplyUploadMessage((c) => ({ ...c, [entry.id]: null })); let uploaded = 0; for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setCommentDrafts((c) => ({ ...c, [entry.id]: (c[entry.id] || '') + ((c[entry.id] || '') ? '\n' : '') + '![image](' + url + ')' })); uploaded++; } } setReplyUploadingImage((c) => ({ ...c, [entry.id]: false })); setReplyUploadMessage((c) => ({ ...c, [entry.id]: uploaded > 0 ? { type: 'success', text: 'Image uploaded.' } : { type: 'error', text: 'Image upload failed.' } })); e.target.value = ''; } }} />
+                  </label>
+                  {replyUploadingImage[entry.id] && <span className="text-xs text-gray-500">Uploading...</span>}
+                  {replyUploadMessage[entry.id] && (
+                    <span className={`text-xs ${replyUploadMessage[entry.id]!.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
+                      {replyUploadMessage[entry.id]!.text}
+                    </span>
+                  )}
+                </div>
+              )}
             />
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                Attach image
-                <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setReplyUploadingImage((c) => ({ ...c, [entry.id]: true })); setReplyUploadMessage((c) => ({ ...c, [entry.id]: null })); let uploaded = 0; for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setCommentDrafts((c) => ({ ...c, [entry.id]: (c[entry.id] || '') + ((c[entry.id] || '') ? '\n' : '') + '![image](' + url + ')' })); uploaded++; } } setReplyUploadingImage((c) => ({ ...c, [entry.id]: false })); setReplyUploadMessage((c) => ({ ...c, [entry.id]: uploaded > 0 ? { type: 'success', text: 'Image uploaded.' } : { type: 'error', text: 'Image upload failed.' } })); e.target.value = ''; } }} />
-              </label>
-              {replyUploadingImage[entry.id] && <span className="text-xs text-gray-500">Uploading...</span>}
-              {replyUploadMessage[entry.id] && (
-                <span className={`text-xs ${replyUploadMessage[entry.id]!.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
-                  {replyUploadMessage[entry.id]!.text}
-                </span>
-              )}
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); void handleSubmitComment(entry.id); }}
@@ -638,14 +1008,14 @@ const [uploadingImage, setUploadingImage] = useState(false);
            {commentError[entry.id] && <div className="mt-1 text-xs text-red-600">{commentError[entry.id]}</div>}
           {commentSuccess[entry.id] && <div className="mt-1 text-xs text-emerald-700">{commentSuccess[entry.id]}</div>}
 
-          {/* Thread comments */}
+          {/* Discussion replies */}
             {comments.length > 0 && (
               <div className="mt-3 space-y-2">
                 {comments.map((c) => (
                   <div key={c.id} className={`pl-3 border-l-2 ${c.hidden ? 'border-red-200 bg-red-50/50' : 'border-gray-200'}`}>
                     <div className="text-xs font-medium text-gray-700">{c.author_name}</div>
                     {isAdmin && c.hidden && <div className="mt-0.5 text-[11px] font-medium text-red-600">Hidden reply</div>}
-                    <div className="text-xs text-gray-600 mt-0.5 whitespace-pre-wrap">{renderMessageWithImages(c.message, (src) => setLightBox({ src, alt: 'Comment image' }))}</div>
+                    <div className="mt-1 text-xs text-gray-600">{renderMarkdownMessage(c.message, (src) => setLightBox({ src, alt: 'Comment image' }))}</div>
                     <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(c.created_at)}</div>
                     {isAdmin && (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -679,7 +1049,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
   };
 
-  const handleComposerSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleComposerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setComposerSubmitting(true);
     setComposerError(null);
@@ -804,7 +1174,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                     Cancel
                   </>
                 ) : (
-                  'Leave Feedback'
+                  'New Discussion'
                 )}
               </button>
             </div>
@@ -871,25 +1241,27 @@ const [uploadingImage, setUploadingImage] = useState(false);
             </label>
             <label className="block space-y-1 text-sm text-gray-700">
               <span>Message (required)</span>
-             <textarea
-               value={composerForm.message}
-               onChange={(e) => setComposerForm((c) => ({ ...c, message: e.target.value }))}
-               rows={4}
-               className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
-             />
-              <div className="mt-2 flex items-center gap-2">
-                <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
-                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  Attach image
-                  <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setUploadingImage(true); setComposerUploadMessage(null); let uploaded = 0; for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setComposerForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); uploaded++; } } setUploadingImage(false); setComposerUploadMessage(uploaded > 0 ? { type: 'success', text: 'Image uploaded.' } : { type: 'error', text: 'Image upload failed.' }); e.target.value = ''; } }} />
-                </label>
-                {uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
-                {composerUploadMessage && (
-                  <span className={`text-xs ${composerUploadMessage.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
-                    {composerUploadMessage.text}
-                  </span>
+              <MarkdownEditor
+                value={composerForm.message}
+                onChange={(nextValue) => setComposerForm((c) => ({ ...c, message: nextValue }))}
+                rows={6}
+                placeholder="Share context, expected behavior, links, screenshots, or code snippets."
+                uploadControls={(
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      Attach image
+                      <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple className="hidden" onChange={async (e) => { const files = e.target.files; if (files && files.length > 0) { setUploadingImage(true); setComposerUploadMessage(null); let uploaded = 0; for (let i = 0; i < files.length; i++) { const url = await handleImageUpload(files[i]); if (url) { setComposerForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); uploaded++; } } setUploadingImage(false); setComposerUploadMessage(uploaded > 0 ? { type: 'success', text: 'Image uploaded.' } : { type: 'error', text: 'Image upload failed.' }); e.target.value = ''; } }} />
+                    </label>
+                    {uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
+                    {composerUploadMessage && (
+                      <span className={`text-xs ${composerUploadMessage.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
+                        {composerUploadMessage.text}
+                      </span>
+                    )}
+                  </div>
                 )}
-              </div>
+              />
              {composerErrors.message && <span className="text-xs text-red-600">{composerErrors.message}</span>}
             </label>
             {composerError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{composerError}</div>}
@@ -905,25 +1277,20 @@ const [uploadingImage, setUploadingImage] = useState(false);
         </div>
       )}
 
-      <div className="grid gap-6 px-4 py-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <div className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-           <div className="border border-gray-200 bg-gray-50 p-4">
-             <div className="text-xs uppercase tracking-wide text-gray-500">Discussions</div>
-             <div className="mt-1 text-2xl font-semibold text-gray-900">{summary.totalThreads}</div>
-           </div>
-           <div className="border border-gray-200 bg-gray-50 p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-500">In Progress</div>
-              <div className="mt-1 text-2xl font-semibold text-gray-900">{inProgressTotal}</div>
-            </div>
-            <div className="border border-gray-200 bg-gray-50 p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-500">Completed</div>
-              <div className="mt-1 text-2xl font-semibold text-gray-900">{completedTotal}</div>
-            </div>
-          </div>
-         <div className="border border-gray-200 bg-white p-4 text-sm text-gray-600">
-            Browse discussions and add feedback.
-         </div>
+      <div className="space-y-6 px-4 py-4">
+        <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-3">
+          <span className="inline-flex items-center gap-2 rounded border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700">
+            <span className="uppercase tracking-wide text-gray-500">Discussions</span>
+            <span className="font-semibold text-gray-900">{summary.totalThreads}</span>
+          </span>
+          <span className="inline-flex items-center gap-2 rounded border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+            <span className="uppercase tracking-wide text-blue-600">In Progress</span>
+            <span className="font-semibold text-blue-900">{inProgressTotal}</span>
+          </span>
+          <span className="inline-flex items-center gap-2 rounded border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            <span className="uppercase tracking-wide text-emerald-600">Completed</span>
+            <span className="font-semibold text-emerald-900">{completedTotal}</span>
+          </span>
         </div>
 
         <div className="space-y-6">
