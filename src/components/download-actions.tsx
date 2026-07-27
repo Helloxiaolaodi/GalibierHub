@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -402,10 +402,6 @@ export default function DownloadActions({
                     <code className="block max-w-full truncate font-mono text-xs text-gray-700">{effectiveInfo.sha256_checksum || 'Unavailable'}</code>
                     {effectiveInfo.sha256_checksum && <button type="button" onClick={() => handleCopy('sha256', effectiveInfo.sha256_checksum)} className="text-xs text-blue-600 hover:underline">{copied === 'sha256' ? 'Copied' : 'Copy SHA-256'}</button>}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">MD5:</span>
-                    <code className="block max-w-full truncate font-mono text-xs text-gray-700">{effectiveInfo.md5_checksum || 'N/A'}</code>
-                  </div>
                 </div>
               </div>
 
@@ -465,7 +461,7 @@ export default function DownloadActions({
                                 </button>
                               </div>
                             </div>
-                            <div className={`rounded-md border px-3 py-3 ${downloadRegion === 'apac' ? 'border-emerald-200 bg-emerald-50' : 'border-blue-200 bg-white'}`}>
+                            <div className={`rounded-md border px-3 py-3 ${downloadRegion === 'apac' ? 'border-emerald-200 bg-emerald-100' : 'border-blue-200 bg-white'}`}>
                               <div className="flex items-center justify-between gap-3">
                                 <span className={`text-sm font-medium ${downloadRegion === 'apac' ? 'text-emerald-900' : 'text-blue-900'}`}>
                                   {downloadRegion === 'apac' ? 'Mirror direct URL for Free Download Manager and similar tools' : 'Official direct URL for Free Download Manager and similar tools'}
@@ -475,7 +471,7 @@ export default function DownloadActions({
                               <p className={`mt-2 text-xs leading-5 ${downloadRegion === 'apac' ? 'text-emerald-800' : 'text-blue-800'}`}>
                                 {downloadRegion === 'apac'
                                   ? 'Optimized routing via community mirrors for faster and more reliable downloads in China and the Asia-Pacific region. Paste this link into Free Download Manager, Motrix, IDM, or another resumable download client.'
-                                  : 'Direct downloads from Hugging Face official servers. Paste this public direct link into Free Download Manager, Motrix, IDM, or another resumable download client.'}
+                                  : 'Direct downloads from official servers. Paste this public direct link into Free Download Manager, Motrix, IDM, or another resumable download client.'}
                               </p>
                               <code className={`mt-2 block break-all rounded px-3 py-2 font-mono text-[11px] ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-100 text-emerald-950 ring-emerald-200' : 'bg-blue-50 text-blue-950 ring-blue-100'}`}>{activePublicUrl}</code>
                             </div>
@@ -502,7 +498,7 @@ export default function DownloadActions({
                         {cliOptionsVisible && activeHfCliCommand && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">{downloadRegion === 'apac' ? 'Hugging Face CLI (mirror endpoint)' : 'Hugging Face CLI (recommended)'}</span>
+                              <span className="text-sm font-medium text-gray-700">{downloadRegion === 'apac' ? 'CLI (mirror endpoint)' : 'CLI (recommended)'}</span>
                               <button type="button" onClick={() => handleCopy('hf', activeHfCliCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-blue-600'}`}>{copied === 'hf' ? 'Copied' : 'Copy'}</button>
                             </div>
                             <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-blue-50 text-blue-950 ring-blue-100'}`}>{activeHfCliCommand}</code>
@@ -541,7 +537,6 @@ export default function DownloadActions({
                       <label className="block text-xs text-gray-700">Storage provider<select value={draft.storage_provider} onChange={(event) => setDraft({ ...draft, storage_provider: event.target.value as DownloadStorageProvider })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm"><option value="public_url">Public URL</option><option value="supabase_private">Supabase private</option></select></label>
                       <label className="block text-xs text-gray-700">Storage bucket<input value={draft.storage_bucket} onChange={(event) => setDraft({ ...draft, storage_bucket: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" placeholder="private-files" /></label>
                       <label className="block text-xs text-gray-700 sm:col-span-2">Storage path<input value={draft.storage_path} onChange={(event) => setDraft({ ...draft, storage_path: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" placeholder="datasets/example/file.zip" /></label>
-                      <label className="block text-xs text-gray-700">MD5 checksum<input value={draft.md5_checksum} onChange={(event) => setDraft({ ...draft, md5_checksum: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
                       <label className="block text-xs text-gray-700">SHA-256 checksum<input value={draft.sha256_checksum} onChange={(event) => setDraft({ ...draft, sha256_checksum: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
                       <label className="flex items-center gap-2 text-xs text-gray-700 sm:col-span-2"><input type="checkbox" checked={draft.hidden} onChange={(event) => setDraft({ ...draft, hidden: event.target.checked })} /> Hide this file from public view</label>
                       <label className="block text-xs text-gray-700 sm:col-span-2">Set or change password (leave blank to keep)<input type="text" value={draft.password} onChange={(event) => setDraft({ ...draft, password: event.target.value })} className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm" placeholder="Set a new password (min 4 chars)" /></label>
