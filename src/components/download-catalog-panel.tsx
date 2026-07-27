@@ -225,7 +225,7 @@ function buildManifestRows(folderItems: FileRow[], rootLabel: string): Array<Rec
 }
 
 function buildManifestTsv(rows: Array<Record<string, string>>): string {
-  const headers = ['Directory_Path', 'File_Name', 'File_Type', 'Size_Bytes', 'Direct_URL', 'Checksum_SHA256'];
+  const headers = ['Directory_Path', 'File_Name', 'File_Type', 'Size_Bytes', 'Direct_URL', 'SHA-256'];
   return [
     headers.join('\t'),
     ...rows.map((row) => headers.map((header) => row[header] ?? '').join('\t')),
@@ -233,7 +233,7 @@ function buildManifestTsv(rows: Array<Record<string, string>>): string {
 }
 
 function buildManifestCsv(rows: Array<Record<string, string>>): string {
-  const headers = ['Directory_Path', 'File_Name', 'File_Type', 'Size_Bytes', 'Direct_URL', 'Checksum_SHA256'];
+  const headers = ['Directory_Path', 'File_Name', 'File_Type', 'Size_Bytes', 'Direct_URL', 'SHA-256'];
   return [
     headers.join(','),
     ...rows.map((row) => headers.map((header) => escapeCsv(row[header] ?? '')).join(',')),
@@ -311,6 +311,16 @@ export default function DownloadCatalogPanel({
       cleanup?.();
     };
   }, [loadCatalog]);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/download-readme')
+      .then((res) => res.json())
+      .then((data) => { if (active && data.content) setReadmeContent(data.content); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
 
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();

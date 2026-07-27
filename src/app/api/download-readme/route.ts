@@ -1,7 +1,6 @@
- import { NextResponse } from 'next/server';
- import { SiteConfig } from '@/site-config';
- 
- const CACHE_MAX_AGE = 600; // 10 minutes
+import { NextResponse } from 'next/server';
+
+const CACHE_MAX_AGE = 600; // 10 minutes
  
  export async function GET() {
    const storageBaseUrl =
