@@ -73,10 +73,10 @@ function renderInlineMarkdown(
           key={`${keyPrefix}-img-${match.index}`}
           src={src}
           alt={alt}
-          width={1200}
-          height={900}
+          width={400}
+          height={300}
           unoptimized
-          className={`my-2 max-w-full rounded h-auto ${onImageClick ? 'cursor-zoom-in' : ''}`}
+          className={`my-2 max-w-[320px] rounded h-auto ${onImageClick ? 'cursor-zoom-in' : ''}`}
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
@@ -377,47 +377,48 @@ function MarkdownEditor({
   return (
     <div className={className || 'space-y-2'}>
       <div className="overflow-hidden border border-gray-300 bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-2 py-2">
-          <div className="flex flex-wrap items-center gap-1">
-            {[
-              { label: 'B', title: 'Bold', action: () => insertWrappedText('**', '**', 'bold text') },
-              { label: 'I', title: 'Italic', action: () => insertWrappedText('*', '*', 'italic text') },
-              { label: '</>', title: 'Inline code', action: () => insertWrappedText('`', '`', 'code') },
-              { label: 'H', title: 'Heading', action: () => insertLinePrefix('## ', 'Heading') },
-              { label: '>', title: 'Quote', action: () => insertLinePrefix('> ', 'Quoted text') },
-              { label: 'UL', title: 'Bullet list', action: () => insertLinePrefix('- ', 'List item') },
-              { label: '1.', title: 'Numbered list', action: () => insertLinePrefix('1. ', 'List item') },
-              { label: '[]', title: 'Link', action: () => insertWrappedText('[', '](https://example.com)', 'link text') },
-            ].map((tool) => (
-              <button
-                key={tool.title}
-                type="button"
-                onClick={tool.action}
-                disabled={disabled}
-                title={tool.title}
-                className="inline-flex h-8 min-w-8 items-center justify-center rounded border border-gray-300 bg-white px-2 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {tool.label}
-              </button>
-            ))}
-          </div>
-          <div className="inline-flex items-center rounded border border-gray-300 bg-white p-0.5 text-xs font-medium text-gray-700">
-            <button
-              type="button"
-              onClick={() => setTab('write')}
-              className={`rounded px-2 py-1 ${tab === 'write' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-            >
-              Write
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab('preview')}
-              className={`rounded px-2 py-1 ${tab === 'preview' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-            >
-              Preview
-            </button>
-          </div>
-        </div>
+       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-2 py-2">
+         <div className="flex flex-wrap items-center gap-1">
+           {[
+             { label: 'B', title: 'Bold', action: () => insertWrappedText('**', '**', 'bold text') },
+             { label: 'I', title: 'Italic', action: () => insertWrappedText('*', '*', 'italic text') },
+             { label: '</>', title: 'Inline code', action: () => insertWrappedText('`', '`', 'code') },
+             { label: 'H', title: 'Heading', action: () => insertLinePrefix('## ', 'Heading') },
+             { label: '>', title: 'Quote', action: () => insertLinePrefix('> ', 'Quoted text') },
+             { label: 'UL', title: 'Bullet list', action: () => insertLinePrefix('- ', 'List item') },
+             { label: '1.', title: 'Numbered list', action: () => insertLinePrefix('1. ', 'List item') },
+             { label: '[]', title: 'Link', action: () => insertWrappedText('[', '](https://example.com)', 'link text') },
+           ].map((tool) => (
+             <button
+               key={tool.title}
+               type="button"
+               onClick={tool.action}
+               disabled={disabled}
+               title={tool.title}
+               className="inline-flex h-8 min-w-8 items-center justify-center rounded border border-gray-300 bg-white px-2 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+             >
+               {tool.label}
+             </button>
+           ))}
+         </div>
+         <div className="inline-flex items-center rounded border border-gray-300 bg-white p-0.5 text-xs font-medium text-gray-700">
+           {uploadControls}
+           <button
+             type="button"
+             onClick={() => setTab('write')}
+             className={`rounded px-2 py-1 ${tab === 'write' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+           >
+             Write
+           </button>
+           <button
+             type="button"
+             onClick={() => setTab('preview')}
+             className={`rounded px-2 py-1 ${tab === 'preview' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+           >
+             Preview
+           </button>
+         </div>
+       </div>
 
         {tab === 'write' ? (
           <textarea
@@ -435,7 +436,6 @@ function MarkdownEditor({
           </div>
         )}
       </div>
-      {uploadControls}
     </div>
   );
 }

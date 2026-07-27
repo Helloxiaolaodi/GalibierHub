@@ -38,7 +38,7 @@ type FileRow = DownloadCatalogItem & {
   sourceLabel: string;
 };
 
-type SortKey = 'name' | 'size' | 'updated' | 'checksum';
+type SortKey = 'name' | 'size' | 'updated';
 type SortDirection = 'asc' | 'desc';
 type ViewMode = 'grid' | 'table';
 
@@ -269,6 +269,8 @@ export default function DownloadCatalogPanel({
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [folderCliOpen, setFolderCliOpen] = useState(false);
   const [folderCliCopied, setFolderCliCopied] = useState<string | null>(null);
+  const [readmeContent, setReadmeContent] = useState('');
+  const [readmeOpen, setReadmeOpen] = useState(false);
 
   const loadCatalog = useCallback(async () => {
     let active = true;
@@ -368,7 +370,6 @@ export default function DownloadCatalogPanel({
       if (sortKey === 'name') value = a.fileName.localeCompare(b.fileName);
       if (sortKey === 'size') value = (a.sizeBytes ?? -1) - (b.sizeBytes ?? -1);
       if (sortKey === 'updated') value = (a.updatedAt ? new Date(a.updatedAt).getTime() : 0) - (b.updatedAt ? new Date(b.updatedAt).getTime() : 0);
-      if (sortKey === 'checksum') value = (a.sha256Checksum || '').localeCompare(b.sha256Checksum || '');
       return sortDirection === 'asc' ? value : -value;
     });
   }, [currentNode, sortDirection, sortKey]);
@@ -474,8 +475,16 @@ export default function DownloadCatalogPanel({
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
               <span className="rounded bg-blue-50 px-2 py-1 text-blue-700">Files: {totals.all}</span>
               <span className="rounded bg-slate-100 px-2 py-1 text-slate-700">Folders: {currentFolderSummary.folderCount}</span>
-              <span className="rounded bg-blue-50 px-2 py-1 text-blue-700">Hugging Face: {totals.hf}</span>
-              <span className="rounded bg-emerald-50 px-2 py-1 text-emerald-700">Cloudflare: {totals.cf}</span>
+              {readmeContent && (
+                <button
+                  type="button"
+                  onClick={() => setReadmeOpen(true)}
+                  className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  README
+                </button>
+              )}
             </div>
           </div>
           {effectiveIsAdmin && (
@@ -571,13 +580,6 @@ export default function DownloadCatalogPanel({
                 </button>
                 <button
                   type="button"
-                  onClick={() => exportManifest('tsv')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Export Manifest TSV
-                </button>
-                <button
-                  type="button"
                   onClick={() => exportManifest('csv')}
                   className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
@@ -588,14 +590,7 @@ export default function DownloadCatalogPanel({
                   onClick={() => exportChecksum('sha256')}
                   className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  Export sha256sum.txt
-                </button>
-                <button
-                  type="button"
-                  onClick={() => exportChecksum('md5')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Export md5sum.txt
+                  Export checksum.txt
                 </button>
               </div>
             </div>
@@ -670,7 +665,6 @@ export default function DownloadCatalogPanel({
                     {item.hidden && effectiveIsAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Hidden</span>}
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px] text-gray-600">
-                    <span className={`rounded px-2 py-0.5 ${item.providerLabel === 'Cloudflare' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>{item.providerLabel}</span>
                     <span className="rounded bg-gray-100 px-2 py-0.5 text-gray-700">{item.fileType}</span>
                     <span className="rounded bg-slate-100 px-2 py-0.5 text-slate-700">{item.sourceLabel}</span>
                     {item.sampleCount > 0 && <span className="rounded bg-emerald-50 px-2 py-0.5 text-emerald-700">Samples: {item.sampleCount}</span>}
@@ -678,7 +672,6 @@ export default function DownloadCatalogPanel({
                   <div className="grid gap-1 text-xs text-gray-500 sm:grid-cols-2">
                     <div>Size: {formatDownloadBytes(item.sizeBytes) || item.sizeLabel || 'Unknown'}</div>
                     <div>Updated: {item.updatedLabel}</div>
-                    <div className="sm:col-span-2">Checksum: {shortChecksum(item.sha256Checksum)}</div>
                   </div>
                 </div>
                 <DownloadActions
@@ -720,11 +713,6 @@ export default function DownloadCatalogPanel({
                       Updated
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">
-                    <button type="button" onClick={() => toggleSort('checksum')} className="inline-flex items-center gap-1 text-left text-gray-600 hover:text-gray-900">
-                      Checksum
-                    </button>
-                  </th>
                   <th className="px-4 py-3 text-left font-medium">Actions</th>
                 </tr>
               </thead>
@@ -739,7 +727,6 @@ export default function DownloadCatalogPanel({
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium text-gray-900 break-all">{item.fileName}</span>
-                            <span className="rounded bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">{item.providerLabel}</span>
                             {item.hidden && effectiveIsAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Hidden</span>}
                           </div>
                           <div className="mt-1 text-xs text-gray-500 break-all">{rootLabel}/{item.directoryPath || ''}</div>
@@ -752,9 +739,6 @@ export default function DownloadCatalogPanel({
                     </td>
                     <td className="px-4 py-3 text-gray-700">{formatDownloadBytes(item.sizeBytes) || item.sizeLabel || 'Unknown'}</td>
                     <td className="px-4 py-3 text-gray-700">{item.updatedLabel}</td>
-                    <td className="px-4 py-3 text-gray-700">
-                      <span title={item.sha256Checksum || 'NA'}>{shortChecksum(item.sha256Checksum)}</span>
-                    </td>
                     <td className="px-4 py-3">
                       <DownloadActions
                         url={item.url}
@@ -813,6 +797,30 @@ export default function DownloadCatalogPanel({
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
                 For reproducibility, pair these commands with <code>sha256sum.txt</code> and the manifest export from the same directory.
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* README floating card */}
+      {readmeOpen && readmeContent && (
+        <div className="fixed inset-0 z-50 flex items-start justify-end overflow-y-auto bg-black/30 p-4" onClick={() => setReadmeOpen(false)}>
+          <div
+            className="w-full max-w-2xl rounded-lg border border-gray-200 bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+              <h3 className="text-sm font-semibold text-gray-900">README</h3>
+              <button
+                type="button"
+                onClick={() => setReadmeOpen(false)}
+                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close README"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="prose prose-sm max-w-none px-4 py-3 text-gray-700" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {readmeContent}
             </div>
           </div>
         </div>
