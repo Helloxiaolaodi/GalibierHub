@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -320,7 +320,7 @@ export default function HomePage() {
             </div>
           </div>
           <nav className="flex flex-wrap items-center gap-1">
-            {(['overview', 'promoters', 'genome-browser', 'discussion', 'downloads'] as const).map((tab) => (
+            {(['overview', 'promoters', 'genome-browser', 'downloads', 'discussion'] as const).map((tab) => (
               <button type="button" key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
