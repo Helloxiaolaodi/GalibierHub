@@ -7,18 +7,6 @@ export const metadata: Metadata = {
   keywords: ["promoter", "genome", "bioinformatics", "transcription factor", "TFBS", "gene regulation", "seqedge"],
 };
 
-function ThemeScript() {
-  return (
-    <script
-      dangerouslySetInnerHTML={{
-        __html: `
-(function(){try{var t=localStorage.getItem('seqedge-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}document.documentElement.classList.add('no-transitions');window.setTimeout(function(){document.documentElement.classList.remove('no-transitions')},300)}catch(e){}})();
-        `.trim(),
-      }}
-    />
-  );
-}
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +15,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="antialiased">
       <head>
-        <ThemeScript />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-gray-50 font-sans">
