@@ -10,7 +10,7 @@ Edge-Native Genomics Database Template
 **Mirror:** [https://seqedge.pages.dev](https://seqedge.pages.dev)  
 **GitHub:** [https://github.com/Helloxiaolaodi/SeqEdge](https://github.com/Helloxiaolaodi/SeqEdge)
 
-Language: **English** | [ç®€ä½“ä¸­æ–‡](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/SeqEdge/issues)
+Language: **English** | [简体中文](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/SeqEdge/issues)
 
 Detailed build guide: [SeqEdge Developer Notes](https://www.cnblogs.com/Administrator/p/21776736)
 
