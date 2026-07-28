@@ -7,6 +7,7 @@ import { SiteConfig } from '@/site-config';
 import { getBrowserSupabase } from '@/utils/supabase-browser';
 import SearchFilters, { type SearchFilters as FiltersType } from '@/components/search-filters';
 import StatsChart from '@/components/stats-chart';
+import FlipCard from '@/components/flip-card';
 import PromoterTable from '@/components/promoter-table';
 import PromoterDetail from '@/components/promoter-detail';
 import GenomeBrowser from '@/components/genome-browser';
@@ -403,6 +404,128 @@ export default function HomePage() {
         {activeTab === 'overview' && (
           <>
             <StatsChart stats={stats} />
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <FlipCard
+                front={
+                  <>
+                    <svg className="mb-3 h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Search &amp; Discovery</h3>
+                    <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+                      Filter by locus, gene, score, species, tissue, cohort, and BMI class
+                    </p>
+                  </>
+                }
+                back={
+                  <>
+                    <h3 className="text-lg font-semibold text-white">Search &amp; Discovery</h3>
+                    <ul className="mt-4 space-y-2 text-sm text-gray-300">
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> Locus &amp; gene-based precision search</li>
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> Score, species, tissue, cohort &amp; BMI filtering</li>
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> Real-time cursor-based pagination</li>
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setActiveTab('promoters'); }}
+                      className="mt-6 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                    >
+                      Explore Records
+                    </button>
+                  </>
+                }
+              />
+              <FlipCard
+                front={
+                  <>
+                    <svg className="mb-3 h-10 w-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Genome Browser</h3>
+                    <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+                      Interactive JBrowse 2 viewer with track selection and navigation
+                    </p>
+                  </>
+                }
+                back={
+                  <>
+                    <h3 className="text-lg font-semibold text-white">Genome Browser</h3>
+                    <ul className="mt-4 space-y-2 text-sm text-gray-300">
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> JBrowse 2 linear genome view</li>
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> Multi-track annotation display</li>
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> Fullscreen zen mode supported</li>
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); const el = document.getElementById('seqedge-genome-browser'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }}
+                      className="mt-6 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+                    >
+                      View Browser
+                    </button>
+                  </>
+                }
+              />
+              <FlipCard
+                front={
+                  <>
+                    <svg className="mb-3 h-10 w-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">File Distribution</h3>
+                    <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+                      Browser download, wget, curl, and hf download in one modal
+                    </p>
+                  </>
+                }
+                back={
+                  <>
+                    <h3 className="text-lg font-semibold text-white">File Distribution</h3>
+                    <ul className="mt-4 space-y-2 text-sm text-gray-300">
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> Unified download modal with multi-path access</li>
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> SHA256 &amp; MD5 checksum verification</li>
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> .sh and .bat batch scripts for public files</li>
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setActiveTab('downloads'); }}
+                      className="mt-6 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors"
+                    >
+                      Browse Downloads
+                    </button>
+                  </>
+                }
+              />
+              <FlipCard
+                front={
+                  <>
+                    <svg className="mb-3 h-10 w-10 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Community &amp; Moderation</h3>
+                    <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+                      Public discussions, image uploads, likes, and admin moderation
+                    </p>
+                  </>
+                }
+                back={
+                  <>
+                    <h3 className="text-lg font-semibold text-white">Community &amp; Moderation</h3>
+                    <ul className="mt-4 space-y-2 text-sm text-gray-300">
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> Public or admin-only discussions</li>
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> GitHub sign-in for official replies</li>
+                      <li className="flex items-center gap-2"><span className="text-emerald-400">&#x2713;</span> Like, bookmark, pin, hide and delete tools</li>
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setActiveTab('discussion'); }}
+                      className="mt-6 rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition-colors"
+                    >
+                      Join Discussion
+                    </button>
+                  </>
+                }
+              />
+            </section>
             <SearchFilters onSearch={handleSearch} loading={loading} />
             <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} visibleCount={pageSummary.visibleCount} sortMode={sortMode} summaryMode={summaryMode} onSortModeChange={(nextMode) => {
                 setSortMode(nextMode);
@@ -410,6 +533,7 @@ export default function HomePage() {
               }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick}
             />
             <div className="border rounded-lg overflow-hidden">
+              <div id="seqedge-genome-browser" />
               <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
                 Genome Browser
               </div>

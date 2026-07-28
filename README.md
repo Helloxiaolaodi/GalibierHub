@@ -43,6 +43,7 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 SeqEdge currently ships with four main product surfaces:
 
 - **Overview**: summary cards, featured downloads, charts, and entry points.
+ Interactive hover-flip feature cards on the Overview page introduce key capabilities (Search & Discovery, Genome Browser, File Distribution, Community & Moderation).
 - **Records**: searchable table plus embedded genome browser and record detail panel.
 - **Discussion**: public or Administrator-only discussions with image upload, likes, bookmarks, follow-up replies, and administrator moderation.
 - **Downloads**: site-wide file catalog with browser download and CLI download options.
@@ -71,11 +72,13 @@ The current default schema and UI are still genomics-oriented. Template users ca
 
 - Open the embedded genome browser and jump directly from a promoter record to the matching region.
 - Inspect promoter details in a floating, resizable panel without hiding the browser.
+- Enter fullscreen zen mode (Esc to exit) for distraction-free genome browsing.
 
 #### File Distribution
 
 - Download reference bundles, release archives, and sample-level files from one unified modal.
 - View browser download, `wget`, `curl`, and `hf download` commands in the same file dialog.
+ 
 - See file name, type, size, created and updated time, download count, access mode, MD5, and SHA256 together.
 - Copy SHA256 with one click and use resume-capable CLI commands for large-file transfer.
 - Generate `.sh` and `.bat` batch download scripts for public sample files.
