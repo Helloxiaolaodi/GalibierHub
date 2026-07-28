@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // SeqEdge Anti-Bot & Security Utilities
 // ============================================================
 // Shared by src/middleware.ts (edge runtime) and route handlers.
@@ -121,7 +121,16 @@ export async function verifyTurnstile(
 
 // ---- API Key Hashing ----
 
-export function hashApiKey(key: string): string {`r`n  // Deterministic byte hash for rate-limit key differentiation.`r`n  try {`r`n    return Array.from(new TextEncoder().encode(key))`r`n      .reduce((s, b) => s + b.toString(16).padStart(2, "0"), "")`r`n      .slice(0, 32);`r`n  } catch {`r`n    return key.slice(0, 32);`r`n  }`r`n}
+export function hashApiKey(key: string): string {
+  // Deterministic byte hash for rate-limit key differentiation.
+  try {
+    return Array.from(new TextEncoder().encode(key))
+      .reduce((s, b) => s + b.toString(16).padStart(2, "0"), "")
+      .slice(0, 32);
+  } catch {
+    return key.slice(0, 32);
+  }
+}
 
 // ---- Honeypot Detection ----
 
