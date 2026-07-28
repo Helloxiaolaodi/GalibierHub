@@ -15,12 +15,11 @@ import UserGuide from '@/components/user-guide';
 import DownloadCatalogPanel from '@/components/download-catalog-panel';
 import SiteFeedback from '@/components/site-feedback';
 import SiteUptime from '@/components/site-uptime';
-import ThemeToggle from '@/components/theme-toggle';
 import { resolveExpectedAdminGithubLogin } from '@/lib/admin-login';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
-type ActiveTab = 'overview' | 'promoters' | 'discussion' | 'downloads';
+type ActiveTab = 'overview' | 'promoters' | 'genome-browser' | 'discussion' | 'downloads';
 
 function buildPromoterLocus(promoter: Promoter) {
   return `${promoter.chrom}:${Math.max(1, promoter.start - 2000)}-${Math.max(promoter.end_pos + 2000, promoter.start + 1)}`;
@@ -199,9 +198,8 @@ export default function HomePage() {
   const handleRowClick = useCallback((promoter: Promoter) => {
     setSelectedPromoter(promoter);
     setBrowserLocus(buildPromoterLocus(promoter));
-    setActiveTab('promoters');
+    setActiveTab('genome-browser');
   }, []);
-
   const filterSummary = useMemo(() => {
     const items: Array<{ label: string; value: string }> = [];
     if (currentFilters.chrom) items.push({ label: 'Reference', value: currentFilters.chrom });
@@ -322,7 +320,7 @@ export default function HomePage() {
             </div>
           </div>
           <nav className="flex flex-wrap items-center gap-1">
-            {(['overview', 'promoters', 'discussion', 'downloads'] as const).map((tab) => (
+            {(['overview', 'promoters', 'genome-browser', 'discussion', 'downloads'] as const).map((tab) => (
               <button type="button" key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -335,9 +333,11 @@ export default function HomePage() {
                   ? 'Overview'
                   : tab === 'promoters'
                     ? 'Records'
-                    : tab === 'discussion'
-                      ? 'Discussions'
-                      : 'Downloads'}
+                    : tab === 'genome-browser'
+                      ? 'Genome Browser'
+                      : tab === 'discussion'
+                        ? 'Discussions'
+                        : 'Downloads'}
               </button>
             ))}
             <div className="w-px h-5 bg-gray-200 mx-1" />
@@ -369,7 +369,6 @@ export default function HomePage() {
               </svg>
               User Guide
             </button>
-            <ThemeToggle />
           </nav>
         </div>
       </header>
@@ -457,7 +456,7 @@ export default function HomePage() {
                     </ul>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); const el = document.getElementById('seqedge-genome-browser'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }}
+                      onClick={(e) => { e.stopPropagation(); setActiveTab('genome-browser'); }}
                       className="mt-6 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
                     >
                       View Browser
@@ -526,26 +525,8 @@ export default function HomePage() {
                 }
               />
             </section>
-            <SearchFilters onSearch={handleSearch} loading={loading} />
-            <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} visibleCount={pageSummary.visibleCount} sortMode={sortMode} summaryMode={summaryMode} onSortModeChange={(nextMode) => {
-                setSortMode(nextMode);
-                setPageIndex(0);
-              }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick}
-            />
-            <div className="border rounded-lg overflow-hidden">
-              <div id="seqedge-genome-browser" />
-              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
-                Genome Browser
-              </div>
-              <GenomeBrowser
-                locus={browserLocus}
-                onLocusChange={setBrowserLocus}
-                highlightRegion={highlightedPromoterRegion}
-              />
-            </div>
           </>
         )}
-
         {activeTab === 'promoters' && (
           <>
             <SearchFilters onSearch={handleSearch} loading={loading} />
@@ -565,7 +546,20 @@ export default function HomePage() {
             </div>
           </>
         )}
-        {activeTab === 'discussion' && (
+                {activeTab === 'genome-browser' && (
+          <div className="border rounded-lg overflow-hidden">
+            <div id="seqedge-genome-browser" />
+            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
+              Genome Browser
+            </div>
+            <GenomeBrowser
+              locus={browserLocus}
+              onLocusChange={setBrowserLocus}
+              highlightRegion={highlightedPromoterRegion}
+            />
+          </div>
+        )}
+{activeTab === 'discussion' && (
           <SiteFeedback isAdminHint={isCreatorAdmin} accessToken={creatorAccessToken} creatorLogin={creatorLogin} refreshSignal={feedbackRefreshSignal} onFeedbackSubmitted={() => setFeedbackRefreshSignal((current) => current + 1)} />
         )}
         {activeTab === 'downloads' && (
@@ -580,7 +574,7 @@ export default function HomePage() {
          promoter={selectedPromoter}
          onViewInBrowser={(promoter) => {
            setBrowserLocus(buildPromoterLocus(promoter));
-           setActiveTab('promoters');
+           setActiveTab('genome-browser');
          }}
          onClose={() => setSelectedPromoter(null)}
          isAdmin={isCreatorAdmin}
