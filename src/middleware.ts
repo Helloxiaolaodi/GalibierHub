@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // SeqEdge Middleware -- Edge-layer defense
 // ============================================================
 // Runs on Cloudflare Edge (opennextjs-cloudflare edge wrapper).
@@ -50,12 +50,20 @@ function isRateLimited(pathname: string): boolean {
 }
 
 function getCorsHeaders(request: NextRequest): Record<string, string> {
-  const origin = request.headers.get("origin");
-  const allowed = ALLOWED_ORIGIN
-    ? [ALLOWED_ORIGIN, "http://localhost:3000", "http://localhost:3001"]
-    : ["http://localhost:3000", "http://localhost:3001"];
+  const origin = request.headers.get("origin") || "";
+  // Same-origin requests: always allow when Origin matches the request host.
+  // This ensures admin PATCH/DELETE calls from the site itself never get CORS errors.
+  const host = request.headers.get("host") || "";
+  const protocol = request.headers.get("x-forwarded-proto") || "https";
+  const sameOrigin = host ? `${protocol}://${host}` : "";
+  const allowed = [
+    ...(ALLOWED_ORIGIN ? [ALLOWED_ORIGIN] : []),
+    ...(sameOrigin && sameOrigin !== ALLOWED_ORIGIN ? [sameOrigin] : []),
+    "http://localhost:3000",
+    "http://localhost:3001",
+  ];
 
-  if (origin && allowed.some((a) => origin.startsWith(a) || a === "*")) {
+  if (origin && allowed.some((a) => origin === a || origin.startsWith(a))) {
     return {
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
@@ -66,22 +74,6 @@ function getCorsHeaders(request: NextRequest): Record<string, string> {
   }
   return {};
 }
-
-// ---- Middleware ----
-
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const ip = clientIpKey(request);
-
-  // --- Preflight CORS ---
-  if (request.method === "OPTIONS") {
-    const corsHeaders = getCorsHeaders(request);
-    if (Object.keys(corsHeaders).length === 0) {
-      return new NextResponse(null, { status: 204 });
-    }
-    return new NextResponse(null, { status: 204, headers: corsHeaders });
-  }
-
   // --- Reject unknown cross-origin API calls ---
   if (pathname.startsWith("/api/")) {
     const corsHeaders = getCorsHeaders(request);
