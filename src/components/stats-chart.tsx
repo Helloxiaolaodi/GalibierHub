@@ -41,7 +41,8 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
       {
         type: 'pie',
         radius: ['35%', '65%'],
-        color: ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725', '#31688e', '#35b779', '#b5de2b', '#482878', '#26828e'],
+        // Okabe-Ito palette: colorblind-safe (protanopia, deuteranopia, tritanopia)
+        color: ['#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7', '#000000', '#999999', '#882255'],
         data: Object.entries(stats.species_distribution).map(([name, value]) => ({
           name,
           value,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { SiteConfig } from '@/site-config';
 import { getCandidateStorageBaseUrls, getStorageAccessMode, getStorageUrl } from '@/lib/storage';
@@ -79,6 +80,27 @@ async function checkTrackReachable(baseUrl: string, track: DemoTrack): Promise<b
 }
 
 export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }: GenomeBrowserProps) {
+  const [zenMode, setZenMode] = useState(false);
+
+  const toggleZenMode = useCallback(() => {
+    setZenMode((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape' && zenMode) {
+        setZenMode(false);
+      }
+    };
+    if (zenMode) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [zenMode]);
   const configuredBase = SiteConfig.jbrowse.storageBaseUrl;
   const candidateBases = useMemo(() => getCandidateStorageBaseUrls(configuredBase), [configuredBase]);
   const storageMode = useMemo(() => getStorageAccessMode(configuredBase), [configuredBase]);
@@ -217,6 +239,7 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
   }
 
   return (
+    <>
     <div className="space-y-2">
       {missingTrackNames.length > 0 && (
         <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-1.5">
@@ -233,5 +256,49 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
         tracks={availableTracks}
       />
     </div>
+    <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={toggleZenMode}
+          title="Enter fullscreen zen mode (Esc to exit)"
+          className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+          Fullscreen
+        </button>
+    </div>
+    {zenMode && (
+      <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900">
+        <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-2 dark:border-gray-700 dark:bg-gray-800">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+            Genome Browser &mdash; Zen Mode
+          </span>
+          <button
+            type="button"
+            onClick={toggleZenMode}
+            className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Exit (Esc)
+          </button>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <JBrowseViewer
+            locus={locus}
+            onLocusChange={onLocusChange}
+            highlightRegion={highlightRegion}
+            dataBase={dataBase}
+            assemblyName={resolvedAssembly}
+            assemblyData={assemblyData}
+            tracks={availableTracks}
+          />
+        </div>
+      </div>
+    )}
+    </>
   );
 }
