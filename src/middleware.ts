@@ -74,7 +74,22 @@ function getCorsHeaders(request: NextRequest): Record<string, string> {
   }
   return {};
 }
-  // --- Reject unknown cross-origin API calls ---
+
+// ---- Middleware ----
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const ip = clientIpKey(request);
+
+  // --- Preflight CORS ---
+  if (request.method === "OPTIONS") {
+    const corsHeaders = getCorsHeaders(request);
+    if (Object.keys(corsHeaders).length === 0) {
+      return new NextResponse(null, { status: 204 });
+    }
+    return new NextResponse(null, { status: 204, headers: corsHeaders });
+  }
+    // --- Reject unknown cross-origin API calls ---
   if (pathname.startsWith("/api/")) {
     const corsHeaders = getCorsHeaders(request);
     if (
