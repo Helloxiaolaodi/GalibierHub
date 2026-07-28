@@ -1462,4 +1462,3 @@ const [uploadingImage, setUploadingImage] = useState(false);
     </>
   );
 }
-              onClick={() => { setShowComposer((v) => { if (!v) { setComposerForm((c) => ({ ...c, _rendered_at: Date.now() })); } return !v; }); setComposerSuccess(null); setComposerError(null); setComposerUploadMessage(null); }}
