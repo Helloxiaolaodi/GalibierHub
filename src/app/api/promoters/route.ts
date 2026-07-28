@@ -73,7 +73,7 @@ export async function GET(request: Request) {
   query = query.not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER);
   if (id) query = query.eq('id', id);
   if (chrom) query = query.eq('chrom', chrom);
-  if (gene_symbol) query = query.ilike('gene_symbol', %%);
+  if (gene_symbol) query = query.ilike('gene_symbol', `%${gene_symbol}%`);
   if (min_score) query = query.gte('score', Number.parseFloat(min_score));
   if (start) query = query.gte('start', Number.parseInt(start));
   if (end_pos) query = query.lte('end_pos', Number.parseInt(end_pos));
