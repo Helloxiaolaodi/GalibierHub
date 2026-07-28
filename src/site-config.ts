@@ -118,7 +118,7 @@ export const SiteConfig = {
   subtitle: '',
   creatorCreditPrefix: 'An open-source project maintained by',
   creatorCreditLabel: '@Helloxiaolaodi',
-  creatorCreditUrl: 'https://github.com/Helloxiaolaodi',
+  creatorCreditUrl: 'https://github.com/Helloxiaolaodi/SeqEdge',
   adminGithubLoginFallback: 'helloxiaolaodi',
   description:
     'Interactive database for predicted promoters, genome annotations, and genomic data, powered by serverless edge infrastructure.',
