@@ -497,6 +497,8 @@ export default function SiteFeedback({ isAdminHint = false, accessToken = null, 
     rating: 5,
     visibility: 'public',
     message: '',
+    company: '',
+    _rendered_at: 0,
   });
   const [composerErrors, setComposerErrors] = useState<Record<string, string>>({});
  const [pinToggling, setPinToggling] = useState<string | null>(null);
@@ -1116,6 +1118,8 @@ const [uploadingImage, setUploadingImage] = useState(false);
         rating: 5,
         visibility: 'public',
         message: '',
+        company: '',
+        _rendered_at: 0,
       });
       setComposerUploadMessage(null);
       setComposerSuccess('Feedback submitted.');
@@ -1165,7 +1169,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => { setShowComposer((v) => !v); setComposerSuccess(null); setComposerError(null); setComposerUploadMessage(null); }}
+              onClick={() => { setShowComposer((v) => !v); setComposerSuccess(null); setComposerError(null); setComposerUploadMessage(null); }}
                 className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   showComposer
                     ? 'bg-blue-100 text-blue-700'
@@ -1275,6 +1279,19 @@ const [uploadingImage, setUploadingImage] = useState(false);
             </label>
             {composerError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{composerError}</div>}
             {composerSuccess && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{composerSuccess}</div>}
+            {/* Honeypot field: hidden from real users, bots auto-fill it */}
+            <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+              <label htmlFor="honeypot-company">Company</label>
+              <input
+                id="honeypot-company"
+                type="text"
+                name="company"
+                autoComplete="off"
+                tabIndex={-1}
+                value={composerForm.company}
+                onChange={(e) => setComposerForm((c) => ({ ...c, company: e.target.value }))}
+              />
+            </div>
             <button
               type="submit"
               disabled={composerSubmitting}
@@ -1445,3 +1462,4 @@ const [uploadingImage, setUploadingImage] = useState(false);
     </>
   );
 }
+              onClick={() => { setShowComposer((v) => { if (!v) { setComposerForm((c) => ({ ...c, _rendered_at: Date.now() })); } return !v; }); setComposerSuccess(null); setComposerError(null); setComposerUploadMessage(null); }}

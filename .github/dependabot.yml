@@ -1,0 +1,24 @@
+﻿# SeqEdge Dependabot configuration
+# Automatically monitors npm dependencies for security vulnerabilities.
+# When a CVE is published against a dependency, GitHub opens a PR with the fix.
+#
+# Enable in: GitHub repo -> Settings -> Security -> Dependabot alerts
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    versioning-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    target-branch: "main"

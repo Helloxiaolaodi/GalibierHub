@@ -1,0 +1,22 @@
+{
+  "name": "SeqEdge - Genome Research Database",
+  "short_name": "SeqEdge",
+  "description": "Interactive database for predicted promoters, genome annotations, and genomic data.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#1E3A8A",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/seqedge-banner.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["science", "education", "research"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false
+}

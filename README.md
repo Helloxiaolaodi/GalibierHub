@@ -28,14 +28,14 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 
 1. [Overview](#overview)
 2. [What SeqEdge Includes](#what-seqedge-includes)
-3. [Collaboration and Attribution](#collaboration-and-attribution)
-4. [Architecture and Deployment Model](#architecture-and-deployment-model)
-5. [Quick Start](#quick-start)
-6. [Data and Download Workflows](#data-and-download-workflows)
-7. [Discussion and Administrator Operations](#discussion-and-administrator-operations)
-8. [Maintenance Notes](#maintenance-notes)
-9. [Tech Stack and References](#tech-stack-and-references)
-10. [Known Limitation: Data Access Control](#known-limitation-data-access-control)
+3. [Architecture and Deployment Model](#architecture-and-deployment-model)
+4. [Quick Start](#quick-start)
+5. [Data and Download Workflows](#data-and-download-workflows)
+6. [Discussion and Administrator Operations](#discussion-and-administrator-operations)
+7. [Maintenance Notes](#maintenance-notes)
+8. [Tech Stack and References](#tech-stack-and-references)
+9. [Security Considerations](#security-considerations)
+10. [Acknowledgements](#acknowledgements)
 11. [License](#license)
 
 ## Overview
@@ -63,14 +63,25 @@ The current default schema and UI are still genomics-oriented. Template users ca
 
 ### End-user capabilities
 
+#### Search & Discovery
+
 - Search and filter promoter records by locus, gene, score, sample, species, tissue, cohort, and BMI class.
+
+#### Data Visualization
+
 - Open the embedded genome browser and jump directly from a promoter record to the matching region.
 - Inspect promoter details in a floating, resizable panel without hiding the browser.
+
+#### File Distribution
+
 - Download reference bundles, release archives, and sample-level files from one unified modal.
 - View browser download, `wget`, `curl`, and `hf download` commands in the same file dialog.
 - See file name, type, size, created and updated time, download count, access mode, MD5, and SHA256 together.
 - Copy SHA256 with one click and use resume-capable CLI commands for large-file transfer.
 - Generate `.sh` and `.bat` batch download scripts for public sample files.
+
+#### Community & Moderation
+
 - Submit public or Administrator-only discussions from the `Discussion` tab.
 - Sign in with the allowed GitHub Administrator account to publish official replies.
 - Upload images in discussions and open posted images in a zoomable lightbox.
@@ -83,25 +94,6 @@ The current default schema and UI are still genomics-oriented. Template users ca
 - It already includes a practical free-tier deployment pattern.
 - It covers both research-data presentation and lightweight community interaction.
 - It exposes enough configuration points for reuse without forcing a full rewrite on day one.
-
-## Collaboration and Attribution
-
-### Repository builders
-
-This SeqEdge repository has been jointly built and iterated by the GitHub accounts **Helloxiaolaodi** and **yangsanduo**. Both accounts belong to the same project owner and are used as parallel maintainer identities for this repository and its surrounding deployment workflow.
-
-### AI tools used during repository construction
-
-SeqEdge has also been developed with support from the following AI tools during planning, implementation, documentation, and iteration work:
-
-- **GLM 5.1**
-- **GPT 5.4**
-- **DeepSeek V4 Pro**
-
-### README media attribution
-
-- `docs/architecture.gif`: generated with **Gemini 3.1 Pro**.
-- `docs/media/seqedge-ui-overview.png`: generated with **Gemini 3.1 Pro**.
 
 ## Architecture and Deployment Model
 
@@ -142,22 +134,28 @@ npm install
 
 ### 2. Configure environment variables
 
+#### Minimal Setup (for local development)
+
 Copy `.env.example` to `.env.local` and replace placeholders.
 
-Required database variables:
+The bare minimum to compile and render the homepage:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/<optional-subdir>
+NEXT_PUBLIC_REFERENCE_ASSEMBLY=NC_045512.2
+NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS=NC_045512.2:1-5000
 ```
+
+#### Full Production Setup
+
+Add these for genome browser, downloads, authentication, and email:
 
 Required genome storage variables:
 
 ```bash
-NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/<optional-subdir>
-NEXT_PUBLIC_REFERENCE_ASSEMBLY=NC_045512.2
-NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS=NC_045512.2:1-5000
 NEXT_PUBLIC_REFERENCE_FASTA=scov2.fa
 NEXT_PUBLIC_REFERENCE_FASTA_INDEX=scov2.fa.fai
 NEXT_PUBLIC_REFERENCE_BED=scov2.genes.bed
@@ -656,7 +654,7 @@ Additional community link:
 
 - [LINUX DO](https://linux.do/) - A next-generation Linux community
 
-## Known Limitation: Data Access Control
+## Security Considerations
 
 Per-file **Hide** and **Download password** controls are only genuine access control when the file is delivered through the signed-URL path. In the current codebase, that real protected flow is implemented for entries whose `download_metadata.storage_provider` is `supabase_private`: the site verifies optional passwords and then mints a short-lived Supabase signed URL.
 
@@ -669,6 +667,55 @@ If you need real access control, choose one of:
 - Move sensitive files to a provider with built-in gating.
 
 In short: public HF URL plus hide/password only discourages casual on-site download; private signed storage prevents direct anonymous download.
+
+
+### Anti-Bot Defense Layers
+
+- **Turnstile**: Cloudflare Turnstile (Managed mode, 1M verifications/month free) is deployed on write-heavy endpoints - feedback submission, download triggers, image upload. The client widget (src/components/turnstile-widget.tsx) renders an invisible challenge; tokens are verified server-side via src/lib/anti-bot.ts calling the Cloudflare siteverify endpoint. A dev fallback token is used in local development without a real site key.
+- **Rate Limiting**: Primary: Cloudflare WAF Rate Limiting Rules on /api/search, /api/export, and other heavyweight paths (configured in the Cloudflare Dashboard). Secondary: an in-memory rate limiter in Next.js middleware (src/middleware.ts) provides edge-level fallback with configurable windows.
+- **Honeypot Field**: A visually hidden company form field detects auto-fill bots. If filled, the submission is silently accepted by the route handler but discarded by middleware before reaching Supabase.
+- **Time-Trap**: Each form POST carries a _rendered_at timestamp. Middleware rejects submissions arriving less than 2 seconds after page load, blocking automated POST requests that never rendered the browser UI.
+- **Cursor-Based Pagination**: Search endpoints use cursor (UUID) pagination rather than deep SQL OFFSET, preventing OFFSET 100000-style database scraping. The cursor is exposed as 
+extCursor in API responses for paginated consumption.
+
+### Anti-Crash Architecture
+
+- **Supavisor Pool**: All Supabase connections go through *.pooler.supabase.com:6543 (transaction mode), not the direct db.*.supabase.co:5432 endpoint, to avoid the 60-connection ceiling on Supabase Free.
+- **Singleton Supabase Client**: src/utils/supabase.ts creates a single Supabase client instance with persistSession: false, reused across all API routes rather than instantiated per-request.
+- **Cache Headers**: Read endpoints (/api/promoters, /api/samples, /api/download-catalog) emit Cache-Control: public, s-maxage=300, stale-while-revalidate=600, allowing Cloudflare CDN to serve repeated identical queries without forwarding them to Vercel or Supabase.
+- **R2 Signed URLs**: Large binary downloads (FASTQ, BAM, VCF, reference archives) are delivered via Cloudflare R2 pre-signed URLs with a 60-second TTL. Vercel never proxies file bytes; bandwidth stays within Cloudflare's free tier.
+- **Heartbeat Cron**: A Vercel Cron job (/api/cron/heartbeat) sends a lightweight SELECT 1 query to Supabase every 6 hours to prevent the free-tier 7-day inactivity auto-suspension.
+- **Materialized Views**: Heavy aggregate queries (per-species counts, yearly publication stats) use pre-computed materialized views refreshed by cron rather than ad-hoc COUNT(*) on base tables, keeping Nano-instance CPU within budget.
+
+### API Key & Programmatic Access
+
+- **api_keys Table**: schema.sql defines an pi_keys table (key_hash, label, contact_email, ate_limit_rpm, is_active) with RLS policies that restrict all access to the service_role. Researchers receive API keys for programmatic bulk retrieval.
+- **Dual Channel**: Browser users pass through Turnstile to route handler. API key holders pass through X-API-Key header to per-key rate limiter (middleware) to route handler. Both channels are independently tracked and throttled, separating human browsing from machine-to-machine access.
+
+### Infrastructure Security Additions
+
+- **security.txt**: public/security.txt provides an RFC 9116 vulnerability disclosure contact and canonical URL.
+- **robots.txt**: public/robots.txt blocks AI training crawlers (GPTBot, anthropic-ai, CCBot, PerplexityBot) and SEO scrapers (AhrefsBot, SemrushBot) while allowing academic crawlers (Google Scholar, Semantic Scholar, Internet Archive).
+- **Dependabot**: .github/dependabot.yml enables automated dependency vulnerability scanning and PR-based version bumping for npm packages and GitHub Actions.
+
+## Acknowledgements
+
+### Repository builders
+
+This SeqEdge repository has been jointly built and iterated by the GitHub accounts **Helloxiaolaodi** and **yangsanduo**. Both accounts belong to the same project owner and are used as parallel maintainer identities for this repository and its surrounding deployment workflow.
+
+### AI tools used during repository construction
+
+SeqEdge has also been developed with support from the following AI tools during planning, implementation, documentation, and iteration work:
+
+- **GLM 5.1**
+- **GPT 5.4**
+- **DeepSeek V4 Pro**
+
+### README media attribution
+
+- `docs/architecture.gif`: generated with **Gemini 3.1 Pro**.
+- `docs/media/seqedge-ui-overview.png`: generated with **Gemini 3.1 Pro**.
 
 ## License
 

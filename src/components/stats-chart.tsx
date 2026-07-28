@@ -41,6 +41,7 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
       {
         type: 'pie',
         radius: ['35%', '65%'],
+        color: ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725', '#31688e', '#35b779', '#b5de2b', '#482878', '#26828e'],
         data: Object.entries(stats.species_distribution).map(([name, value]) => ({
           name,
           value,
@@ -64,9 +65,10 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
         data: stats.score_distribution.map((d) => d.count),
         itemStyle: {
           color: (params: { dataIndex: number }) => {
-            const colors = [
-              '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e',
-              '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6',
+            // Viridis: perceptually uniform, colorblind-friendly palette
+            const colors: string[] = [
+              '#440154', '#482878', '#3e4989', '#31688e', '#26828e',
+              '#1f9e89', '#35b779', '#6ece58', '#b5de2b', '#fde725',
             ];
             return colors[params.dataIndex % colors.length];
           },
