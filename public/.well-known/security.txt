@@ -1,4 +1,4 @@
-﻿Contact: https://github.com/Helloxiaolaodi/SeqEdge/security
+Contact: https://github.com/Helloxiaolaodi/SeqEdge/security
 Contact: https://seq-edge.vercel.app
 Expires: 2027-07-28T00:00:00.000Z
 Encryption: https://keys.openpgp.org/
