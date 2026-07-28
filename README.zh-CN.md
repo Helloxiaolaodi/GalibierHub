@@ -33,20 +33,20 @@ SeqEdge 是一个用于构建坐标型基因组门户的开源模板，整合了
 5. [数据与下载工作流](#数据与下载工作流)
 6. [讨论区与管理员运维](#讨论区与管理员运维)
 7. [维护说明](#维护说明)
-8. [技术栈与参考资料](#技术栈与参考资料)
-9. [安全注意事项](#安全注意事项)
+8. [安全注意事项](#安全注意事项)
+9. [技术栈与参考资料](#技术栈与参考资料)
 10. [致谢](#致谢)
 11. [许可证](#许可证)
 
 ## 项目概览
 
-SeqEdge 当前主要包含四个核心界面：
+SeqEdge 当前主要包含五个核心界面：
 
-- **Overview**：首页概览、统计卡片、特色下载入口与图表。
- 首页概览区域的悬浮翻转卡片（FlipCard）直观展示检索发现、基因组浏览器、文件分发、社区讨论四大核心能力。
+- **Overview**：统计图表、悬浮翻转特性卡片（Search & Discovery、Genome Browser、File Distribution、Community & Moderation）。
 - **Records**：记录表格、筛选、详情面板与嵌入式基因组浏览器。
-- **Discussion**：公开或仅管理员可见的留言讨论区，支持图片、点赞、收藏与回帖。
+- **Genome Browser**：独立的 JBrowse 2 线性基因组视图，支持全屏禅定模式、多轨道注释与位点导航，可通过顶部导航栏访问。
 - **Downloads**：站点级文件目录，可浏览层级结构并统一调用下载弹窗。
+- **Discussion**：公开或仅管理员可见的留言讨论区，支持图片、点赞、收藏与回帖。
 
 需要说明的是，当前默认数据结构与界面命名仍然偏向 promoter / genome 的基因组场景。后续 fork 使用者可以自行泛化，但仓库目前仍以基因组数据库模板为主。
 
@@ -637,25 +637,6 @@ npm run build
 
 如果在真实环境变量下两项都通过，则仓库已具备部署测试条件。
 
-## 技术栈与参考资料
-
-SeqEdge 基于一组开源工具构建，用于完成界面渲染、数据访问、基因组浏览器集成与部署发布。
-
-| 工具 | 版本 | 功能 | 参考 |
-| --- | --- | --- | --- |
-| [Next.js](https://nextjs.org/docs) | `15.5.21` | 应用框架与运行时 | 官方文档 |
-| [React](https://react.dev/learn) | `19.2.4` | 组件渲染与客户端状态管理 | 官方学习文档 |
-| [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) | `^2.110.7` | 数据库、认证与存储访问 | Supabase JavaScript 文档 |
-| [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) | `^4.3.0` | 嵌入式参考浏览器核心 | JBrowse 2 文档 |
-| [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) | `^3.1.0` | 线性浏览器的 React 封装 | npm 页面 |
-| [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) | `^8.21.3` | 记录表格渲染与交互 | 官方文档 |
-| [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | 概览图表与可视化 | 官方手册 |
-| [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) | `^1.20.2` | Cloudflare 构建适配器 | OpenNext Cloudflare 文档 |
-| [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | `^4.113.0` | Cloudflare 部署 CLI | Cloudflare Workers CLI 文档 |
-
-附加社区链接：
-
-- [LINUX DO](https://linux.do/) - 新一代 Linux 社区
 
 ## 安全注意事项
 
@@ -716,6 +697,28 @@ ate_limit_rpm、is_active），RLS 策略将全部访问限制为 service_role�
 - **Dependabot**：.github/dependabot.yml 启用 npm 依赖和 GitHub Actions 的自动化漏洞扫描与 PR 升级。
 
 
+
+## 技术栈与参考资料
+
+SeqEdge 基于一组开源工具构建，用于完成界面渲染、数据访问、基因组浏览器集成与部署发布。
+
+| 工具 | 版本 | 功能 | 参考 |
+| --- | --- | --- | --- |
+| [Next.js](https://nextjs.org/docs) | `15.5.21` | 应用框架与运行时 | 官方文档 |
+| [React](https://react.dev/learn) | `19.2.4` | 组件渲染与客户端状态管理 | 官方学习文档 |
+| [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) | `^2.110.7` | 数据库、认证与存储访问 | Supabase JavaScript 文档 |
+| [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) | `^4.3.0` | 嵌入式参考浏览器核心 | JBrowse 2 文档 |
+| [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) | `^3.1.0` | 线性浏览器的 React 封装 | npm 页面 |
+| [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) | `^8.21.3` | 记录表格渲染与交互 | 官方文档 |
+| [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | 概览图表与可视化 | 官方手册 |
+| [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) | `^1.20.2` | Cloudflare 构建适配器 | OpenNext Cloudflare 文档 |
+| [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | `^4.113.0` | Cloudflare 部署 CLI | Cloudflare Workers CLI 文档 |
+
+附加社区链接：
+
+- [LINUX DO](https://linux.do/) - 新一代 Linux 社区
+
+
 ## 致谢
 
 ### 仓库搭建者
@@ -734,6 +737,7 @@ ate_limit_rpm、is_active），RLS 策略将全部访问限制为 service_role�
 
 - `docs/architecture.gif`：由 **Gemini 3.1 Pro** 生成。
 - `docs/media/seqedge-ui-overview.png`：由 **Gemini 3.1 Pro** 生成。
+
 
 ## 许可证
 
