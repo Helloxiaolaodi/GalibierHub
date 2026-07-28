@@ -317,7 +317,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                   name="company"
                   autoComplete="off"
                   tabIndex={-1}
-                  onChange={(event => {
+                  onChange={(event) => {
                     // silently capture, sent in body for middleware detection
                   }}
                 />
