@@ -164,11 +164,6 @@ function formatUpdatedDate(value: string | null | undefined): string {
   return date.toISOString().slice(0, 10);
 }
 
-function shortChecksum(value: string | null | undefined): string {
-  if (!value) return 'NA';
-  return value.length <= 16 ? value : `${value.slice(0, 12)}...`;
-}
-
 function escapeCsv(value: string): string {
   if (/[",\n\r]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
@@ -477,7 +472,7 @@ export default function DownloadCatalogPanel({
     downloadText(`${fileBase}-manifest.csv`, buildManifestCsv(rows), 'text/csv;charset=utf-8');
   };
 
-  const exportChecksum = (algorithm: 'md5' | 'sha256') => {
+  const _exportChecksum = (algorithm: 'md5' | 'sha256') => {
     const fileBase = currentPath ? currentPath.replace(/[\/]/g, '_') : rootLabel;
     const content = buildChecksumFile(currentFolderItems, algorithm);
     if (!content.trim()) {

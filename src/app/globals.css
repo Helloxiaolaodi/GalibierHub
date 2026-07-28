@@ -16,21 +16,6 @@
   --color-foreground: #111827;
 }
 
-.dark {
-  --color-bg-base: #0f172a;
-  --color-bg-surface: #1e293b;
-  --color-bg-elevated: #334155;
-  --color-bg-header: #0f172a;
-  --color-border: #334155;
-  --color-border-light: #1e293b;
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
-  --color-accent: #3b82f6;
-  --color-accent-hover: #60a5fa;
-  --color-background: #0f172a;
-  --color-foreground: #f1f5f9;
-}
 
 body {
   background: var(--color-background);
@@ -53,22 +38,13 @@ pre,
 ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
-.dark ::-webkit-scrollbar-track {
-  background: #1e293b;
-}
 
 ::-webkit-scrollbar-thumb {
   background: #94a3b8;
   border-radius: 4px;
 }
-.dark ::-webkit-scrollbar-thumb {
-  background: #475569;
-}
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-.dark ::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
 
@@ -76,9 +52,6 @@ pre,
 .promoter-row-hover:hover {
   background-color: #eff6ff;
   cursor: pointer;
-}
-.dark .promoter-row-hover:hover {
-  background-color: #1e3a5f;
 }
 
 *, *::before, *::after {
