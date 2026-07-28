@@ -10,7 +10,7 @@
 // The in-memory limiter here is a secondary fallback.
 
 import { type NextRequest } from "next/server";
-import { createHash } from "crypto";
+
 
 // ---- Constants ----
 
@@ -121,9 +121,7 @@ export async function verifyTurnstile(
 
 // ---- API Key Hashing ----
 
-export function hashApiKey(key: string): string {
-  return createHash("sha256").update(key).digest("hex").slice(0, 32);
-}
+export function hashApiKey(key: string): string {`r`n  // Deterministic byte hash for rate-limit key differentiation.`r`n  try {`r`n    return Array.from(new TextEncoder().encode(key))`r`n      .reduce((s, b) => s + b.toString(16).padStart(2, "0"), "")`r`n      .slice(0, 32);`r`n  } catch {`r`n    return key.slice(0, 32);`r`n  }`r`n}
 
 // ---- Honeypot Detection ----
 

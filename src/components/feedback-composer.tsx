@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import TurnstileWidget from '@/components/turnstile-widget';
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
@@ -317,7 +317,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                   name="company"
                   autoComplete="off"
                   tabIndex={-1}
-                  onChange={(event) => {
+                  onChange={(_event) => {
                     // silently capture, sent in body for middleware detection
                   }}
                 />
@@ -327,7 +327,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                <span>Title (required)</span>
                <input
                  value={form.title}
-                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                onChange={(_event) => setForm((current) => ({ ...current, title: event.target.value }))}
                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
               />
                {validationErrors.title && <span className="text-xs text-red-600">{validationErrors.title}</span>}
@@ -336,7 +336,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                <span>Name or nickname (required)</span>
                <input
                  value={form.displayName}
-                onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
+                onChange={(_event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
               />
                {validationErrors.displayName && <span className="text-xs text-red-600">{validationErrors.displayName}</span>}
@@ -345,7 +345,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <span>Email (optional)</span>
               <input
                 value={form.visitorEmail}
-                onChange={(event) => setForm((current) => ({ ...current, visitorEmail: event.target.value }))}
+                onChange={(_event) => setForm((current) => ({ ...current, visitorEmail: event.target.value }))}
                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
               />
               </label>
@@ -353,7 +353,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 <span>Affiliation</span>
                 <input
                   value={form.affiliation}
-               onChange={(event) => setForm((current) => ({ ...current, affiliation: event.target.value }))}
+               onChange={(_event) => setForm((current) => ({ ...current, affiliation: event.target.value }))}
                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
               />
              </label>
@@ -363,7 +363,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <span>Visibility</span>
               <select
                 value={form.visibility}
-                onChange={(event) => setForm((current) => ({ ...current, visibility: event.target.value as VisibilityMode }))}
+                onChange={(_event) => setForm((current) => ({ ...current, visibility: event.target.value as VisibilityMode }))}
                 className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
               >
                 <option value="public">Public</option>
@@ -375,7 +375,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <span>Message (required)</span>
               <textarea
                 value={form.message}
-                onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
+                onChange={(_event) => setForm((current) => ({ ...current, message: event.target.value }))}
               rows={6}
              className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
            />

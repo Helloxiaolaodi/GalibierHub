@@ -42,9 +42,9 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 
 SeqEdge currently ships with four main product surfaces:
 
-- **Overview**: summary cards, featured downloads, charts, and entry points.
- Interactive hover-flip feature cards on the Overview page introduce key capabilities (Search & Discovery, Genome Browser, File Distribution, Community & Moderation).
-- **Records**: searchable table plus embedded genome browser and record detail panel.
+- **Overview**: StatsChart dashboard metrics and interactive hover-flip feature cards (Search & Discovery, Genome Browser, File Distribution, Community & Moderation).
+- **Records**: searchable promoter table with inline filtering, pagination, and record detail panel.
+- **Genome Browser**: standalone JBrowse 2 linear genome view with fullscreen zen mode, multi-track annotation, and locus navigation accessible via the top navigation bar.
 - **Discussion**: public or Administrator-only discussions with image upload, likes, bookmarks, follow-up replies, and administrator moderation.
 - **Downloads**: site-wide file catalog with browser download and CLI download options.
 

@@ -261,8 +261,8 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
           type="button"
           onClick={toggleZenMode}
           title="Enter fullscreen zen mode (Esc to exit)"
-          className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100"
-        >
+         className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900"
+       >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
           </svg>
@@ -270,16 +270,16 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
         </button>
     </div>
     {zenMode && (
-      <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900">
-        <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-2 dark:border-gray-700 dark:bg-gray-800">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-            Genome Browser &mdash; Zen Mode
-          </span>
-          <button
-            type="button"
-            onClick={toggleZenMode}
-            className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-          >
+     <div className="fixed inset-0 z-50 flex flex-col bg-white">
+       <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-2">
+         <span className="text-sm font-medium text-gray-700">
+           Genome Browser &mdash; Zen Mode
+         </span>
+         <button
+           type="button"
+           onClick={toggleZenMode}
+           className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600"
+         >
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
