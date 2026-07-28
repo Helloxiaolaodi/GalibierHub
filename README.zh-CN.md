@@ -690,9 +690,23 @@ extCursor 供分页消费。
 - **心跳保活**：Vercel Cron 任务（/api/cron/heartbeat）每 6 小时向 Supabase 发送一次 SELECT 1，防止免费档 7 天不活跃自动暂停。
 - **物化视图**：重度聚合查询（按物种统计、按年发文量）使用 cron 刷新的物化视图预计算，不对基表实时 COUNT(*)，保护 Nano 实例 CPU。
 
+
+### 安全头与 CORS 跨域策略
+
+- **Content-Security-Policy**：在 `next.config.ts` 中配置了严格的 CSP，限制脚本源、样式源、图片源与连接源仅为已知域名，直接废掉大多数 XSS 注入向量。
+- **HSTS 与 Frame 防护**：`Strict-Transport-Security` 设置 max-age 为 63072000 秒，强制 HTTPS 访问。`X-Frame-Options: DENY` 防止恶意网站通过 iframe 嵌套进行点击劫持。
+- **CORS 中间件**：Next.js 中间件将 `Access-Control-Allow-Origin` 限制为生产域名与 localhost，拒绝任何未经授权的跨域 API 调用。COOP 与 CORP 头进一步隔离浏览器上下文。
+
+### 输入校验与数据库强制防护
+
+- **Zod 模式校验**：所有 API 路由处理器的入口均使用 Zod 对 query、body、URL 参数进行严格的类型、长度与正则校验，格式不合预期直接返回 400，不让脏数据进入数据库查询层。
+- **行级安全 (RLS)**：`schema.sql` 对所有公开表强制启用 RLS。匿名用户仅可 `SELECT`；`INSERT`、`UPDATE`、`DELETE` 被锁定为 `service_role`。即使黑客从浏览器中提取到 anon key，也无法通过原始 Supabase REST API 修改数据。
+- **服务端密钥隔离**：`SUPABASE_SERVICE_ROLE_KEY` 仅存在于服务端（绝不含 `NEXT_PUBLIC_` 前缀），只有经过认证的 API 路由和工具函数可以使用它，为管理操作提供纵深防御。
+
 ### API Key 与程序化访问
 
-- **api_keys 表**：schema.sql 定义了 pi_keys 表（key_hash、label、contact_email、ate_limit_rpm、is_active），RLS 策略将全部访问限制为 service_role。研究人员可申请 API Key 进行程序化批量获取。
+- **api_keys 表**：schema.sql 定义了 pi_keys 表（key_hash、label、contact_email、
+ate_limit_rpm、is_active），RLS 策略将全部访问限制为 service_role。研究人员可申请 API Key 进行程序化批量获取。
 - **双通道**：浏览器用户经过 Turnstile → 路由处理器。API Key 持有者通过 X-API-Key 请求头 → 按 key 速率限制器（中间件）→ 路由处理器。两条通道独立跟踪和限流，将人工浏览与机器间访问分离。
 
 ### 基础设施安全补充

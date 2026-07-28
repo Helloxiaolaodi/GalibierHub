@@ -690,9 +690,23 @@ extCursor in API responses for paginated consumption.
 - **Heartbeat Cron**: A Vercel Cron job (/api/cron/heartbeat) sends a lightweight SELECT 1 query to Supabase every 6 hours to prevent the free-tier 7-day inactivity auto-suspension.
 - **Materialized Views**: Heavy aggregate queries (per-species counts, yearly publication stats) use pre-computed materialized views refreshed by cron rather than ad-hoc COUNT(*) on base tables, keeping Nano-instance CPU within budget.
 
+
+### Security Headers & CORS
+
+- **Content-Security-Policy**: A strict CSP (configured in `next.config.ts`) restricts script sources, style sources, image sources, and connect sources to known domains only. This neutralizes most XSS injection vectors.
+- **HSTS & Frame Protections**: `Strict-Transport-Security` with a 63072000-second max age ensures HTTPS-only access. `X-Frame-Options: DENY` prevents clickjacking via iframe embedding.
+- **CORS Middleware**: Next.js middleware restricts `Access-Control-Allow-Origin` to the production domain and localhost, blocking unauthorized cross-origin API calls. COOP and CORP headers further isolate the browsing context.
+
+### Input Validation & Database Enforcement
+
+- **Zod Schema Validation**: All API route handlers validate incoming query parameters, request bodies, and URL params using Zod schemas before any database interaction. Malformed inputs return 400 without touching the database.
+- **Row-Level Security (RLS)**: `schema.sql` enforces RLS policies on all public-facing tables. Anonymous users can only `SELECT`; `INSERT`, `UPDATE`, and `DELETE` are locked to the `service_role`. This ensures that even if the anon key is extracted from the browser, raw Supabase REST API calls cannot modify data.
+- **Service Role Isolation**: The `SUPABASE_SERVICE_ROLE_KEY` is server-only (never prefixed with `NEXT_PUBLIC_`). Only authenticated API routes and server-side utilities can use it, providing defense-in-depth for admin operations.
+
 ### API Key & Programmatic Access
 
-- **api_keys Table**: schema.sql defines an pi_keys table (key_hash, label, contact_email, ate_limit_rpm, is_active) with RLS policies that restrict all access to the service_role. Researchers receive API keys for programmatic bulk retrieval.
+- **api_keys Table**: schema.sql defines an pi_keys table (key_hash, label, contact_email, 
+ate_limit_rpm, is_active) with RLS policies that restrict all access to the service_role. Researchers receive API keys for programmatic bulk retrieval.
 - **Dual Channel**: Browser users pass through Turnstile to route handler. API key holders pass through X-API-Key header to per-key rate limiter (middleware) to route handler. Both channels are independently tracked and throttled, separating human browsing from machine-to-machine access.
 
 ### Infrastructure Security Additions
