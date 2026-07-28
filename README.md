@@ -4,8 +4,6 @@
 
 Edge-Native Genomics Database Template
 
-8. [Security Considerations](#security-considerations)
-9. [Tech Stack and References](#tech-stack-and-references)
 **Primary:** [https://seq-edge.vercel.app](https://seq-edge.vercel.app)  
 **Mirror:** [https://seqedge.pages.dev](https://seqedge.pages.dev)  
 **GitHub:** [https://github.com/Helloxiaolaodi/SeqEdge](https://github.com/Helloxiaolaodi/SeqEdge)
