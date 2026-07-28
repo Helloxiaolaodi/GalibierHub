@@ -4,13 +4,13 @@
 
 Edge-Native Genomics Database Template
 
-SeqEdge is an open-source template for coordinate-based genomics portals. It combines searchable metadata, embedded genome browser views, charts, discussion workflows, and storage-decoupled deployment for large biological files.
-
+8. [Security Considerations](#security-considerations)
+9. [Tech Stack and References](#tech-stack-and-references)
 **Primary:** [https://seq-edge.vercel.app](https://seq-edge.vercel.app)  
 **Mirror:** [https://seqedge.pages.dev](https://seqedge.pages.dev)  
 **GitHub:** [https://github.com/Helloxiaolaodi/SeqEdge](https://github.com/Helloxiaolaodi/SeqEdge)
 
-Language: **English** | [简体中文](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/SeqEdge/issues)
+Language: **English** | [ç®€ä½“ä¸­æ–‡](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/SeqEdge/issues)
 
 Detailed build guide: [SeqEdge Developer Notes](https://www.cnblogs.com/Administrator/p/21776736)
 
@@ -40,13 +40,13 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 
 ## Overview
 
-SeqEdge currently ships with four main product surfaces:
+SeqEdge currently ships with five main product surfaces:
 
 - **Overview**: StatsChart dashboard metrics and interactive hover-flip feature cards (Search & Discovery, Genome Browser, File Distribution, Community & Moderation).
 - **Records**: searchable promoter table with inline filtering, pagination, and record detail panel.
 - **Genome Browser**: standalone JBrowse 2 linear genome view with fullscreen zen mode, multi-track annotation, and locus navigation accessible via the top navigation bar.
-- **Discussion**: public or Administrator-only discussions with image upload, likes, bookmarks, follow-up replies, and administrator moderation.
 - **Downloads**: site-wide file catalog with browser download and CLI download options.
+- **Discussion**: public or Administrator-only discussions with image upload, likes, bookmarks, follow-up replies, and administrator moderation.
 
 The current default schema and UI are still genomics-oriented. Template users can generalize the project later, but the repository in its present state still uses promoter- and genome-related naming in the main data surfaces.
 
@@ -637,26 +637,6 @@ npm run build
 
 If both pass with your real environment values, the repo is ready for deployment testing.
 
-## Tech Stack and References
-
-SeqEdge builds on an open-source stack for UI rendering, data access, browser-based reference viewing, and deployment.
-
-| Tool | Version | Function | Reference |
-| --- | --- | --- | --- |
-| [Next.js](https://nextjs.org/docs) | `15.5.21` | App framework and runtime | Official documentation |
-| [React](https://react.dev/learn) | `19.2.4` | Component rendering and client UI state | Official learning docs |
-| [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) | `^2.110.7` | Database, auth, and storage client access | Supabase JavaScript client docs |
-| [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) | `^4.3.0` | Embedded reference browser core | JBrowse 2 docs |
-| [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) | `^3.1.0` | React wrapper for the linear browser view | npm package page |
-| [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) | `^8.21.3` | Record table rendering and interactions | Official docs |
-| [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | Summary charts and dashboard visuals | Official handbook |
-| [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) | `^1.20.2` | Cloudflare build adapter | OpenNext Cloudflare docs |
-| [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | `^4.113.0` | Cloudflare deployment CLI | Cloudflare Workers CLI docs |
-
-Additional community link:
-
-- [LINUX DO](https://linux.do/) - A next-generation Linux community
-
 ## Security Considerations
 
 Per-file **Hide** and **Download password** controls are only genuine access control when the file is delivered through the signed-URL path. In the current codebase, that real protected flow is implemented for entries whose `download_metadata.storage_provider` is `supabase_private`: the site verifies optional passwords and then mints a short-lived Supabase signed URL.
@@ -715,6 +695,28 @@ ate_limit_rpm, is_active) with RLS policies that restrict all access to the serv
 - **robots.txt**: public/robots.txt blocks AI training crawlers (GPTBot, anthropic-ai, CCBot, PerplexityBot) and SEO scrapers (AhrefsBot, SemrushBot) while allowing academic crawlers (Google Scholar, Semantic Scholar, Internet Archive).
 - **Dependabot**: .github/dependabot.yml enables automated dependency vulnerability scanning and PR-based version bumping for npm packages and GitHub Actions.
 
+
+## Tech Stack and References
+
+SeqEdge builds on an open-source stack for UI rendering, data access, browser-based reference viewing, and deployment.
+
+| Tool | Version | Function | Reference |
+| --- | --- | --- | --- |
+| [Next.js](https://nextjs.org/docs) | `15.5.21` | App framework and runtime | Official documentation |
+| [React](https://react.dev/learn) | `19.2.4` | Component rendering and client UI state | Official learning docs |
+| [`@supabase/supabase-js`](https://supabase.com/docs/reference/javascript/introduction) | `^2.110.7` | Database, auth, and storage client access | Supabase JavaScript client docs |
+| [`@jbrowse/product-core`](https://jbrowse.org/jb2/docs/) | `^4.3.0` | Embedded reference browser core | JBrowse 2 docs |
+| [`@jbrowse/react-linear-genome-view`](https://www.npmjs.com/package/@jbrowse/react-linear-genome-view) | `^3.1.0` | React wrapper for the linear browser view | npm package page |
+| [`@tanstack/react-table`](https://tanstack.com/table/latest/docs/guide/introduction) | `^8.21.3` | Record table rendering and interactions | Official docs |
+| [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | Summary charts and dashboard visuals | Official handbook |
+| [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) | `^1.20.2` | Cloudflare build adapter | OpenNext Cloudflare docs |
+| [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | `^4.113.0` | Cloudflare deployment CLI | Cloudflare Workers CLI docs |
+
+Additional community link:
+
+- [LINUX DO](https://linux.do/) - A next-generation Linux community
+
+
 ## Acknowledgements
 
 ### Repository builders
@@ -733,6 +735,7 @@ SeqEdge has also been developed with support from the following AI tools during 
 
 - `docs/architecture.gif`: generated with **Gemini 3.1 Pro**.
 - `docs/media/seqedge-ui-overview.png`: generated with **Gemini 3.1 Pro**.
+
 
 ## License
 
