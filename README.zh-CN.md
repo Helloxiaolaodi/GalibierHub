@@ -28,14 +28,14 @@ SeqEdge 是一个用于构建坐标型基因组门户的开源模板，整合了
 
 1. [项目概览](#项目概览)
 2. [SeqEdge 当前包含的能力](#seqedge-当前包含的能力)
-3. [协作与署名说明](#协作与署名说明)
-4. [架构与部署模型](#架构与部署模型)
-5. [快速开始](#快速开始)
-6. [数据与下载工作流](#数据与下载工作流)
-7. [讨论区与管理员运维](#讨论区与管理员运维)
-8. [维护说明](#维护说明)
-9. [技术栈与参考资料](#技术栈与参考资料)
-10. [已知限制：数据访问控制](#已知限制数据访问控制)
+3. [架构与部署模型](#架构与部署模型)
+4. [快速开始](#快速开始)
+5. [数据与下载工作流](#数据与下载工作流)
+6. [讨论区与管理员运维](#讨论区与管理员运维)
+7. [维护说明](#维护说明)
+8. [技术栈与参考资料](#技术栈与参考资料)
+9. [安全注意事项](#安全注意事项)
+10. [致谢](#致谢)
 11. [许可证](#许可证)
 
 ## 项目概览
@@ -63,14 +63,25 @@ SeqEdge 当前主要包含四个核心界面：
 
 ### 访客与使用者可完成的操作
 
+#### 检索与发现
+
 - 按位点、基因、评分、样本、物种、组织、队列与 BMI 分级检索和筛选记录。
+
+#### 数据可视化
+
 - 打开嵌入式基因组浏览器，并从记录直接跳转到对应区域。
 - 在可悬浮、可缩放的详情面板中查看记录细节，而不遮挡浏览器主体。
+
+#### 文件分发
+
 - 通过统一下载弹窗获取参考序列包、发布归档与样本级文件。
 - 在同一弹窗中查看浏览器下载、`wget`、`curl` 与 `hf download` 命令。
 - 查看文件名、类型、大小、创建与更新时间、下载次数、访问模式、MD5 与 SHA256。
 - 一键复制 SHA256，并通过支持断点续传的命令行下载大文件。
 - 为公开样本文件生成 `.sh` 与 `.bat` 批量下载脚本。
+
+#### 社区与管理
+
 - 在 `Discussion` 标签页提交公开留言或仅管理员可见留言。
 - 使用被授权的 GitHub 管理员账号登录并发布官方回复。
 - 在讨论区上传图片，并通过可放大的灯箱查看已发布图片。
@@ -83,25 +94,6 @@ SeqEdge 当前主要包含四个核心界面：
 - 已经具备免费层级可落地的部署路线。
 - 同时覆盖研究数据展示与轻量互动交流。
 - 暴露了足够多的配置入口，方便二次改造，而不是要求你从零重写。
-
-## 协作与署名说明
-
-### 仓库搭建者
-
-这个 SeqEdge GitHub 仓库由 **Helloxiaolaodi** 与 **yangsanduo** 两个 GitHub 账号共同搭建、维护和迭代。这两个账号均为同一项目拥有者本人使用，用于该仓库及相关部署工作的协同维护。
-
-### 参与本仓库搭建的 AI 工具
-
-在本仓库的方案设计、实现、文档编写与迭代过程中，也共同使用了以下 AI 工具：
-
-- **GLM 5.1**
-- **GPT 5.4**
-- **DeepSeek V4 Pro**
-
-### README 媒体素材署名
-
-- `docs/architecture.gif`：由 **Gemini 3.1 Pro** 生成。
-- `docs/media/seqedge-ui-overview.png`：由 **Gemini 3.1 Pro** 生成。
 
 ## 架构与部署模型
 
@@ -144,20 +136,26 @@ npm install
 
 将 `.env.example` 复制为 `.env.local`，再替换其中占位内容。
 
-必填数据库变量：
+#### 最小化设置（本地开发）
+
+编译并渲染主页所需的最少变量：
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/<optional-subdir>
+NEXT_PUBLIC_REFERENCE_ASSEMBLY=NC_045512.2
+NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS=NC_045512.2:1-5000
 ```
+
+#### 完整生产环境设置
+
+补充基因组浏览器、下载、认证与邮件功能所需变量：
 
 必填基因组存储变量：
 
 ```bash
-NEXT_PUBLIC_STORAGE_BASE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/<optional-subdir>
-NEXT_PUBLIC_REFERENCE_ASSEMBLY=NC_045512.2
-NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS=NC_045512.2:1-5000
 NEXT_PUBLIC_REFERENCE_FASTA=scov2.fa
 NEXT_PUBLIC_REFERENCE_FASTA_INDEX=scov2.fa.fai
 NEXT_PUBLIC_REFERENCE_BED=scov2.genes.bed
@@ -656,7 +654,7 @@ SeqEdge 基于一组开源工具构建，用于完成界面渲染、数据访问
 
 - [LINUX DO](https://linux.do/) - 新一代 Linux 社区
 
-## 已知限制：数据访问控制
+## 安全注意事项
 
 只有当文件通过 signed URL 路径分发时，单文件的 **隐藏** 和 **下载密码** 控制才构成真正的访问控制。当前代码中，这条真实的受控下载路径已经实现给 `download_metadata.storage_provider = supabase_private` 的条目：站点会先校验可选密码，再由后端生成短时有效的 Supabase signed URL。
 
@@ -669,6 +667,56 @@ SeqEdge 基于一组开源工具构建，用于完成界面渲染、数据访问
 - 将敏感文件迁移到具备内建访问控制能力的存储平台。
 
 一句话概括：公开 HF URL 加隐藏/密码，只能阻止站内随手下载；私有 signed storage 才能阻止匿名直链下载。
+
+
+### 反爬虫防御层级
+
+- **Turnstile**：Cloudflare Turnstile（Managed 模式，每月 100 万次免费验证）部署在写入类端点 —— 留言提交、下载触发、图片上传。前端组件 src/components/turnstile-widget.tsx 渲染无感挑战；令牌由 src/lib/anti-bot.ts 调用 Cloudflare siteverify 进行服务端校验。本地开发环境自动使用回退令牌。
+- **速率限制**：主层：Cloudflare WAF 速率限制规则（在 Cloudflare Dashboard 中配置），针对 /api/search、/api/export 等高成本路径。辅层：Next.js 中间件 src/middleware.ts 中的内存级速率限制器，提供边缘层兜底保护，窗口可配置。
+- **蜜罐字段**：留言表单中注入了一个视觉隐藏的 company 字段。自动填表爬虫会填充该字段，中间件在请求到达数据库之前将其拦截丢弃。
+- **时间陷阱**：每次表单 POST 携带 _rendered_at 时间戳。中间件会拒绝页面加载后 2 秒内到达的提交，阻止从未渲染浏览器 UI 的自动化 POST。
+- **游标分页**：检索端点使用 cursor（UUID）分页代替深度 SQL OFFSET，防止 OFFSET 100000 式的数据库拖库。API 响应中暴露 
+extCursor 供分页消费。
+
+### 防崩溃架构
+
+- **Supavisor 连接池**：所有 Supabase 连接均通过 *.pooler.supabase.com:6543（事务模式），而非直连 db.*.supabase.co:5432，避免 Supabase Free 60 连接上限被耗尽。
+- **单例 Supabase 客户端**：src/utils/supabase.ts 创建一个带 persistSession: false 的 Supabase 客户端实例，所有 API 路由复用而非每次新建。
+- **缓存头**：读取端点（/api/promoters、/api/samples、/api/download-catalog）返回 Cache-Control: public, s-maxage=300, stale-while-revalidate=600，使 Cloudflare CDN 可在不回源的情况下响应重复查询。
+- **R2 签名 URL**：大型二进制下载（FASTQ、BAM、VCF、参考序列包）通过 Cloudflare R2 预签名 URL 分发，有效期 60 秒。Vercel 不代理文件字节，带宽完全在 Cloudflare 免费额度内。
+- **心跳保活**：Vercel Cron 任务（/api/cron/heartbeat）每 6 小时向 Supabase 发送一次 SELECT 1，防止免费档 7 天不活跃自动暂停。
+- **物化视图**：重度聚合查询（按物种统计、按年发文量）使用 cron 刷新的物化视图预计算，不对基表实时 COUNT(*)，保护 Nano 实例 CPU。
+
+### API Key 与程序化访问
+
+- **api_keys 表**：schema.sql 定义了 pi_keys 表（key_hash、label、contact_email、ate_limit_rpm、is_active），RLS 策略将全部访问限制为 service_role。研究人员可申请 API Key 进行程序化批量获取。
+- **双通道**：浏览器用户经过 Turnstile → 路由处理器。API Key 持有者通过 X-API-Key 请求头 → 按 key 速率限制器（中间件）→ 路由处理器。两条通道独立跟踪和限流，将人工浏览与机器间访问分离。
+
+### 基础设施安全补充
+
+- **security.txt**：public/security.txt 提供 RFC 9116 漏洞披露联系方式和规范 URL。
+- **robots.txt**：public/robots.txt 拦截 AI 训练爬虫（GPTBot、anthropic-ai、CCBot、PerplexityBot）和 SEO 抓取器（AhrefsBot、SemrushBot），同时放行学术爬虫（Google Scholar、Semantic Scholar、Internet Archive）。
+- **Dependabot**：.github/dependabot.yml 启用 npm 依赖和 GitHub Actions 的自动化漏洞扫描与 PR 升级。
+
+
+## 致谢
+
+### 仓库搭建者
+
+这个 SeqEdge GitHub 仓库由 **Helloxiaolaodi** 与 **yangsanduo** 两个 GitHub 账号共同搭建、维护和迭代。这两个账号均为同一项目拥有者本人使用，用于该仓库及相关部署工作的协同维护。
+
+### 参与本仓库搭建的 AI 工具
+
+在本仓库的方案设计、实现、文档编写与迭代过程中，也共同使用了以下 AI 工具：
+
+- **GLM 5.1**
+- **GPT 5.4**
+- **DeepSeek V4 Pro**
+
+### README 媒体素材署名
+
+- `docs/architecture.gif`：由 **Gemini 3.1 Pro** 生成。
+- `docs/media/seqedge-ui-overview.png`：由 **Gemini 3.1 Pro** 生成。
 
 ## 许可证
 

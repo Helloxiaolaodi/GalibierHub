@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- SeqEdge â€” Supabase Database Schema
 -- ============================================================
 -- Run this SQL in your Supabase SQL Editor to create all
@@ -399,3 +399,29 @@ DROP POLICY IF EXISTS "Service update feedback_comments" ON feedback_comments;
 DROP POLICY IF EXISTS "Service delete feedback_comments" ON feedback_comments;
 CREATE POLICY "Service update feedback_comments" ON feedback_comments FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
 CREATE POLICY "Service delete feedback_comments" ON feedback_comments FOR DELETE TO authenticated USING (auth.role() = 'service_role');
+
+-- ============================================================
+-- API Keys for programmatic access (machine-to-machine)
+-- ============================================================
+-- Allows bulk metadata export / automated retrieval for
+-- authorized researchers without going through Turnstile.
+-- API key traffic is rate-limited per-key (see middleware).
+
+CREATE TABLE IF NOT EXISTS api_keys (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  key_hash TEXT UNIQUE NOT NULL,
+  label TEXT,
+  contact_email TEXT,
+  rate_limit_rpm INTEGER DEFAULT 60,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  last_used_at TIMESTAMPTZ
+);
+
+ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
+
+-- Only service_role can read/write api_keys (never expose to anon)
+DROP POLICY IF EXISTS "Service manage api_keys" ON api_keys;
+CREATE POLICY "Service manage api_keys" ON api_keys
+  FOR ALL TO authenticated USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');

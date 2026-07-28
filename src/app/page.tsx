@@ -14,6 +14,7 @@ import UserGuide from '@/components/user-guide';
 import DownloadCatalogPanel from '@/components/download-catalog-panel';
 import SiteFeedback from '@/components/site-feedback';
 import SiteUptime from '@/components/site-uptime';
+import ThemeToggle from '@/components/theme-toggle';
 import { resolveExpectedAdminGithubLogin } from '@/lib/admin-login';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
@@ -367,6 +368,7 @@ export default function HomePage() {
               </svg>
               User Guide
             </button>
+            <ThemeToggle />
           </nav>
         </div>
       </header>

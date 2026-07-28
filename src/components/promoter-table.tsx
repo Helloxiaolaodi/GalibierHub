@@ -17,6 +17,7 @@ import {
   type DownloadMetadataPayload,
   type DownloadResolvedInfo,
 } from '@/lib/download-info';
+import { SkeletonTableRows } from '@/components/skeleton-screen';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
@@ -568,7 +569,9 @@ export default function PromoterTable({
             ))}
           </thead>
           <tbody className="divide-y">
-            {table.getRowModel().rows.length === 0 ? (
+            {loading ? (
+              <SkeletonTableRows rows={pageSize} cols={7} />
+            ) : table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-3 py-6 text-center text-sm text-gray-500">
                   No records matched the current filters.

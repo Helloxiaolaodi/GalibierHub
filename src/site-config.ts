@@ -112,6 +112,9 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
 
 export const SiteConfig = {
   title: 'SeqEdge',
+  version: 'v1.0.0',
+  releaseDate: '2026-07-22',
+  dataUpdateDate: '2026-07-28',
   subtitle: '',
   creatorCreditPrefix: 'An open-source project maintained by',
   creatorCreditLabel: '@Helloxiaolaodi',
@@ -191,6 +194,11 @@ export const SiteConfig = {
   chromosomes: [process.env.NEXT_PUBLIC_REFERENCE_ASSEMBLY || 'reference'],
 
   pageSize: 20,
+
+  checksums: {
+    enabled: true,
+    algorithms: ['sha256', 'md5'] as const,
+  },
 
   features: {
     enableGenomeBrowser: true,

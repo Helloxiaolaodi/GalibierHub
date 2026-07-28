@@ -1,4 +1,5 @@
-'use client';
+﻿'use client';
+import TurnstileWidget from '@/components/turnstile-widget';
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 
@@ -41,6 +42,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
     height: 720,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -177,8 +179,14 @@ const [uploadingImage, setUploadingImage] = useState(false);
    try {
       const response = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        headers: {
+              'Content-Type': 'application/json',
+              ...(turnstileToken ? { 'x-turnstile-token': turnstileToken } : {}),
+            },
+        body: JSON.stringify({
+              ...form,
+              _rendered_at: Date.now() - (typeof performance !== 'undefined' ? performance.now() : 0),
+            }),
       });
       const data = await response.json() as { error?: string };
       if (!response.ok) {
@@ -300,7 +308,22 @@ const [uploadingImage, setUploadingImage] = useState(false);
         <div className="h-[calc(100%-57px)] overflow-y-auto px-4 py-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1 text-sm text-gray-700 md:col-span-2">
+                          {/* Honeypot: hidden from humans, bots fill this */}
+            <div style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }} aria-hidden="true">
+              <label>
+                Leave this empty:
+                <input
+                  type="text"
+                  name="company"
+                  autoComplete="off"
+                  tabIndex={-1}
+                  onChange={(event) => {
+                    // silently capture, sent in body for middleware detection
+                  }}
+                />
+              </label>
+            </div>
+            <label className="space-y-1 text-sm text-gray-700 md:col-span-2">
                <span>Title (required)</span>
                <input
                  value={form.title}
@@ -374,6 +397,14 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
             {submitError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{submitError}</div>}
             {submitSuccess && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{submitSuccess}</div>}
+
+                        {/* Turnstile anti-bot widget */}
+            <div className="border-t border-gray-200 pt-4">
+              <TurnstileWidget
+                onToken={(token) => setTurnstileToken(token)}
+                action="feedback-submission"
+              />
+            </div>
 
             <div className="flex items-center justify-between gap-3 pt-2">
               <div className="text-xs text-gray-500" />
