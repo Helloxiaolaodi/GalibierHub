@@ -1,5 +1,5 @@
-﻿-- ============================================================
--- SeqEdge â€” Supabase Database Schema
+-- ============================================================
+-- SeqEdge Ã¢â‚¬â€ Supabase Database Schema
 -- ============================================================
 -- Run this SQL in your Supabase SQL Editor to create all
 -- required tables, indexes, and sample data.
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS genome_samples (
   assembly_version TEXT NOT NULL,
   total_variants INTEGER DEFAULT 0,
   coverage NUMERIC DEFAULT 0,
-  -- Phenotype / cohort metadata â€” optional, drives the metadata filter panel
+  -- Phenotype / cohort metadata Ã¢â‚¬â€ optional, drives the metadata filter panel
   cohort TEXT,
   bmi NUMERIC,
   age INTEGER,
@@ -132,6 +132,7 @@ ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS creator_reply TEXT;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS replied_at TIMESTAMPTZ;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS visibility TEXT;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS pinned BOOLEAN DEFAULT false;
+ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS hidden BOOLEAN DEFAULT false;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS image_url TEXT;
 UPDATE site_feedback SET visibility = 'public' WHERE visibility IS NULL;
@@ -425,3 +426,41 @@ DROP POLICY IF EXISTS "Service manage api_keys" ON api_keys;
 CREATE POLICY "Service manage api_keys" ON api_keys
   FOR ALL TO authenticated USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
+
+
+-- ============================================================
+-- In-App Notifications Table
+-- Run this SQL in your Supabase SQL Editor
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS site_notifications (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipient_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  discussion_id text NOT NULL,
+  actor_name text,
+  preview_text text,
+  is_read boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE site_notifications ENABLE ROW LEVEL SECURITY;
+
+-- Users can only view their own notifications
+CREATE POLICY "Users can view own notifications"
+  ON site_notifications FOR SELECT
+  USING (auth.uid() = recipient_id);
+
+-- Users can only update their own notifications (mark as read)
+CREATE POLICY "Users can update own notifications"
+  ON site_notifications FOR UPDATE
+  USING (auth.uid() = recipient_id);
+
+-- Server-side insert (use service role key)
+CREATE POLICY "Service role can insert notifications"
+  ON site_notifications FOR INSERT
+  WITH CHECK (true);
+
+-- Index for fast lookups
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON site_notifications(recipient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON site_notifications(recipient_id, is_read) WHERE is_read = false;

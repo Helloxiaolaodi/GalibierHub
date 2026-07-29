@@ -346,7 +346,7 @@ export async function POST(request: Request) {
     const sbComments = getSupabase();
     const { data: feedbackEntry, error: feedbackLookupErr } = await sbComments
       .from("site_feedback")
-      .select("id, title, display_name, visibility, created_at")
+      .select("id, title, display_name, visibility, created_at, user_id")
       .eq("id", feedbackId)
       .maybeSingle();
     if (feedbackLookupErr) {
@@ -374,6 +374,20 @@ export async function POST(request: Request) {
       threadCreatedAt: feedbackEntry.created_at,
       commentCreatedAt: comment.created_at,
     }));
+
+        try {
+      const fbEntry = feedbackEntry as Record<string, unknown>;
+      const posterUserId = fbEntry.user_id as string | null | undefined;
+      if (posterUserId) {
+        await sbComments.from('site_notifications').insert({
+          recipient_id: posterUserId,
+          discussion_id: feedbackId,
+          actor_name: commentAuthor,
+          preview_text: commentMessage.substring(0, 80) + (commentMessage.length > 80 ? '...' : ''),
+          is_read: false,
+        });
+      }
+    } catch { /* notification insert is best-effort */ }
 
     return NextResponse.json({ comment }, { status: 201 });
   }

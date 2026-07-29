@@ -257,7 +257,7 @@ export default function DownloadCatalogPanel({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [currentPath, setCurrentPath] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [folderCliOpen, setFolderCliOpen] = useState(false);
