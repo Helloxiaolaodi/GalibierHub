@@ -330,6 +330,7 @@ export default function DiscussionDetailPage() {
   const [githubUser, setGithubUser] = useState<string|null>(null);
   const [currentUserId, setCurrentUserId] = useState<string|null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [session, setSession] = useState<Session|null>(null);
   const [adminGithubLogin, setAdminGithubLogin] = useState<string|null>(null);
   const contentRefs = useRef<(HTMLDivElement|null)[]>([]);
@@ -337,6 +338,7 @@ export default function DiscussionDetailPage() {
 
   // Extract id from URL
   useEffect(() => {
+    setMounted(true);
     const path = window.location.pathname;
     const parts = path.split("/").filter(Boolean);
     const last = parts[parts.length-1];
@@ -580,7 +582,7 @@ export default function DiscussionDetailPage() {
           </div>
           <Link href="/discussions" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0 shadow-sm">All Discussions</Link>
         </div>
-        {githubUser && (
+        {mounted && githubUser && (
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pb-3 text-base font-bold text-blue-700">
             Welcome, {isAdmin ? "GalibierHub Team" : githubUser}!
           </div>

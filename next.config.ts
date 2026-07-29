@@ -12,6 +12,7 @@ const ALLOWED_SCRIPT_SRCS = [
 const ALLOWED_CONNECT_SRCS = [
   "'self'",
   "https://*.supabase.co",
+  "wss://*.supabase.co",
   "https://*.r2.dev",
   "https://huggingface.co",
   "https://hf-mirror.com",
