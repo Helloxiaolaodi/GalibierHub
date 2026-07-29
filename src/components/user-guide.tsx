@@ -69,7 +69,7 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
             </div>
             <ul className="space-y-2.5">
               <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />Filter records by fields such as coordinate, label, score, sample, species, tissue, cohort, or class.</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />Click a row to open the detail panel and navigate the <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-200">Genome Browser</span>.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />Click a row to open the detail panel and navigate the Genome Browser.</li>
               <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />Use the detail panel to inspect metadata and open file downloads.</li>
             </ul>
           </section>
@@ -83,11 +83,11 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
               <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Discussions</h3>
             </div>
             <ul className="space-y-2.5">
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400" />Click <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-200">New Discussion</span> to open the composer.</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400" />Use the Markdown toolbar for headings, lists, quotes, code, and links, then switch to <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-200">Preview</span> before posting.</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400" />Discussions show status badges: <span className="inline-flex items-center rounded bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-200">In Progress</span> or <span className="inline-flex items-center rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200">Resolved</span>.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400" />Click New Discussion to open the composer.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400" />Use the Markdown toolbar for headings, lists, quotes, code, and links, then switch to Preview before posting.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400" />Discussions show status badges: In Progress or Resolved.</li>
               <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400" />View likes, bookmarks, replies, and uploaded images. Click an image to enlarge it.</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400" />Earn badges through community participation: <span className="inline-flex items-center rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-600 border border-blue-200">Ice Breaker</span> <span className="inline-flex items-center rounded bg-yellow-50 px-1.5 py-0.5 text-[11px] font-medium text-yellow-700 border border-yellow-200">Nice Topic</span></li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400" />Earn badges through community participation: Ice Breaker, Nice Topic, and more.</li>
             </ul>
           </section>
 
@@ -100,11 +100,11 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
               <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Downloads</h3>
             </div>
             <ul className="space-y-2.5">
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Navigate the directory tree with breadcrumbs and switch between <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-200">Grid</span> / <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-200">Table</span> views.</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Use <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700 border border-slate-200">Copy Folder CLI</span> for resumable <kbd className="inline-flex items-center rounded bg-gray-900 px-1.5 py-0.5 text-[11px] font-mono text-green-400">wget</kbd> / <kbd className="inline-flex items-center rounded bg-gray-900 px-1.5 py-0.5 text-[11px] font-mono text-green-400">curl</kbd> commands.</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Export manifests (<span className="inline-flex items-center rounded bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-200">TSV</span>, <span className="inline-flex items-center rounded bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-200">CSV</span>) or checksum files for bulk verification.</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />For batch scripts, select samples in Records and click <span className="inline-flex items-center rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600 border border-blue-200">Batch download</span>.</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Large files support resumable downloads via <kbd className="inline-flex items-center rounded bg-gray-900 px-1.5 py-0.5 text-[11px] font-mono text-green-400">wget -c</kbd> or <kbd className="inline-flex items-center rounded bg-gray-900 px-1.5 py-0.5 text-[11px] font-mono text-green-400">hf download</kbd>.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Navigate the directory tree with breadcrumbs and switch between Grid / Table views.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Use Copy Folder CLI for resumable wget / curl commands.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Export manifests (TSV, CSV) or checksum files for bulk verification.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />For batch scripts, select samples in Records and click Batch download.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Large files support resumable downloads via wget -c or hf download.</li>
             </ul>
           </section>
 

@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { SiteConfig } from "@/site-config";
 import BadgeDisplay from "@/components/badge-display";
@@ -51,6 +51,14 @@ export default function DiscussionsPage() {
   const [githubUser, setGithubUser] = useState<string|null>(null);
   const [session, setSession] = useState<Session|null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showComposer, setShowComposer] = useState(false);
+  const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",category:"general",message:"",visibility:"public"});
+  const [composerSubmitting, setComposerSubmitting] = useState(false);
+  const [composerError, setComposerError] = useState<string|null>(null);
+  const [composerSuccess, setComposerSuccess] = useState<string|null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [composerUploadMsg, setComposerUploadMsg] = useState<{type:"success"|"error";text:string}|null>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
   // Detect GitHub login from session/localStorage  
   useEffect(() => {
@@ -119,6 +127,35 @@ export default function DiscussionsPage() {
   }, []);
   useEffect(()=>{fetchData();},[fetchData]);
 
+  const handleImageUpload = useCallback(async (file: File): Promise<string|null> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload-image", { method: "POST", body: formData });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok || data.error) return null;
+      return data.url || null;
+    } catch { return null; }
+  }, []);
+
+  const handleComposerSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!composerForm.title.trim() || composerForm.title.trim().length < 3) { setComposerError("Title must be at least 3 characters."); return; }
+    if (!composerForm.message.trim() || composerForm.message.trim().length < 3) { setComposerError("Message must be at least 3 characters."); return; }
+    const displayName = composerForm.displayName.trim() || (githubUser || "Visitor");
+    setComposerSubmitting(true); setComposerError(null);
+    try {
+      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,category:composerForm.category,visibility:composerForm.visibility,rating:5}) });
+      if (!res.ok) { const d = await res.json() as {error?:string}; throw new Error(d.error||"Failed to submit"); }
+      setComposerSuccess("Discussion created!");
+      setComposerForm({title:"",displayName:"",visitorEmail:"",category:"general",message:"",visibility:"public"});
+      await fetchData();
+      setTimeout(()=>{ setShowComposer(false); setComposerSuccess(null); }, 1500);
+    } catch (err) { setComposerError(err instanceof Error?err.message:"Failed to submit"); }
+    finally { setComposerSubmitting(false); }
+  }, [composerForm, githubUser, fetchData]);
+
+
   // Filter and sort entries
   const filteredEntries = entries.filter(e=>{
     if (statusFilter==="in_progress") return !hasCreatorReply(e);
@@ -146,7 +183,7 @@ export default function DiscussionsPage() {
           </div>
           <div className="flex items-center gap-3">
  {githubUser&&<span className="text-sm font-semibold text-blue-700 bg-blue-50 rounded-full px-4 py-1.5">Welcome, {isAdmin ? "GalibierHub Team" : githubUser}!</span>}
-            <Link href="/#feedback" className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all">New Discussion</Link>
+            <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all">New Discussion</button>
             <Link href="/" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">Back to Home</Link>
           </div>
         </div>
@@ -187,8 +224,8 @@ export default function DiscussionsPage() {
           <div className="rounded-2xl border border-gray-100 bg-white px-6 py-12 text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
             <svg className="mx-auto mb-4 h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
             <h3 className="text-base font-medium text-gray-900">No discussions yet</h3>
-            <p className="mt-2 text-sm text-gray-500">Be the first to start a discussion from the home page.</p>
-            <Link href="/" className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-all hover:-translate-y-0.5 hover:shadow-md">Start a Discussion</Link>
+            <p className="mt-2 text-sm text-gray-500">Be the first to start a discussion.</p>
+            <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-all hover:-translate-y-0.5 hover:shadow-md">Start a Discussion</button>
           </div>
         )}
         {!loading&&!error&&sortedEntries.length>0&&(

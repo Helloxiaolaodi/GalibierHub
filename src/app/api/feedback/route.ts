@@ -217,8 +217,8 @@ async function trySendEmail(label: string, send: () => Promise<void>) {
   }
 }
 
-const COMMENTS_SELECT = "id, feedback_id, author_name, author_email, message, image_url, created_at, hidden";
-const COMMENTS_SELECT_NO_HIDDEN = "id, feedback_id, author_name, author_email, message, image_url, created_at";
+const COMMENTS_SELECT = "id, feedback_id, author_name, author_email, message, image_url, created_at, hidden, user_id";
+const COMMENTS_SELECT_NO_HIDDEN = "id, feedback_id, author_name, author_email, message, image_url, created_at, user_id";
 const FEEDBACK_SELECT = "id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden, user_id";
 const FEEDBACK_SELECT_NO_HIDDEN = "id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, user_id";
 
