@@ -101,12 +101,12 @@ export default function NotificationBell({ session }: { session: Session | null 
 
   const markAllRead = async () => {
     try {
+      const token = session?.access_token || "";
       await fetch("/api/notifications", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
         body: JSON.stringify({ mark_all_read: true }),
       });
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch { /* ignore */ }
   };
