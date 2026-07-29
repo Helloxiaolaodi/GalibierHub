@@ -104,7 +104,7 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
   const [previewMode, setPreviewMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => { if (open) { setText(""); setError(null); setSuccess(null); setTimeout(()=>textareaRef.current?.focus(), 100); } }, [open]);
+  useEffect(() => { if (open) { setText(replyTarget ? `@${replyTarget} ` : ""); setError(null); setSuccess(null); setTimeout(()=>textareaRef.current?.focus(), 100); } }, [open, replyTarget]);
 
   const insertMarkdown = (action: MarkdownAction) => {
     const ta = textareaRef.current; if (!ta) return;
@@ -365,7 +365,7 @@ export default function DiscussionDetailPage() {
             localStorage.setItem("galibierhub-github-user", String(login));
             if (user.id) { setCurrentUserId(String(user.id)); localStorage.setItem("galibierhub-user-id", String(user.id)); }
             import("@/lib/admin-login").then(async ({resolveExpectedAdminGithubLogin}) => {
-              const expected = resolveExpectedAdminGithubLogin({fallbackLabel: ""});
+              const expected = resolveExpectedAdminGithubLogin({});
               if (expected && String(login).toLowerCase() === expected.toLowerCase()) {
                 setIsAdmin(true);
                 setAdminGithubLogin(expected);
