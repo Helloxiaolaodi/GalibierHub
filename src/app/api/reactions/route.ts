@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 import { hashVisitorFingerprint } from '@/lib/feedback-admin';
 
@@ -10,7 +10,7 @@ function formatReactionStorageError(message: string) {
     || message.includes('relation "site_reactions" does not exist')
     || message.includes('relation "public.site_reactions" does not exist')
   ) {
-    return 'SeqEdge reactions are not initialized in the current Supabase project. Run the latest schema.sql so that site_reactions exists, then confirm Vercel is using the same NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY values.';
+    return 'GalibierHub reactions are not initialized in the current Supabase project. Run the latest schema.sql so that site_reactions exists, then confirm Vercel is using the same NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY values.';
   }
 
   return message;

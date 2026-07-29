@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase, getSupabase, hasSupabaseServiceRole, isSupabaseConfigured } from '@/utils/supabase';
 import { hashVisitorFingerprint } from '@/lib/feedback-admin';
 
@@ -8,7 +8,7 @@ function formatVisitorStorageError(message: string) {
     || message.includes('relation "site_visitors" does not exist')
     || message.includes('relation "public.site_visitors" does not exist')
   ) {
-    return 'SeqEdge visitor counting is not initialized in the current Supabase project. Run the latest schema.sql so that site_visitors exists, then confirm Vercel is using the same NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY values.';
+    return 'GalibierHub visitor counting is not initialized in the current Supabase project. Run the latest schema.sql so that site_visitors exists, then confirm Vercel is using the same NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY values.';
   }
 
   return message;

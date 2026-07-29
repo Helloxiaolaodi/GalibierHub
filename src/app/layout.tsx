@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SeqEdge",
+  title: "GalibierHub",
   description: "Interactive database for browsing predicted promoters, whole genome annotations, and genomic data. Powered by Next.js, Supabase, Cloudflare R2, and JBrowse 2.",
-  keywords: ["promoter", "genome", "bioinformatics", "transcription factor", "TFBS", "gene regulation", "seqedge"],
+  keywords: ["promoter", "genome", "bioinformatics", "transcription factor", "TFBS", "gene regulation", "galibierhub"],
 };
 
 export default function RootLayout({

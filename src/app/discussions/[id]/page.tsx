@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import BadgeDisplay from "@/components/badge-display";
 import { SiteConfig } from "@/site-config";
 import type { FeedbackCommentEntry, SiteFeedbackEntry } from "@/types/genome";
 
@@ -80,7 +81,7 @@ function ShareModal({ open, onClose, entryId }: { open: boolean; onClose: () => 
         <div className="flex items-center gap-3 justify-center pt-2 border-t border-gray-100">
           <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`} target="_blank" rel="noreferrer" className="rounded-full p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors"><svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
           <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`} target="_blank" rel="noreferrer" className="rounded-full p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"><svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
-          <a href={`mailto:?subject=SeqEdge Discussion&body=${encodeURIComponent(url)}`} target="_blank" rel="noreferrer" className="rounded-full p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></a>
+          <a href={`mailto:?subject=GalibierHub Discussion&body=${encodeURIComponent(url)}`} target="_blank" rel="noreferrer" className="rounded-full p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></a>
           <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`} target="_blank" rel="noreferrer" className="rounded-full p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-700 transition-colors"><svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
         </div>
       </div>
@@ -98,6 +99,7 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string|null>(null);
   const [success, setSuccess] = useState<string|null>(null);
+  const [previewMode, setPreviewMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => { if (open) { setText(""); setError(null); setSuccess(null); setTimeout(()=>textareaRef.current?.focus(), 100); } }, [open]);
@@ -136,6 +138,8 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
         <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/80 px-4 py-2 backdrop-blur">
           <span className="text-sm font-semibold text-gray-700">{replyTarget ? `Replying to @${replyTarget}` : "Post a Reply"}</span>
           <div className="flex items-center gap-1">
+            <button onClick={()=>setPreviewMode(false)} className={"rounded px-2 py-1 text-xs font-medium transition-colors "+(previewMode?"text-gray-500 hover:bg-gray-200":"bg-blue-600 text-white")}>Edit</button>
+            <button onClick={()=>setPreviewMode(true)} className={"rounded px-2 py-1 text-xs font-medium transition-colors "+(previewMode?"bg-blue-600 text-white":"text-gray-500 hover:bg-gray-200")}>Preview</button>
             <button onClick={onClose} className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg></button>
           </div>
         </div>
@@ -154,10 +158,13 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
             </button>
           ))}
         </div>
-        {/* Textarea */}
-        <textarea ref={textareaRef} value={text} onChange={e => setText(e.target.value)} rows={6}
-          placeholder="Write your reply... (Markdown supported)" 
-          className="w-full resize-y border-0 px-4 py-3 text-sm text-gray-900 outline-none placeholder:text-gray-400" />
+        {previewMode ? (
+          <div className="min-h-[150px] px-4 py-3 text-sm text-gray-700 prose prose-sm max-w-none">{text.trim() ? renderMarkdown(text) : <span className="text-gray-400 italic">Nothing to preview</span>}</div>
+        ) : (
+          <textarea ref={textareaRef} value={text} onChange={e => setText(e.target.value)} rows={6}
+            placeholder="Write your reply... (Markdown supported)" 
+            className="w-full resize-y border-0 px-4 py-3 text-sm text-gray-900 outline-none placeholder:text-gray-400" />
+        )}
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/50 px-4 py-3">
           <div>{error&&<span className="text-xs text-red-600">{error}</span>}{success&&<span className="text-xs text-emerald-600">{success}</span>}</div>
@@ -172,17 +179,56 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
 }
 
 // ---- Simple Markdown renderer for inline images ----
+function htmlEscape(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderInlineText(text: string, key: string): React.ReactNode {
+  let html = htmlEscape(text);
+  html = html
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-gray-900">$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
+    .replace(/`(.+?)`/g, '<code class="rounded bg-gray-100 px-1.5 py-0.5 text-sm text-pink-600 font-mono">$1</code>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="text-blue-600 hover:underline">$1</a>');
+  return <span key={key} dangerouslySetInnerHTML={{ __html: html }} className="whitespace-pre-wrap break-words" />;
+}
+
+function renderInline(text: string, onImageClick?: (src: string, alt: string) => void, prefix?: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  const imgRe = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  let lastIdx = 0, pi = 0;
+  let m: RegExpExecArray | null;
+  const pf = prefix || '';
+  while ((m = imgRe.exec(text)) !== null) {
+    const imgSrc = m[2], imgAlt = m[1] || 'image';
+    if (m.index > lastIdx) parts.push(renderInlineText(text.substring(lastIdx, m.index), `${pf}-it-${pi++}`));
+    parts.push(<img key={`${pf}-img-${pi++}`} src={imgSrc} alt={imgAlt} className="my-2 max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" onClick={() => onImageClick?.(imgSrc, imgAlt)} />);
+    lastIdx = m.index + m[0].length;
+  }
+  if (lastIdx < text.length) parts.push(renderInlineText(text.substring(lastIdx), `${pf}-it-${pi++}`));
+  return parts.length > 1 ? <>{parts}</> : parts[0] || null;
+}
+
 function renderMarkdown(text: string, onImageClick?: (src: string, alt: string) => void): React.ReactNode {
   if (!text) return null;
-  // Split by image markdown pattern
-  const parts = text.split(/(!\[[^\]]*\]\([^)]+\))/g);
-  return parts.map((part, i) => {
-    const m = part.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-    if (m) {
-      return <img key={i} src={m[2]} alt={m[1]||"image"} className="my-2 max-w-full rounded-lg" loading="lazy" />;
+  const lines = text.split('\n');
+  const result: React.ReactNode[] = [];
+  let inCodeBlock = false, codeContent = '';
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^```/.test(line)) {
+      if (inCodeBlock) {
+        result.push(<pre key={`cb-${i}`} className="my-2 rounded-lg bg-slate-900 text-green-400 p-3 text-sm overflow-x-auto whitespace-pre-wrap font-mono">{codeContent}</pre>);
+        inCodeBlock = false; codeContent = '';
+      } else { inCodeBlock = true; }
+      continue;
     }
-    return <span key={i} className="whitespace-pre-wrap break-words">{part}</span>;
-  });
+    if (inCodeBlock) { codeContent += (codeContent ? '\n' : '') + line; continue; }
+    if (line.startsWith('> ')) { result.push(<div key={`bq-${i}`} className="my-1 border-l-4 border-blue-300 pl-3 italic text-gray-600">{renderInline(line.substring(2), onImageClick, `bqi-${i}`)}</div>); continue; }
+    if (line.trim() === '') { result.push(<div key={`br-${i}`} className="h-2" />); continue; }
+    result.push(<div key={`ln-${i}`}>{renderInline(line, onImageClick, `lni-${i}`)}</div>);
+  }
+  return <div className="markdown-content">{result}</div>;
 }
 
 // ---- DiscussionFooter with subscription controls ----
@@ -280,6 +326,7 @@ export default function DiscussionDetailPage() {
   const [shareId, setShareId] = useState<string>("");
   const [lightbox, setLightbox] = useState<{src:string;alt:string}|null>(null);
   const [githubUser, setGithubUser] = useState<string|null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string|null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminGithubLogin, setAdminGithubLogin] = useState<string|null>(null);
   const contentRefs = useRef<(HTMLDivElement|null)[]>([]);
@@ -293,13 +340,15 @@ export default function DiscussionDetailPage() {
     if (last && last !== "discussions") setId(last);
 
     // Check for hidden signup prompt
-    if (localStorage.getItem("seqedge-hide-signup") === "permanent" || localStorage.getItem("seqedge-hide-signup") === "true") {
+    if (localStorage.getItem("galibierhub-hide-signup") === "permanent" || localStorage.getItem("galibierhub-hide-signup") === "true") {
       setHideSignupPrompt(true);
     }
 
     // Detect GitHub login
-    const stored = localStorage.getItem("seqedge-github-user");
+    const stored = localStorage.getItem("galibierhub-github-user");
     if (stored) setGithubUser(stored);
+    const storedUserId = localStorage.getItem("galibierhub-user-id");
+    if (storedUserId) setCurrentUserId(storedUserId);
     import("@/utils/supabase-browser").then(async ({getBrowserSupabase}) => {
       const sb = getBrowserSupabase();
       if (sb) {
@@ -309,7 +358,8 @@ export default function DiscussionDetailPage() {
           const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login;
           if (login) {
             setGithubUser(String(login));
-            localStorage.setItem("seqedge-github-user", String(login));
+            localStorage.setItem("galibierhub-github-user", String(login));
+            if (user.id) { setCurrentUserId(String(user.id)); localStorage.setItem("galibierhub-user-id", String(user.id)); }
             import("@/lib/admin-login").then(async ({resolveExpectedAdminGithubLogin}) => {
               const expected = resolveExpectedAdminGithubLogin({fallbackLabel: ""});
               if (expected && String(login).toLowerCase() === expected.toLowerCase()) {
@@ -341,7 +391,7 @@ export default function DiscussionDetailPage() {
           const rd = await rr.json() as {entries?:Record<string,{like:number}>};
           if (rd.entries?.[id]) setLikeCounts({[id]:rd.entries[id].like});
           // Also pre-mark liked if previously liked (via local storage fingerprint)
-          const stored = localStorage.getItem("seqedge-likes-"+id);
+          const stored = localStorage.getItem("galibierhub-likes-"+id);
           if (stored) {
             try { const liked = JSON.parse(stored) as string[]; liked.forEach(lid=>setLikes(p=>({...p,[lid]:true}))); } catch {}
           }
@@ -349,7 +399,7 @@ export default function DiscussionDetailPage() {
       } catch {}
       // Real view counter using localStorage
       try {
-        const viewKey = "seqedge-view-"+id;
+        const viewKey = "galibierhub-view-"+id;
         const stored = localStorage.getItem(viewKey);
         const count = stored ? parseInt(stored,10)+1 : 1;
         localStorage.setItem(viewKey, String(count));
@@ -383,14 +433,14 @@ export default function DiscussionDetailPage() {
         body: JSON.stringify({reactionType:"like", fingerprint:"detail-"+entryId, entryId})
       });
       // Persist liked state locally
-      const stored = localStorage.getItem("seqedge-likes-"+id);
+      const stored = localStorage.getItem("galibierhub-likes-"+id);
       let likedList: string[] = stored ? JSON.parse(stored) : [];
       if (currentlyLiked) {
         likedList = likedList.filter(l=>l!==entryId);
       } else {
         if (!likedList.includes(entryId)) likedList.push(entryId);
       }
-      localStorage.setItem("seqedge-likes-"+(id||""), JSON.stringify(likedList));
+      localStorage.setItem("galibierhub-likes-"+(id||""), JSON.stringify(likedList));
     } catch {}
     finally { setLikeLoading(p=>({...p,[entryId]:false})); }
   }, [likes, id]);
@@ -408,16 +458,23 @@ export default function DiscussionDetailPage() {
   }, []);
 
   const handleSubmitComment = useCallback(async (text: string) => {
-    const authorName = isAdmin ? "SeqEdge Team" : (githubUser || "Visitor");
+    const authorName = isAdmin ? "GalibierHub Team" : (githubUser || "Visitor");
     const res = await fetch("/api/feedback", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({feedbackId:id, message:text, authorName})
+      body: JSON.stringify({feedbackId:id, message:text, authorName, userId: currentUserId || (typeof window !== "undefined" ? localStorage.getItem("galibierhub-user-id") : null)})
     });
     const d = await res.json() as {error?:string};
     if (!res.ok) throw new Error(d.error||"Failed to post");
     setFloatingReplyOpen(false);
     await fetchData();
+    // Auto-award Ice Breaker badge on first post
+    if (currentUserId || (typeof window !== "undefined" && localStorage.getItem("galibierhub-user-id"))) {
+      const uid = currentUserId || (typeof window !== "undefined" ? localStorage.getItem("galibierhub-user-id") : null);
+      if (uid) {
+        try { await fetch("/api/badges", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: uid, badgeId: "ice_breaker" }) }); } catch {}
+      }
+    }
   }, [id, fetchData, githubUser]);
 
   const timelineItems = useMemo(() => {
@@ -449,16 +506,16 @@ export default function DiscussionDetailPage() {
   }, []);
   const handleMaybeLater = useCallback(() => {
     // Hide the signup prompt for this session
-    localStorage.setItem("seqedge-hide-signup", "true");
-    // Force re-render by incrementing views (triggers footer re-render)
-    setTotalViews(p => p);
+    localStorage.setItem("galibierhub-hide-signup", "true");
+    setHideSignupPrompt(true);
   }, []);
   const handleNoThanks = useCallback(() => {
     // Hide permanently
-    localStorage.setItem("seqedge-hide-signup", "permanent");
+    localStorage.setItem("galibierhub-hide-signup", "permanent");
+    setHideSignupPrompt(true);
   }, []);
   const handleHidePost = useCallback(async (postId: string, isDiscussion: boolean) => {
-    const token = localStorage.getItem("seqedge-github-user") || "";
+    const token = localStorage.getItem("galibierhub-github-user") || "";
     if (isDiscussion) {
       await fetch("/api/feedback", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ id: postId, hidden: true }) });
     } else {
@@ -469,7 +526,7 @@ export default function DiscussionDetailPage() {
 
   const handleDeletePost = useCallback(async (postId: string, isDiscussion: boolean) => {
     if (!confirm("Permanently delete this post?")) return;
-    const token = localStorage.getItem("seqedge-github-user") || "";
+    const token = localStorage.getItem("galibierhub-github-user") || "";
     const param = isDiscussion ? "id=" + postId : "comment_id=" + postId;
     await fetch("/api/feedback?" + param, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
     fetchData();
@@ -489,8 +546,8 @@ export default function DiscussionDetailPage() {
           <Link href="/discussions" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0 shadow-sm">All Discussions</Link>
         </div>
         {githubUser && (
-          <div className="text-sm font-medium text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full">
-            Welcome, {isAdmin ? "SeqEdge Team" : githubUser}!
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pb-3 text-base font-bold text-blue-700">
+            Welcome, {isAdmin ? "GalibierHub Team" : githubUser}!
           </div>
         )}
       </header>
@@ -538,6 +595,9 @@ export default function DiscussionDetailPage() {
                             </div>
                             <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
                               <span className="font-medium text-gray-700">{ed.display_name}</span>
+
+                              {ed.user_id && <BadgeDisplay userId={ed.user_id} />}
+
                               {ed.affiliation&&<><span>·</span><span>{ed.affiliation}</span></>}
                               <span>·</span><span>{formatDate(ed.created_at)}</span>
                             </div>
@@ -546,14 +606,19 @@ export default function DiscussionDetailPage() {
                         <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words">{renderMarkdown(ed.message, (src, alt) => setLightbox({src, alt}))}</div>
                         {ed.creator_reply&&(
                           <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
-                            <div className="flex items-center gap-2 mb-2"><div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-semibold text-white">S</div><span className="text-xs font-semibold text-blue-800">SeqEdge Team</span><span className="text-xs text-blue-500">· Official Response</span></div>
+                            <div className="flex items-center gap-2 mb-2"><div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-semibold text-white">S</div><span className="text-xs font-semibold text-blue-800">GalibierHub Team</span><span className="text-xs text-blue-500">· Official Response</span></div>
                             <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words">{ed.creator_reply}</div>
                           </div>)}
                       </>):(<>
                         <div className="flex items-start gap-3 mb-3">
                           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">{getInitials(cd.author_name)}</div>
-                          <div><span className="text-sm font-semibold text-gray-900">{cd.author_name}</span>
-                          <span className="text-xs text-gray-500">{formatDate(cd.created_at)}</span></div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-semibold text-gray-900">{cd.author_name}</span>
+                              {cd.user_id && <BadgeDisplay userId={cd.user_id} />}
+                            </div>
+                            <span className="text-xs text-gray-500">{formatDate(cd.created_at)}</span>
+                          </div>
                         </div>
                         <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words ml-11">{renderMarkdown(cd.message, (src, alt) => setLightbox({src, alt}))}</div>
                       </>)}
@@ -605,6 +670,17 @@ export default function DiscussionDetailPage() {
 
       {/* Share modal */}
       <ShareModal open={shareModalOpen} onClose={()=>setShareModalOpen(false)} entryId={shareId}/>
+
+      {/* Image lightbox */}
+      {lightbox&&(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-8" onClick={()=>setLightbox(null)}>
+          <div className="relative max-h-[90vh] max-w-[90vw]" onClick={e=>e.stopPropagation()}>
+            <img src={lightbox.src} alt={lightbox.alt} className="max-h-[85vh] max-w-[85vw] rounded-2xl object-contain shadow-2xl" />
+            <p className="mt-2 text-center text-sm text-white/80">{lightbox.alt}</p>
+            <button onClick={()=>setLightbox(null)} className="absolute -top-3 -right-3 rounded-full bg-white p-1.5 text-gray-600 shadow-lg hover:bg-gray-100"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg></button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

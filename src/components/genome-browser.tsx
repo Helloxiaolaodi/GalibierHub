@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useCallback } from 'react';
@@ -213,10 +213,10 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
       storageMode === 'unset'
         ? 'No genome storage base is configured. Set NEXT_PUBLIC_STORAGE_BASE_URL or NEXT_PUBLIC_R2_PUBLIC_URL to a reachable public storage URL or Hugging Face proxy endpoint.'
         : storageMode === 'hf-proxy'
-        ? 'SeqEdge is configured to use a Cloudflare Worker proxy for Hugging Face assets. Confirm NEXT_PUBLIC_HF_PROXY_URL is deployed and that the reference files are reachable.'
+        ? 'GalibierHub is configured to use a Cloudflare Worker proxy for Hugging Face assets. Confirm NEXT_PUBLIC_HF_PROXY_URL is deployed and that the reference files are reachable.'
         : storageMode === 'hf-direct'
-          ? 'SeqEdge is reading reference files from Hugging Face. A deployed NEXT_PUBLIC_HF_PROXY_URL is still recommended for production reliability.'
-          : 'SeqEdge is configured to use your storage endpoint directly. Confirm NEXT_PUBLIC_STORAGE_BASE_URL points to a public CORS-enabled object store and that the reference files are reachable.';
+          ? 'GalibierHub is reading reference files from Hugging Face. A deployed NEXT_PUBLIC_HF_PROXY_URL is still recommended for production reliability.'
+          : 'GalibierHub is configured to use your storage endpoint directly. Confirm NEXT_PUBLIC_STORAGE_BASE_URL points to a public CORS-enabled object store and that the reference files are reachable.';
     return (
       <div className="border rounded-lg overflow-hidden bg-white">
         <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">

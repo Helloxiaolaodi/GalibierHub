@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
@@ -585,11 +585,11 @@ const [uploadingImage, setUploadingImage] = useState(false);
     const saved: Record<string, Record<string, boolean>> = {};
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i);
-      if (key && key.startsWith('seqedge-reaction-like-')) {
-        const entryId = key.replace('seqedge-reaction-like-', '');
+      if (key && key.startsWith('galibierhub-reaction-like-')) {
+        const entryId = key.replace('galibierhub-reaction-like-', '');
         saved[entryId] = {
-          like: window.localStorage.getItem(`seqedge-reaction-like-${entryId}`) === '1',
-          bookmark: window.localStorage.getItem(`seqedge-reaction-bookmark-${entryId}`) === '1',
+          like: window.localStorage.getItem(`galibierhub-reaction-like-${entryId}`) === '1',
+          bookmark: window.localStorage.getItem(`galibierhub-reaction-bookmark-${entryId}`) === '1',
         };
       }
     }
@@ -673,7 +673,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
       }));
 
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem(`seqedge-reaction-${reactionType}-${entryId}`, data.active ? '1' : '0');
+        window.localStorage.setItem(`galibierhub-reaction-${reactionType}-${entryId}`, data.active ? '1' : '0');
       }
 
      setReactionCounts((current) => ({

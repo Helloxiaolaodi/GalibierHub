@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -57,7 +57,7 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Record not found</h1>
         <p className="text-gray-500">ID: {id}</p>
-        <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Back to SeqEdge</Link>
+        <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Back to GalibierHub</Link>
       </div>
     );
   }
@@ -66,7 +66,7 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/" className="text-sm text-blue-600 hover:underline">Back to SeqEdge</Link>
+          <Link href="/" className="text-sm text-blue-600 hover:underline">Back to GalibierHub</Link>
           <div className="w-px h-5 bg-gray-300" />
           <h1 className="text-lg font-bold text-gray-900">Record details</h1>
         </div>
@@ -92,7 +92,7 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
         <div className="flex gap-3">
-          <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Open in SeqEdge</Link>
+          <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Open in GalibierHub</Link>
           <button type="button" onClick={() => navigator.clipboard.writeText([promoter.chrom, promoter.start, promoter.end_pos, promoter.gene_symbol || 'NA', promoter.score, promoter.strand].join('\t'))} className="px-4 py-2 border rounded-lg text-sm">Copy as BED</button>
         </div>
         {(downloadsLoaded && (visibleVcfDownloadUrl || visibleFastaDownloadUrl || visibleGbDownloadUrl || visibleBedDownloadUrl || visibleGff3DownloadUrl)) && (

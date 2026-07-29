@@ -1,5 +1,5 @@
--- ============================================================
--- SeqEdge Ã¢â‚¬â€ Supabase Database Schema
+﻿-- ============================================================
+-- GalibierHub Ã¢â‚¬â€ Supabase Database Schema
 -- ============================================================
 -- Run this SQL in your Supabase SQL Editor to create all
 -- required tables, indexes, and sample data.
@@ -589,28 +589,16 @@ CREATE TABLE IF NOT EXISTS site_notifications (
 ALTER TABLE site_notifications ENABLE ROW LEVEL SECURITY;
 
 -- Users can only view their own notifications
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own notifications' AND tablename = 'site_notifications') THEN
-    CREATE POLICY "Users can view own notifications" ON site_notifications FOR SELECT USING (auth.uid() = recipient_id);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS "Users can view own notifications" ON site_notifications;
+CREATE POLICY "Users can view own notifications" ON site_notifications FOR SELECT USING (auth.uid() = recipient_id);
 
 -- Users can only update their own notifications (mark as read)
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update own notifications' AND tablename = 'site_notifications') THEN
-    CREATE POLICY "Users can update own notifications" ON site_notifications FOR UPDATE USING (auth.uid() = recipient_id);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS "Users can update own notifications" ON site_notifications;
+CREATE POLICY "Users can update own notifications" ON site_notifications FOR UPDATE USING (auth.uid() = recipient_id);
 
 -- Server-side insert (use service role key)
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service role can insert notifications' AND tablename = 'site_notifications') THEN
-    CREATE POLICY "Service role can insert notifications" ON site_notifications FOR INSERT WITH CHECK (true);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS "Service role can insert notifications" ON site_notifications;
+CREATE POLICY "Service role can insert notifications" ON site_notifications FOR INSERT WITH CHECK (true);
 
 -- Index for fast lookups
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON site_notifications(recipient_id, created_at DESC);
@@ -644,18 +632,10 @@ CREATE TABLE IF NOT EXISTS user_badges (
 
 -- RLS for user_badges
 ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view badges' AND tablename = 'user_badges') THEN
-    CREATE POLICY "Anyone can view badges" ON user_badges FOR SELECT USING (true);
-  END IF;
-END $$;
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service role can insert badges' AND tablename = 'user_badges') THEN
-    CREATE POLICY "Service role can insert badges" ON user_badges FOR INSERT WITH CHECK (true);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS "Anyone can view badges" ON user_badges;
+CREATE POLICY "Anyone can view badges" ON user_badges FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Service role can insert badges" ON user_badges;
+CREATE POLICY "Service role can insert badges" ON user_badges FOR INSERT WITH CHECK (true);
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges(user_id);

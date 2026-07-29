@@ -1,7 +1,7 @@
-// ============================================================
+﻿// ============================================================
 // Storage URL resolver - storage-agnostic (R2 / Hugging Face / S3)
 // ============================================================
-// SeqEdge never hard-codes a storage provider. Every genome file is addressed
+// GalibierHub never hard-codes a storage provider. Every genome file is addressed
 // by a URL that this helper resolves, following one simple rule:
 //
 //   "relative paths go through the base URL, absolute URLs are passed through."

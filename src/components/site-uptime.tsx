@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 
-const VISITOR_STORAGE_KEY = 'seqedge-visitor-id';
+const VISITOR_STORAGE_KEY = 'galibierhub-visitor-id';
 
 interface SiteUptimeProps {
   startAt: string;

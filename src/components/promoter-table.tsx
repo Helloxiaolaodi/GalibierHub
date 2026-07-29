@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -92,7 +92,7 @@ function buildSh(files: BatchDownloadItem[]): string {
     .map((file) => `# sample: ${file.sample_id} (${FILE_KIND_LABELS[file.kind] || file.kind})\n${file.wget_command}`)
     .join('\n\n');
   return `#!/usr/bin/env bash
-# SeqEdge batch download, generated ${now} (UTC)
+# GalibierHub batch download, generated ${now} (UTC)
 # ${publicFiles.length} public file(s). "wget -c" resumes partial downloads.
 # ${privateFiles.length} file(s) are omitted because they are protected or do not use a direct file URL.
 # Run on this server to auto-download all selected public sample files.
@@ -110,7 +110,7 @@ function buildBat(files: BatchDownloadItem[]): string {
     .filter((file) => file.batch_eligible && file.access_mode === 'public_url' && file.curl_command)
     .map((file) => `REM sample: ${file.sample_id} (${FILE_KIND_LABELS[file.kind] || file.kind})\r${file.curl_command}`)
     .join('\r\n\r\n');
-  return `@echo off\r\nREM SeqEdge batch download, generated ${now} (UTC)\r\nREM ${publicFiles.length} public file(s). "curl -C -" resumes partial downloads.\r\nREM ${privateFiles.length} file(s) are omitted because they are protected or do not use a direct file URL.\r\n\r\n${body}\r\n`;
+  return `@echo off\r\nREM GalibierHub batch download, generated ${now} (UTC)\r\nREM ${publicFiles.length} public file(s). "curl -C -" resumes partial downloads.\r\nREM ${privateFiles.length} file(s) are omitted because they are protected or do not use a direct file URL.\r\n\r\n${body}\r\n`;
 }
 
 function downloadText(filename: string, text: string): void {
@@ -772,8 +772,8 @@ export default function PromoterTable({
                     </table>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <button type="button" onClick={() => downloadText('seqedge-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Download .sh (Linux/macOS, resumable)</button>
-                    <button type="button" onClick={() => downloadText('seqedge-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100">Download .bat (Windows, resumable)</button>
+                    <button type="button" onClick={() => downloadText('galibierhub-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Download .sh (Linux/macOS, resumable)</button>
+                    <button type="button" onClick={() => downloadText('galibierhub-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100">Download .bat (Windows, resumable)</button>
                   </div>
                   <div className="grid gap-3 lg:grid-cols-2">
                     <details className="text-xs text-gray-500">

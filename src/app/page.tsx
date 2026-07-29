@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -292,12 +292,12 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-40">
+    <div className="min-h-screen bg-[#F5F5F7]">
+      <header className="bg-white/70 backdrop-blur-xl saturate-150 border-b border-white/20 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
-              SE
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+              GH
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900 leading-tight">
@@ -327,8 +327,8 @@ export default function HomePage() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === tab
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-200/60'
                 }`}
               >
                 {tab === 'overview'
@@ -341,7 +341,7 @@ export default function HomePage() {
                         : 'Downloads'}
               </button>
             ))}
-            <Link href="/discussions" className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">Discussions</Link>
+            <Link href="/discussions" className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200/60 transition-colors">Discussions</Link>
             <div className="w-px h-5 bg-gray-200 mx-1" />
             {creatorSession ? (
               <>
@@ -362,7 +362,7 @@ export default function HomePage() {
             <NotificationBell session={creatorSession} />
             <button type="button" onClick={() => setGuideOpen((v) => !v)}
               aria-expanded={guideOpen}
-              aria-controls="seqedge-user-guide"
+              aria-controls="galibierhub-user-guide"
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
                 guideOpen ? 'bg-emerald-600 text-white' : 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
               }`}
@@ -379,20 +379,20 @@ export default function HomePage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {creatorSignInError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start justify-between gap-3">
+          <div className="rounded-xl border border-red-100 bg-red-50/80 px-4 py-3 text-sm text-red-700 flex items-start justify-between gap-3 shadow-sm">
             <span>{creatorSignInError}</span>
             <button type="button" onClick={() => setCreatorSignInError(null)} aria-label="Dismiss" className="shrink-0 text-red-400 hover:text-red-600">X</button>
           </div>
         )}
         {creatorSession && (
-          <div className={`rounded-lg border px-4 py-3 text-sm ${isCreatorAdmin ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+          <div className={`rounded-xl border px-4 py-3 text-sm shadow-sm ${isCreatorAdmin ? 'border-emerald-100 bg-emerald-50/80 text-emerald-800' : 'border-amber-100 bg-amber-50/80 text-amber-800'}`}>
             {isCreatorAdmin
               ? `Administrator access enabled for @${creatorLogin || 'unknown'}.`
               : `Signed in as @${creatorLogin || 'unknown'}, but this account does not have administrator access. Expected: @${expectedAdminLogin || 'not configured'}.`}
           </div>
         )}
         {dataError && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-2">
+          <div className="rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 space-y-2 shadow-sm">
             <div>{dataError}</div>
             {configurationHints.length > 0 && (
               <ul className="list-disc pl-5 text-xs text-amber-900 space-y-1">
@@ -542,7 +542,7 @@ export default function HomePage() {
         )}
                 {activeTab === 'genome-browser' && (
           <div className="border rounded-lg overflow-hidden">
-            <div id="seqedge-genome-browser" />
+            <div id="galibierhub-genome-browser" />
             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
               Genome Browser
             </div>
