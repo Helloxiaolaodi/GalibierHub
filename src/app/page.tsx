@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -12,6 +12,8 @@ import PromoterTable from '@/components/promoter-table';
 import PromoterDetail from '@/components/promoter-detail';
 import GenomeBrowser from '@/components/genome-browser';
 import UserGuide from '@/components/user-guide';
+import Link from 'next/link';
+import NotificationBell from '@/components/notification-bell';
 import DownloadCatalogPanel from '@/components/download-catalog-panel';
 import SiteFeedback from '@/components/site-feedback';
 import SiteUptime from '@/components/site-uptime';
@@ -320,7 +322,7 @@ export default function HomePage() {
             </div>
           </div>
           <nav className="flex flex-wrap items-center gap-1">
-            {(['overview', 'promoters', 'genome-browser', 'downloads', 'discussion'] as const).map((tab) => (
+            {(['overview', 'promoters', 'genome-browser', 'downloads'] as const).map((tab) => (
               <button type="button" key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -335,11 +337,11 @@ export default function HomePage() {
                     ? 'Records'
                     : tab === 'genome-browser'
                       ? 'Genome Browser'
-                      : tab === 'discussion'
-                        ? 'Discussions'
+                      
                         : 'Downloads'}
               </button>
             ))}
+            <Link href="/discussions" className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">Discussions</Link>
             <div className="w-px h-5 bg-gray-200 mx-1" />
             {creatorSession ? (
               <>
@@ -357,6 +359,7 @@ export default function HomePage() {
                 Log in with GitHub
               </button>
             )}
+            <NotificationBell session={creatorSession} />
             <button type="button" onClick={() => setGuideOpen((v) => !v)}
               aria-expanded={guideOpen}
               aria-controls="seqedge-user-guide"
@@ -534,16 +537,7 @@ export default function HomePage() {
                 setSortMode(nextMode);
                 setPageIndex(0);
               }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick} />
-            <div className="border rounded-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
-                Genome Browser
-              </div>
-              <GenomeBrowser
-                locus={browserLocus}
-                onLocusChange={setBrowserLocus}
-                highlightRegion={highlightedPromoterRegion}
-              />
-            </div>
+
           </>
         )}
                 {activeTab === 'genome-browser' && (
