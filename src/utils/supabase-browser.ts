@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 let browserSupabase: SupabaseClient | null = null;
+let initAttempted = false;
 
 export function getBrowserSupabase(): SupabaseClient | null {
   if (typeof window === 'undefined') {
@@ -21,7 +22,13 @@ export function getBrowserSupabase(): SupabaseClient | null {
         detectSessionInUrl: true,
       },
     });
+    initAttempted = true;
   }
 
   return browserSupabase;
+}
+
+// Eagerly initialize on module load so OAuth redirect tokens are captured
+if (typeof window !== 'undefined') {
+  getBrowserSupabase();
 }

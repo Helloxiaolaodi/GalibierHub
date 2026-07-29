@@ -273,6 +273,89 @@ export default function DiscussionsPage() {
           </div>
         )}
       </main>
+      {/* New Discussion Composer Modal */}
+      {showComposer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => { setShowComposer(false); setComposerError(null); setComposerSuccess(null); }}>
+          <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/80 px-5 py-3">
+              <h2 className="text-base font-semibold text-gray-900">New Discussion</h2>
+              <button onClick={() => { setShowComposer(false); setComposerError(null); setComposerSuccess(null); }} className="rounded-full p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <form onSubmit={handleComposerSubmit} className="p-5 space-y-4">
+              {composerError && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{composerError}</div>}
+              {composerSuccess && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{composerSuccess}</div>}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
+                <input type="text" value={composerForm.title} onChange={e => setComposerForm(p => ({...p, title: e.target.value}))} required minLength={3}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                  placeholder="What would you like to discuss?" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+                  <input type="text" value={composerForm.displayName} onChange={e => setComposerForm(p => ({...p, displayName: e.target.value}))}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    placeholder={githubUser || "Your name"} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select value={composerForm.category} onChange={e => setComposerForm(p => ({...p, category: e.target.value}))}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all">
+                    <option value="general">General</option>
+                    <option value="issue">Issue</option>
+                    <option value="idea">Idea</option>
+                    <option value="data">Data</option>
+                    <option value="collaboration">Collaboration</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message <span className="text-red-500">*</span></label>
+                <textarea ref={composerRef} value={composerForm.message} onChange={e => setComposerForm(p => ({...p, message: e.target.value}))} required minLength={3} rows={8}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all resize-y"
+                  placeholder="Write your message... (Markdown supported)" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0]; if (!file) return;
+                      setUploadingImage(true); setComposerUploadMsg(null);
+                      const formData = new FormData(); formData.append("file", file);
+                      try {
+                        const resp = await fetch("/api/upload-image", { method: "POST", body: formData });
+                        const data = await resp.json() as { url?: string; error?: string };
+                        if (!resp.ok || data.error) throw new Error(data.error || "Upload failed");
+                        if (data.url) {
+                          setComposerForm(p => ({...p, message: p.message + `\n![${file.name}](${data.url})`}));
+                          setComposerUploadMsg({type:"success", text:"Image uploaded!"});
+                        }
+                      } catch (err) {
+                        setComposerUploadMsg({type:"error", text: err instanceof Error ? err.message : "Upload failed"});
+                      } finally { setUploadingImage(false); }
+                    }} />
+                    <span className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth={2}/><circle cx="8.5" cy="8.5" r="1.5" strokeWidth={2}/><polyline points="21 15 16 10 5 21" strokeWidth={2}/></svg>
+                      {uploadingImage ? "Uploading..." : "Add Image"}
+                    </span>
+                  </label>
+                  {composerUploadMsg && <span className={`text-xs ${composerUploadMsg.type==="success"?"text-emerald-600":"text-red-600"}`}>{composerUploadMsg.text}</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => { setShowComposer(false); setComposerError(null); setComposerSuccess(null); }}
+                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                  <button type="submit" disabled={composerSubmitting}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50">
+                    {composerSubmitting ? "Posting..." : "Post Discussion"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
