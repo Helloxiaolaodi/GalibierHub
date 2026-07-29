@@ -8,6 +8,7 @@ import UserMenuPanel from "@/components/user-menu-panel";
 import type { FeedbackCommentEntry, SiteFeedbackEntry } from "@/types/genome";
 import type { Session } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
+import { renderMarkdown } from "@/lib/markdown";
 
 function getCategoryColor(c: string): string {
   const m: Record<string,string>={general:"bg-blue-100 text-blue-800",issue:"bg-red-100 text-red-800",idea:"bg-amber-100 text-amber-800",data:"bg-emerald-100 text-emerald-800",collaboration:"bg-purple-100 text-purple-800"};
@@ -55,12 +56,31 @@ export default function DiscussionsPage() {
   const [mounted, setMounted] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",category:"general",message:"",visibility:"public"});
+  type MarkdownAction = "bold"|"italic"|"code"|"quote"|"link"|"image"|"list";
+  const [composerPreview, setComposerPreview] = useState(false);
   const [composerSubmitting, setComposerSubmitting] = useState(false);
   const [composerError, setComposerError] = useState<string|null>(null);
   const [composerSuccess, setComposerSuccess] = useState<string|null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [composerUploadMsg, setComposerUploadMsg] = useState<{type:"success"|"error";text:string}|null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const insertComposerMarkdown = (action: MarkdownAction) => {
+    const ta = composerRef.current; if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const before = composerForm.message.substring(0, start), selected = composerForm.message.substring(start, end), after = composerForm.message.substring(end);
+    let result = "";
+    switch (action) {
+      case "bold": result = before + "**" + (selected || "bold text") + "**" + after; break;
+      case "italic": result = before + "*" + (selected || "italic text") + "*" + after; break;
+      case "code": result = before + "`" + (selected || "code") + "`" + after; break;
+      case "quote": result = before + "> " + (selected || "quote") + after; break;
+      case "link": result = before + "[" + (selected || "link text") + "](url)" + after; break;
+      case "image": { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = async (e) => { const file = (e.target as HTMLInputElement).files?.[0]; if (!file) return; setComposerError(null); setUploadingImage(true); setComposerUploadMsg(null); const formData = new FormData(); formData.append("file", file); try { const resp = await fetch("/api/upload-image", { method: "POST", body: formData }); const data = await resp.json() as { url?: string; error?: string }; if (!resp.ok || data.error) throw new Error(data.error || "Upload failed"); if (data.url) { setComposerForm(p => ({...p, message: p.message + "\n![" + file.name + "](" + data.url + ")"})); setComposerUploadMsg({type:"success", text:"Image uploaded!"}); } } catch (err) { setComposerUploadMsg({type:"error", text: err instanceof Error ? err.message : "Upload failed"}); } finally { setUploadingImage(false); } }; input.click(); return; }
+      case "list": result = before + "\n- " + (selected || "list item") + after; break;
+    }
+    setComposerForm(p => ({...p, message: result}));
+    setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + result.length - after.length; ta.focus(); }, 0);
+  };
 
   // Detect GitHub login from session/localStorage  
   useEffect(() => {
@@ -161,7 +181,7 @@ export default function DiscussionsPage() {
     const displayName = composerForm.displayName.trim() || (githubUser || "Visitor");
     setComposerSubmitting(true); setComposerError(null);
     try {
-      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,category:composerForm.category,visibility:composerForm.visibility,rating:5}) });
+      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,category:composerForm.category,visibility:composerForm.visibility}) });
       if (!res.ok) { const d = await res.json() as {error?:string}; throw new Error(d.error||"Failed to submit"); }
       setComposerSuccess("Discussion created!");
       setComposerForm({title:"",displayName:"",visitorEmail:"",category:"general",message:"",visibility:"public"});
@@ -270,7 +290,7 @@ export default function DiscussionsPage() {
                         {entry.category !== "general" && <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium "+getCategoryColor(entry.category)}>{getCategoryLabel(entry.category)}</span>}
                         {isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"><svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>Resolved</span>}
                         {!isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">In Progress</span>}
-                        {entry.rating>0&&<span className="inline-flex items-center gap-0.5 text-xs text-amber-600">{Array.from({length:entry.rating}).map((_,i)=><svg key={i} className="h-3 w-3 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>)}</span>}
+                        
                       </div>
                       <p className="text-sm text-gray-600 line-clamp-2 mb-2">{preview}</p>
                       <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -337,9 +357,34 @@ export default function DiscussionsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Message <span className="text-red-500">*</span></label>
-                <textarea ref={composerRef} value={composerForm.message} onChange={e => setComposerForm(p => ({...p, message: e.target.value}))} required minLength={3} rows={8}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all resize-y"
-                  placeholder="Write your message... (Markdown supported)" />
+                {/* Toolbar + Edit/Preview toggle */}
+                <div className="flex items-center justify-between border border-gray-200 rounded-t-lg bg-gray-50/80 px-3 py-1.5">
+                  <div className="flex items-center gap-1">
+                    {(["bold","italic","code","quote","link","image","list"] as MarkdownAction[]).map(a => (
+                      <button key={a} type="button" onClick={() => insertComposerMarkdown(a)}
+                        className="rounded p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors" title={a}>
+                        {a==="bold"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/></svg>}
+                        {a==="italic"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="19" y1="4" x2="10" y2="4" strokeWidth={2}/><line x1="14" y1="20" x2="5" y2="20" strokeWidth={2}/><line x1="15" y1="4" x2="9" y2="20" strokeWidth={2}/></svg>}
+                        {a==="code"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6" strokeWidth={2}/><polyline points="8 6 2 12 8 18" strokeWidth={2}/></svg>}
+                        {a==="quote"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" strokeWidth={2}/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z" strokeWidth={2}/></svg>}
+                        {a==="link"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>}
+                        {a==="image"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth={2}/><circle cx="8.5" cy="8.5" r="1.5" strokeWidth={2}/><polyline points="21 15 16 10 5 21" strokeWidth={2}/></svg>}
+                        {a==="list"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6" strokeWidth={2}/><line x1="8" y1="12" x2="21" y2="12" strokeWidth={2}/><line x1="8" y1="18" x2="21" y2="18" strokeWidth={2}/><line x1="3" y1="6" x2="3.01" y2="6" strokeWidth={2}/><line x1="3" y1="12" x2="3.01" y2="12" strokeWidth={2}/><line x1="3" y1="18" x2="3.01" y2="18" strokeWidth={2}/></svg>}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => setComposerPreview(false)} className={"rounded px-2 py-1 text-xs font-medium transition-colors "+(composerPreview?"text-gray-500 hover:bg-gray-200":"bg-blue-600 text-white")}>Edit</button>
+                    <button type="button" onClick={() => setComposerPreview(true)} className={"rounded px-2 py-1 text-xs font-medium transition-colors "+(composerPreview?"bg-blue-600 text-white":"text-gray-500 hover:bg-gray-200")}>Preview</button>
+                  </div>
+                </div>
+                {composerPreview ? (
+                  <div className="min-h-[200px] rounded-b-lg border border-t-0 border-gray-200 px-4 py-3 text-sm text-gray-700 prose prose-sm max-w-none overflow-y-auto">{composerForm.message.trim() ? renderMarkdown(composerForm.message) : <span className="text-gray-400 italic">Nothing to preview</span>}</div>
+                ) : (
+                  <textarea ref={composerRef} value={composerForm.message} onChange={e => setComposerForm(p => ({...p, message: e.target.value}))} required minLength={3} rows={8}
+                    className="w-full rounded-b-lg border border-t-0 border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all resize-y"
+                    placeholder="Write your message... (Markdown supported)" />
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
