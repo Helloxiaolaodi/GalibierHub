@@ -1,10 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { SiteConfig } from "@/site-config";
 import BadgeDisplay from "@/components/badge-display";
+import UserMenuPanel from "@/components/user-menu-panel";
 import type { FeedbackCommentEntry, SiteFeedbackEntry } from "@/types/genome";
+import type { Session } from "@supabase/supabase-js";
 
 function getCategoryColor(c: string): string {
   const m: Record<string,string>={general:"bg-blue-100 text-blue-800",issue:"bg-red-100 text-red-800",idea:"bg-amber-100 text-amber-800",data:"bg-emerald-100 text-emerald-800",collaboration:"bg-purple-100 text-purple-800"};
@@ -47,6 +49,8 @@ export default function DiscussionsPage() {
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [githubUser, setGithubUser] = useState<string|null>(null);
+  const [session, setSession] = useState<Session|null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Detect GitHub login from session/localStorage  
   useEffect(() => {
@@ -57,6 +61,7 @@ export default function DiscussionsPage() {
       const sb = getBrowserSupabase();
       if (sb) {
         const {data} = await sb.auth.getSession();
+        if (data.session) { setSession(data.session); }
         const user = data.session?.user;
         if (user) {
           const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login;

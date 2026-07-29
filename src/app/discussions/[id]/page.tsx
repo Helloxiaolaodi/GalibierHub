@@ -1,10 +1,12 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import BadgeDisplay from "@/components/badge-display";
+import UserMenuPanel from "@/components/user-menu-panel";
 import { SiteConfig } from "@/site-config";
 import type { FeedbackCommentEntry, SiteFeedbackEntry } from "@/types/genome";
+import type { Session } from "@supabase/supabase-js";
 
 // ---- helpers ----
 function getCategoryColor(c: string): string {
@@ -328,6 +330,7 @@ export default function DiscussionDetailPage() {
   const [githubUser, setGithubUser] = useState<string|null>(null);
   const [currentUserId, setCurrentUserId] = useState<string|null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [session, setSession] = useState<Session|null>(null);
   const [adminGithubLogin, setAdminGithubLogin] = useState<string|null>(null);
   const contentRefs = useRef<(HTMLDivElement|null)[]>([]);
   const [hideSignupPrompt, setHideSignupPrompt] = useState(false);
@@ -354,6 +357,7 @@ export default function DiscussionDetailPage() {
       if (sb) {
         const {data} = await sb.auth.getSession();
         const user = data.session?.user;
+        if (data.session) { setSession(data.session); }
         if (user) {
           const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login;
           if (login) {
@@ -515,7 +519,15 @@ export default function DiscussionDetailPage() {
     setHideSignupPrompt(true);
   }, []);
   const handleHidePost = useCallback(async (postId: string, isDiscussion: boolean) => {
-    const token = localStorage.getItem("galibierhub-github-user") || "";
+    let token = localStorage.getItem("galibierhub-github-user") || "";
+    try {
+      const {getBrowserSupabase} = await import("@/utils/supabase-browser");
+      const sb2 = getBrowserSupabase();
+      if (sb2) {
+        const {data} = await sb2.auth.getSession();
+        token = data.session?.access_token || token;
+      }
+    } catch {}
     if (isDiscussion) {
       await fetch("/api/feedback", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ id: postId, hidden: true }) });
     } else {
@@ -526,7 +538,15 @@ export default function DiscussionDetailPage() {
 
   const handleDeletePost = useCallback(async (postId: string, isDiscussion: boolean) => {
     if (!confirm("Permanently delete this post?")) return;
-    const token = localStorage.getItem("galibierhub-github-user") || "";
+    let token = localStorage.getItem("galibierhub-github-user") || "";
+    try {
+      const {getBrowserSupabase} = await import("@/utils/supabase-browser");
+      const sb2 = getBrowserSupabase();
+      if (sb2) {
+        const {data} = await sb2.auth.getSession();
+        token = data.session?.access_token || token;
+      }
+    } catch {}
     const param = isDiscussion ? "id=" + postId : "comment_id=" + postId;
     await fetch("/api/feedback?" + param, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
     fetchData();
