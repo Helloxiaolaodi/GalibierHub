@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -210,9 +210,9 @@ export default function DiscussionsPage() {
                               <span>{entry.display_name}</span>
                               {entry.user_id && <BadgeDisplay userId={entry.user_id} />}
                             </div>
-                            <span>Ã‚Â·</span>
+                            <span>·</span>
                         <span>{formatTimeAgo(entry.created_at)}</span>
-                        {likeCounts[entry.id]>0&&<><span>Ã‚Â·</span><span className="text-red-500">Ã¢â„¢Â¥ {(likeCounts[entry.id])}</span></>}
+                        {likeCounts[entry.id]>0&&<><span>·</span><span className="text-red-500">♥ {(likeCounts[entry.id])}</span></>}
                       </div>
                     </div>
                     <div className="flex-shrink-0 flex flex-col items-end gap-1 text-right">

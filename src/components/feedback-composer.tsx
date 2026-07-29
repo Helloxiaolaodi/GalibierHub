@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import TurnstileWidget from '@/components/turnstile-widget';
 import { renderMarkdown } from '@/lib/markdown';
 
