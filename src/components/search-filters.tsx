@@ -43,7 +43,6 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
   const cellCls = 'w-full rounded-lg border border-slate-200 bg-[#F5F5F7] px-3 py-2 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:bg-slate-200/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10';
 
   return (
-    <div className="bg-white border rounded-lg">
     <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
       <div className="px-4 pt-4 pb-2">
         <h2 className="text-xs font-bold tracking-wider text-slate-400 uppercase">
