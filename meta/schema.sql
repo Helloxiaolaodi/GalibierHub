@@ -304,6 +304,149 @@ END $$;
 -- ============================================================
 INSERT INTO storage.buckets (id, name, public) VALUES ('feedback-images', 'feedback-images', true)
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- Badge auto-award triggers
+-- ============================================================
+
+-- Add user_id to site_reactions for badge tracking
+ALTER TABLE site_reactions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
+-- Function to safely award a badge (idempotent)
+CREATE OR REPLACE FUNCTION award_badge(p_user_id UUID, p_badge_id TEXT, p_discussion_id TEXT DEFAULT NULL)
+RETURNS void AS $$
+DECLARE
+  badge_name TEXT;
+  badge_icon TEXT;
+BEGIN
+  IF p_user_id IS NULL THEN RETURN; END IF;
+  IF EXISTS (SELECT 1 FROM user_badges WHERE user_id = p_user_id AND badge_id = p_badge_id) THEN
+    RETURN;
+  END IF;
+  INSERT INTO user_badges (user_id, badge_id, discussion_id) VALUES (p_user_id, p_badge_id, p_discussion_id);
+  SELECT name, icon INTO badge_name, badge_icon FROM badge_definitions WHERE id = p_badge_id;
+  IF badge_name IS NOT NULL THEN
+    INSERT INTO site_notifications (recipient_id, discussion_id, actor_name, preview_text, is_read)
+    VALUES (p_user_id, COALESCE(p_discussion_id, 'badges'), 'GalibierHub',
+            COALESCE(badge_icon, '🏅') || ' You earned the "' || badge_name || '" badge!', false);
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'award_badge error: %', SQLERRM;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger on site_feedback INSERT
+CREATE OR REPLACE FUNCTION trg_feedback_badges()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM award_badge(NEW.user_id, 'ice_breaker', NEW.id::text);
+  IF NEW.message ~ '```' THEN
+    PERFORM award_badge(NEW.user_id, 'markdown_master', NEW.id::text);
+  END IF;
+  IF NEW.image_url IS NOT NULL AND NEW.image_url != '' THEN
+    PERFORM award_badge(NEW.user_id, 'data_visualizer', NEW.id::text);
+  END IF;
+  IF NEW.message ~ 'github\.com/[^\s]+' THEN
+    PERFORM award_badge(NEW.user_id, 'open_science', NEW.id::text);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_feedback_badges_trigger ON site_feedback;
+CREATE TRIGGER trg_feedback_badges_trigger
+  AFTER INSERT ON site_feedback
+  FOR EACH ROW EXECUTE FUNCTION trg_feedback_badges();
+
+-- Trigger on feedback_comments INSERT
+CREATE OR REPLACE FUNCTION trg_comment_badges()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM award_badge(NEW.user_id, 'ice_breaker');
+  IF NEW.message ~ '```' THEN
+    PERFORM award_badge(NEW.user_id, 'markdown_master');
+  END IF;
+  IF NEW.image_url IS NOT NULL AND NEW.image_url != '' THEN
+    PERFORM award_badge(NEW.user_id, 'data_visualizer');
+  END IF;
+  IF NEW.message ~ 'github\.com/[^\s]+' THEN
+    PERFORM award_badge(NEW.user_id, 'open_science');
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_comment_badges_trigger ON feedback_comments;
+CREATE TRIGGER trg_comment_badges_trigger
+  AFTER INSERT ON feedback_comments
+  FOR EACH ROW EXECUTE FUNCTION trg_comment_badges();
+
+-- Trigger on site_reactions INSERT
+CREATE OR REPLACE FUNCTION trg_reaction_badges()
+RETURNS TRIGGER AS $$
+DECLARE
+  feedback_author UUID;
+  feedback_id UUID;
+  reply_author UUID;
+  total_likes INT;
+  distinct_posts INT;
+  likes_given INT;
+  likes_received INT;
+BEGIN
+  IF NEW.reaction_type != 'like' THEN RETURN NEW; END IF;
+  PERFORM award_badge(NEW.user_id, 'first_like');
+  feedback_id := NEW.entry_id;
+  BEGIN
+    SELECT user_id, feedback_id INTO reply_author, feedback_id
+    FROM feedback_comments WHERE id = NEW.entry_id;
+    IF reply_author IS NOT NULL THEN
+      SELECT COUNT(*) INTO total_likes FROM site_reactions
+      WHERE reaction_type = 'like' AND entry_id = NEW.entry_id;
+      IF total_likes >= 10 THEN
+        PERFORM award_badge(reply_author, 'nice_reply', feedback_id::text);
+      END IF;
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    BEGIN
+      SELECT user_id INTO feedback_author FROM site_feedback WHERE id = NEW.entry_id;
+      IF feedback_author IS NOT NULL THEN
+        SELECT COUNT(*) INTO total_likes FROM site_reactions
+        WHERE reaction_type = 'like' AND entry_id = NEW.entry_id;
+        IF total_likes = 1 THEN
+          PERFORM award_badge(feedback_author, 'welcome', NEW.entry_id::text);
+        END IF;
+        IF total_likes >= 10 THEN
+          PERFORM award_badge(feedback_author, 'nice_topic', NEW.entry_id::text);
+        END IF;
+        SELECT COUNT(DISTINCT entry_id) INTO distinct_posts FROM site_reactions
+        WHERE reaction_type = 'like' AND entry_id IN (
+          SELECT id FROM site_feedback WHERE user_id = feedback_author
+        );
+        IF distinct_posts >= 20 THEN
+          PERFORM award_badge(feedback_author, 'appreciated');
+        END IF;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+  END;
+  IF NEW.user_id IS NOT NULL THEN
+    SELECT COUNT(*) INTO likes_given FROM site_reactions WHERE reaction_type = 'like' AND user_id = NEW.user_id;
+    SELECT COUNT(*) INTO likes_received FROM site_reactions WHERE reaction_type = 'like' AND entry_id IN (
+      SELECT id FROM site_feedback WHERE user_id = NEW.user_id
+    );
+    IF likes_given >= 10 AND likes_received >= 20 THEN
+      PERFORM award_badge(NEW.user_id, 'thank_you');
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_reaction_badges_trigger ON site_reactions;
+CREATE TRIGGER trg_reaction_badges_trigger
+  AFTER INSERT ON site_reactions
+  FOR EACH ROW EXECUTE FUNCTION trg_reaction_badges();
+
 DROP POLICY IF EXISTS "Public read feedback images" ON storage.objects;
 DO $$
 BEGIN
