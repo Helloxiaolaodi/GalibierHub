@@ -230,17 +230,72 @@ DROP POLICY IF EXISTS "Public insert site_reactions"    ON site_reactions;
 DROP POLICY IF EXISTS "Public read site_visitors"       ON site_visitors;
 DROP POLICY IF EXISTS "Public insert site_visitors"     ON site_visitors;
 
-CREATE POLICY "Public read genome_samples"      ON genome_samples      FOR SELECT TO anon USING (true);
-CREATE POLICY "Public read predicted_promoters" ON predicted_promoters FOR SELECT TO anon USING (true);
-CREATE POLICY "Public read variant_index"       ON variant_index       FOR SELECT TO anon USING (true);
-CREATE POLICY "Public read site_feedback"       ON site_feedback       FOR SELECT TO anon USING (true);
-CREATE POLICY "Public insert site_feedback"     ON site_feedback       FOR INSERT TO anon WITH CHECK (true);
-CREATE POLICY "Public read feedback_comments"   ON feedback_comments   FOR SELECT TO anon USING (true);
-CREATE POLICY "Public insert feedback_comments" ON feedback_comments   FOR INSERT TO anon WITH CHECK (true);
-CREATE POLICY "Public read site_reactions"      ON site_reactions      FOR SELECT TO anon USING (true);
-CREATE POLICY "Public insert site_reactions"    ON site_reactions      FOR INSERT TO anon WITH CHECK (true);
-CREATE POLICY "Public read site_visitors"       ON site_visitors       FOR SELECT TO anon USING (true);
-CREATE POLICY "Public insert site_visitors"     ON site_visitors       FOR INSERT TO anon WITH CHECK (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read genome_samples' AND tablename = 'genome_samples') THEN
+    CREATE POLICY "Public read genome_samples" ON genome_samples FOR SELECT TO anon USING (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read predicted_promoters' AND tablename = 'predicted_promoters') THEN
+    CREATE POLICY "Public read predicted_promoters" ON predicted_promoters FOR SELECT TO anon USING (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read variant_index' AND tablename = 'variant_index') THEN
+    CREATE POLICY "Public read variant_index" ON variant_index FOR SELECT TO anon USING (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read site_feedback' AND tablename = 'site_feedback') THEN
+    CREATE POLICY "Public read site_feedback" ON site_feedback FOR SELECT TO anon USING (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public insert site_feedback' AND tablename = 'site_feedback') THEN
+    CREATE POLICY "Public insert site_feedback" ON site_feedback FOR INSERT TO anon WITH CHECK (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read feedback_comments' AND tablename = 'feedback_comments') THEN
+    CREATE POLICY "Public read feedback_comments" ON feedback_comments FOR SELECT TO anon USING (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public insert feedback_comments' AND tablename = 'feedback_comments') THEN
+    CREATE POLICY "Public insert feedback_comments" ON feedback_comments FOR INSERT TO anon WITH CHECK (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read site_reactions' AND tablename = 'site_reactions') THEN
+    CREATE POLICY "Public read site_reactions" ON site_reactions FOR SELECT TO anon USING (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public insert site_reactions' AND tablename = 'site_reactions') THEN
+    CREATE POLICY "Public insert site_reactions" ON site_reactions FOR INSERT TO anon WITH CHECK (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read site_visitors' AND tablename = 'site_visitors') THEN
+    CREATE POLICY "Public read site_visitors" ON site_visitors FOR SELECT TO anon USING (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public insert site_visitors' AND tablename = 'site_visitors') THEN
+    CREATE POLICY "Public insert site_visitors" ON site_visitors FOR INSERT TO anon WITH CHECK (true);
+  END IF;
+END $$;
 
 -- ============================================================
 -- Supabase Storage bucket for feedback images (REQUIRED)
@@ -249,26 +304,54 @@ CREATE POLICY "Public insert site_visitors"     ON site_visitors       FOR INSER
 INSERT INTO storage.buckets (id, name, public) VALUES ('feedback-images', 'feedback-images', true)
 ON CONFLICT (id) DO NOTHING;
 DROP POLICY IF EXISTS "Public read feedback images" ON storage.objects;
-CREATE POLICY "Public read feedback images" ON storage.objects
-  FOR SELECT USING (bucket_id = 'feedback-images');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read feedback images' AND tablename = 'storage.objects') THEN
+    CREATE POLICY "Public read feedback images" ON storage.objects FOR SELECT USING (bucket_id = 'feedback-images');
+  END IF;
+END $$;
 DROP POLICY IF EXISTS "Anyone can upload feedback images" ON storage.objects;
-CREATE POLICY "Anyone can upload feedback images" ON storage.objects
-  FOR INSERT WITH CHECK (bucket_id = 'feedback-images');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can upload feedback images' AND tablename = 'storage.objects') THEN
+    CREATE POLICY "Anyone can upload feedback images" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'feedback-images');
+  END IF;
+END $$;
 
 -- ============================================================
 -- DELETE policies for reactions and feedback entries
 -- ============================================================
 DROP POLICY IF EXISTS "Public delete site_reactions" ON site_reactions;
-CREATE POLICY "Public delete site_reactions" ON site_reactions FOR DELETE TO anon USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public delete site_reactions' AND tablename = 'site_reactions') THEN
+    CREATE POLICY "Public delete site_reactions" ON site_reactions FOR DELETE TO anon USING (true);
+  END IF;
+END $$;
 DROP POLICY IF EXISTS "Service delete site_feedback" ON site_feedback;
-CREATE POLICY "Service delete site_feedback" ON site_feedback FOR DELETE TO anon USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service delete site_feedback' AND tablename = 'site_feedback') THEN
+    CREATE POLICY "Service delete site_feedback" ON site_feedback FOR DELETE TO anon USING (true);
+  END IF;
+END $$;
 -- ============================================================
 -- UPDATE policies for feedback-related tables
 -- ============================================================
 DROP POLICY IF EXISTS "Public update site_feedback" ON site_feedback;
-CREATE POLICY "Public update site_feedback" ON site_feedback FOR UPDATE TO anon USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public update site_feedback' AND tablename = 'site_feedback') THEN
+    CREATE POLICY "Public update site_feedback" ON site_feedback FOR UPDATE TO anon USING (true);
+  END IF;
+END $$;
 DROP POLICY IF EXISTS "Public update feedback_comments" ON feedback_comments;
-CREATE POLICY "Public update feedback_comments" ON feedback_comments FOR UPDATE TO anon USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public update feedback_comments' AND tablename = 'feedback_comments') THEN
+    CREATE POLICY "Public update feedback_comments" ON feedback_comments FOR UPDATE TO anon USING (true);
+  END IF;
+END $$;
 
 -- ============================================================
 -- Download metadata (Administrator-edited file info, hide/password) and download count
@@ -355,23 +438,48 @@ ALTER TABLE download_metadata ENABLE ROW LEVEL SECURITY;
 ALTER TABLE download_events ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public read download_metadata" ON download_metadata;
-CREATE POLICY "Public read download_metadata" ON download_metadata FOR SELECT TO anon USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read download_metadata' AND tablename = 'download_metadata') THEN
+    CREATE POLICY "Public read download_metadata" ON download_metadata FOR SELECT TO anon USING (true);
+  END IF;
+END $$;
 
 DROP POLICY IF EXISTS "Public insert download_metadata" ON download_metadata;
 DROP POLICY IF EXISTS "Service insert download_metadata" ON download_metadata;
-CREATE POLICY "Service insert download_metadata" ON download_metadata FOR INSERT TO authenticated WITH CHECK (auth.role() = 'service_role');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service insert download_metadata' AND tablename = 'download_metadata') THEN
+    CREATE POLICY "Service insert download_metadata" ON download_metadata FOR INSERT TO authenticated WITH CHECK (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 DROP POLICY IF EXISTS "Public update download_metadata" ON download_metadata;
 DROP POLICY IF EXISTS "Service update download_metadata" ON download_metadata;
-CREATE POLICY "Service update download_metadata" ON download_metadata FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service update download_metadata' AND tablename = 'download_metadata') THEN
+    CREATE POLICY "Service update download_metadata" ON download_metadata FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 DROP POLICY IF EXISTS "Public read download_events" ON download_events;
 DROP POLICY IF EXISTS "Service read download_events" ON download_events;
-CREATE POLICY "Service read download_events" ON download_events FOR SELECT TO authenticated USING (auth.role() = 'service_role');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service read download_events' AND tablename = 'download_events') THEN
+    CREATE POLICY "Service read download_events" ON download_events FOR SELECT TO authenticated USING (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 DROP POLICY IF EXISTS "Public insert download_events" ON download_events;
 DROP POLICY IF EXISTS "Service insert download_events" ON download_events;
-CREATE POLICY "Service insert download_events" ON download_events FOR INSERT TO authenticated WITH CHECK (auth.role() = 'service_role');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service insert download_events' AND tablename = 'download_events') THEN
+    CREATE POLICY "Service insert download_events" ON download_events FOR INSERT TO authenticated WITH CHECK (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 -- ============================================================
 -- Safer RLS for feedback writes: public reads remain open, but
@@ -382,24 +490,54 @@ DROP POLICY IF EXISTS "Public update site_feedback" ON site_feedback;
 DROP POLICY IF EXISTS "Public delete site_feedback" ON site_feedback;
 DROP POLICY IF EXISTS "Service update site_feedback" ON site_feedback;
 DROP POLICY IF EXISTS "Service delete site_feedback" ON site_feedback;
-CREATE POLICY "Service update site_feedback" ON site_feedback FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
-CREATE POLICY "Service delete site_feedback" ON site_feedback FOR DELETE TO authenticated USING (auth.role() = 'service_role');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service update site_feedback' AND tablename = 'site_feedback') THEN
+    CREATE POLICY "Service update site_feedback" ON site_feedback FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service delete site_feedback' AND tablename = 'site_feedback') THEN
+    CREATE POLICY "Service delete site_feedback" ON site_feedback FOR DELETE TO authenticated USING (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 DROP POLICY IF EXISTS "Public update feedback_comments" ON feedback_comments;
 
 DROP POLICY IF EXISTS "Public delete site_reactions" ON site_reactions;
 DROP POLICY IF EXISTS "Service delete site_reactions" ON site_reactions;
-CREATE POLICY "Service delete site_reactions" ON site_reactions FOR DELETE TO authenticated USING (auth.role() = 'service_role');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service delete site_reactions' AND tablename = 'site_reactions') THEN
+    CREATE POLICY "Service delete site_reactions" ON site_reactions FOR DELETE TO authenticated USING (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 DROP POLICY IF EXISTS "Public update site_visitors" ON site_visitors;
 DROP POLICY IF EXISTS "Service update site_visitors" ON site_visitors;
-CREATE POLICY "Service update site_visitors" ON site_visitors FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service update site_visitors' AND tablename = 'site_visitors') THEN
+    CREATE POLICY "Service update site_visitors" ON site_visitors FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 DROP POLICY IF EXISTS "Public delete feedback_comments" ON feedback_comments;
 DROP POLICY IF EXISTS "Service update feedback_comments" ON feedback_comments;
 DROP POLICY IF EXISTS "Service delete feedback_comments" ON feedback_comments;
-CREATE POLICY "Service update feedback_comments" ON feedback_comments FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
-CREATE POLICY "Service delete feedback_comments" ON feedback_comments FOR DELETE TO authenticated USING (auth.role() = 'service_role');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service update feedback_comments' AND tablename = 'feedback_comments') THEN
+    CREATE POLICY "Service update feedback_comments" ON feedback_comments FOR UPDATE TO authenticated USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service delete feedback_comments' AND tablename = 'feedback_comments') THEN
+    CREATE POLICY "Service delete feedback_comments" ON feedback_comments FOR DELETE TO authenticated USING (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 -- ============================================================
 -- API Keys for programmatic access (machine-to-machine)
@@ -423,9 +561,13 @@ ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 
 -- Only service_role can read/write api_keys (never expose to anon)
 DROP POLICY IF EXISTS "Service manage api_keys" ON api_keys;
-CREATE POLICY "Service manage api_keys" ON api_keys
-  FOR ALL TO authenticated USING (auth.role() = 'service_role')
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service manage api_keys' AND tablename = 'api_keys') THEN
+    CREATE POLICY "Service manage api_keys" ON api_keys FOR ALL TO authenticated USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 
 -- ============================================================
@@ -447,19 +589,28 @@ CREATE TABLE IF NOT EXISTS site_notifications (
 ALTER TABLE site_notifications ENABLE ROW LEVEL SECURITY;
 
 -- Users can only view their own notifications
-CREATE POLICY "Users can view own notifications"
-  ON site_notifications FOR SELECT
-  USING (auth.uid() = recipient_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own notifications' AND tablename = 'site_notifications') THEN
+    CREATE POLICY "Users can view own notifications" ON site_notifications FOR SELECT USING (auth.uid() = recipient_id);
+  END IF;
+END $$;
 
 -- Users can only update their own notifications (mark as read)
-CREATE POLICY "Users can update own notifications"
-  ON site_notifications FOR UPDATE
-  USING (auth.uid() = recipient_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update own notifications' AND tablename = 'site_notifications') THEN
+    CREATE POLICY "Users can update own notifications" ON site_notifications FOR UPDATE USING (auth.uid() = recipient_id);
+  END IF;
+END $$;
 
 -- Server-side insert (use service role key)
-CREATE POLICY "Service role can insert notifications"
-  ON site_notifications FOR INSERT
-  WITH CHECK (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service role can insert notifications' AND tablename = 'site_notifications') THEN
+    CREATE POLICY "Service role can insert notifications" ON site_notifications FOR INSERT WITH CHECK (true);
+  END IF;
+END $$;
 
 -- Index for fast lookups
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON site_notifications(recipient_id, created_at DESC);
@@ -493,8 +644,18 @@ CREATE TABLE IF NOT EXISTS user_badges (
 
 -- RLS for user_badges
 ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can view badges" ON user_badges FOR SELECT USING (true);
-CREATE POLICY "Service role can insert badges" ON user_badges FOR INSERT WITH CHECK (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view badges' AND tablename = 'user_badges') THEN
+    CREATE POLICY "Anyone can view badges" ON user_badges FOR SELECT USING (true);
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service role can insert badges' AND tablename = 'user_badges') THEN
+    CREATE POLICY "Service role can insert badges" ON user_badges FOR INSERT WITH CHECK (true);
+  END IF;
+END $$;
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges(user_id);
