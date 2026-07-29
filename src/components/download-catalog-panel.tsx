@@ -496,7 +496,7 @@ export default function DownloadCatalogPanel({
 
   return (
     <section className="space-y-4">
-      <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">
+      <div className="rounded-2xl border border-slate-100 bg-white px-5 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Downloads</h2>
@@ -530,6 +530,22 @@ export default function DownloadCatalogPanel({
       {!loading && error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">{error}</div>}
       {!error && warning && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">{warning}</div>}
       {!error && statusMessage && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">{statusMessage}</div>}
+
+      {/* Academic License Banner */}
+      {!error && !loading && (
+        <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 mb-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700 text-sm font-bold">CC</span>
+              <div>
+                <p className="text-sm font-semibold text-blue-900">Open Access Data</p>
+                <p className="text-xs text-blue-700">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-blue-900">CC BY 4.0</a>. Please cite SeqEdge when using this data in publications.</p>
+              </div>
+            </div>
+            <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 transition-colors">Learn more</a>
+          </div>
+        </div>
+      )}
 
       {!error && (
         <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">
@@ -591,20 +607,20 @@ export default function DownloadCatalogPanel({
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
                 placeholder="Search files or folders"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-gray-500 lg:max-w-md"
+                className="w-full rounded-lg border border-slate-200 bg-[#F5F5F7] px-3 py-2 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:bg-slate-200/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 lg:max-w-md"
               />
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setFolderCliOpen(true)}
-                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all"
                 >
                   Copy Folder CLI
                 </button>
                 <button
                   type="button"
                   onClick={() => exportManifest('csv')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 transition-all"
                 >
                   Export Manifest CSV
                 </button>
@@ -612,7 +628,7 @@ export default function DownloadCatalogPanel({
                   <button
                     type="button"
                     onClick={() => setBatchOpen(true)}
-                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all"
                   >
                     Download Selected ({selectedFiles.length})
                   </button>
@@ -737,22 +753,22 @@ export default function DownloadCatalogPanel({
                       className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     <button type="button" onClick={() => toggleSort('name')} className="inline-flex items-center gap-1 text-left text-gray-600 hover:text-gray-900">
                       Name
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     <button type="button" onClick={() => toggleSort('size')} className="inline-flex items-center gap-1 text-left text-gray-600 hover:text-gray-900">
                       Size
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     <button type="button" onClick={() => toggleSort('updated')} className="inline-flex items-center gap-1 text-left text-gray-600 hover:text-gray-900">
                       Updated
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
@@ -908,7 +924,7 @@ export default function DownloadCatalogPanel({
                 <button
                   type="button"
                   onClick={() => { selectedFiles.forEach((item) => { const a = document.createElement('a'); a.href = item.url; a.download = item.fileName || ''; a.click(); }); }}
-                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all"
                 >
                   Start Browser Download
                 </button>

@@ -172,7 +172,7 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
 }
 
 // ---- Simple Markdown renderer for inline images ----
-function renderMarkdown(text: string): React.ReactNode {
+function renderMarkdown(text: string, onImageClick?: (src: string, alt: string) => void): React.ReactNode {
   if (!text) return null;
   // Split by image markdown pattern
   const parts = text.split(/(!\[[^\]]*\]\([^)]+\))/g);
@@ -278,8 +278,11 @@ export default function DiscussionDetailPage() {
   const [replyTarget, setReplyTarget] = useState<string|null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareId, setShareId] = useState<string>("");
-  const contentRefs = useRef<(HTMLDivElement|null)[]>([]);
+  const [lightbox, setLightbox] = useState<{src:string;alt:string}|null>(null);
   const [githubUser, setGithubUser] = useState<string|null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminGithubLogin, setAdminGithubLogin] = useState<string|null>(null);
+  const contentRefs = useRef<(HTMLDivElement|null)[]>([]);
   const [hideSignupPrompt, setHideSignupPrompt] = useState(false);
 
   // Extract id from URL
@@ -307,6 +310,13 @@ export default function DiscussionDetailPage() {
           if (login) {
             setGithubUser(String(login));
             localStorage.setItem("seqedge-github-user", String(login));
+            import("@/lib/admin-login").then(async ({resolveExpectedAdminGithubLogin}) => {
+              const expected = resolveExpectedAdminGithubLogin({fallbackLabel: ""});
+              if (expected && String(login).toLowerCase() === expected.toLowerCase()) {
+                setIsAdmin(true);
+                setAdminGithubLogin(expected);
+              }
+            }).catch(()=>{});
           }
         }
       }
@@ -398,7 +408,7 @@ export default function DiscussionDetailPage() {
   }, []);
 
   const handleSubmitComment = useCallback(async (text: string) => {
-    const authorName = githubUser || "Visitor";
+    const authorName = isAdmin ? "SeqEdge Team" : (githubUser || "Visitor");
     const res = await fetch("/api/feedback", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
@@ -447,6 +457,23 @@ export default function DiscussionDetailPage() {
     // Hide permanently
     localStorage.setItem("seqedge-hide-signup", "permanent");
   }, []);
+  const handleHidePost = useCallback(async (postId: string, isDiscussion: boolean) => {
+    const token = localStorage.getItem("seqedge-github-user") || "";
+    if (isDiscussion) {
+      await fetch("/api/feedback", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ id: postId, hidden: true }) });
+    } else {
+      await fetch("/api/feedback", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ commentId: postId, commentHidden: true }) });
+    }
+    fetchData();
+  }, [fetchData]);
+
+  const handleDeletePost = useCallback(async (postId: string, isDiscussion: boolean) => {
+    if (!confirm("Permanently delete this post?")) return;
+    const token = localStorage.getItem("seqedge-github-user") || "";
+    const param = isDiscussion ? "id=" + postId : "comment_id=" + postId;
+    await fetch("/api/feedback?" + param, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
+    fetchData();
+  }, [fetchData]);
 
   return (
     <div className="min-h-screen bg-[#F5F5F7]">
@@ -457,13 +484,13 @@ export default function DiscussionDetailPage() {
             <Link href="/" className="text-lg font-bold text-blue-700 hover:text-blue-800 flex-shrink-0">{SiteConfig.title}</Link>
             <span className="text-gray-300">/</span>
             <Link href="/discussions" className="text-sm text-gray-500 hover:text-gray-700 flex-shrink-0">Discussions</Link>
-            {entry&&<><span className="text-gray-300">/</span><span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium flex-shrink-0 "+getCategoryColor(entry.category)}>{getCategoryLabel(entry.category)}</span><span className="text-sm font-medium text-gray-900 truncate">{entry.title||"Discussion"}</span></>}
+            {entry&&<><span className="text-gray-300">/</span><span className="text-sm font-medium text-gray-900 truncate">{entry.title||"Discussion"}</span></>}
           </div>
           <Link href="/discussions" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0 shadow-sm">All Discussions</Link>
         </div>
         {githubUser && (
           <div className="text-sm font-medium text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full">
-            Welcome, {githubUser}!
+            Welcome, {isAdmin ? "SeqEdge Team" : githubUser}!
           </div>
         )}
       </header>
@@ -506,7 +533,7 @@ export default function DiscussionDetailPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center flex-wrap gap-2">
                               <h1 className="text-lg font-bold text-gray-900">{ed.title||"Untitled"}</h1>
-                              <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium "+getCategoryColor(ed.category)}>{getCategoryLabel(ed.category)}</span>
+                              
                               {ed.rating>0&&<span className="text-xs text-amber-500">{"★".repeat(ed.rating)}</span>}
                             </div>
                             <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
@@ -516,7 +543,7 @@ export default function DiscussionDetailPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words">{renderMarkdown(ed.message)}</div>
+                        <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words">{renderMarkdown(ed.message, (src, alt) => setLightbox({src, alt}))}</div>
                         {ed.creator_reply&&(
                           <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
                             <div className="flex items-center gap-2 mb-2"><div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-semibold text-white">S</div><span className="text-xs font-semibold text-blue-800">SeqEdge Team</span><span className="text-xs text-blue-500">· Official Response</span></div>
@@ -525,9 +552,10 @@ export default function DiscussionDetailPage() {
                       </>):(<>
                         <div className="flex items-start gap-3 mb-3">
                           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">{getInitials(cd.author_name)}</div>
-                          <div><span className="text-sm font-semibold text-gray-900">{cd.author_name}</span> <span className="text-xs text-gray-500">{formatDate(cd.created_at)}</span></div>
+                          <div><span className="text-sm font-semibold text-gray-900">{cd.author_name}</span>
+                          <span className="text-xs text-gray-500">{formatDate(cd.created_at)}</span></div>
                         </div>
-                        <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words ml-11">{renderMarkdown(cd.message)}</div>
+                        <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words ml-11">{renderMarkdown(cd.message, (src, alt) => setLightbox({src, alt}))}</div>
                       </>)}
                       {/* Post-level interaction buttons */}
                       <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-gray-100">
@@ -542,7 +570,17 @@ export default function DiscussionDetailPage() {
                         <button onClick={()=>handleShare(itemId)} className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors">
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
                         </button>
-                      </div>
+
+                        {isAdmin && (
+                          <button onClick={()=>handleHidePost(itemId, isEntry)} className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-colors" title="Hide post">
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button onClick={()=>handleDeletePost(itemId, isEntry)} className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Delete post">
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                          </button>
+                        )}                      </div>
                     </div>
                   </div>
                 );
