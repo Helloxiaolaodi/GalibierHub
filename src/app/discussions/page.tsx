@@ -334,7 +334,7 @@ export default function DiscussionsPage() {
                             </div>
                             <span>·</span>
                         <span>{formatTimeAgo(entry.created_at)}</span>
-                        {likeCounts[entry.id]>0&&<><span className="text-red-500">â™¥</span><span className="text-red-500"> {likeCounts[entry.id]}</span></>}
+                        {likeCounts[entry.id]>0&&<><span className="text-red-500">♥</span><span className="text-red-500"> {likeCounts[entry.id]}</span></>}
                       </div>
                     </div>
                     <div className="flex-shrink-0 flex flex-col items-end gap-1 text-right">
@@ -353,7 +353,7 @@ export default function DiscussionsPage() {
           {sortedEntries.length > ITEMS_PER_PAGE && (
             <div className="flex items-center justify-between border-t border-gray-100 bg-white rounded-b-2xl px-4 py-3 mt-3">
               <div className="text-xs text-gray-500">
-                Showing {((currentPage-1)*ITEMS_PER_PAGE)+1}â€“{Math.min(currentPage*ITEMS_PER_PAGE, sortedEntries.length)} of {sortedEntries.length} discussions
+                Showing {((currentPage-1)*ITEMS_PER_PAGE)+1}–{Math.min(currentPage*ITEMS_PER_PAGE, sortedEntries.length)} of {sortedEntries.length} discussions
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1} className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
