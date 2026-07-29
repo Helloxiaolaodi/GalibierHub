@@ -51,6 +51,7 @@ export default function DiscussionsPage() {
   const [githubUser, setGithubUser] = useState<string|null>(null);
   const [session, setSession] = useState<Session|null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",category:"general",message:"",visibility:"public"});
   const [composerSubmitting, setComposerSubmitting] = useState(false);
@@ -62,6 +63,7 @@ export default function DiscussionsPage() {
 
   // Detect GitHub login from session/localStorage  
   useEffect(() => {
+    setMounted(true);
     const stored = localStorage.getItem("galibierhub-github-user");
     if (stored) setGithubUser(stored);
     // Also try to read from Supabase session
@@ -182,7 +184,7 @@ export default function DiscussionsPage() {
             <h1 className="text-base font-semibold text-gray-900">Discussions</h1>
           </div>
           <div className="flex items-center gap-3">
- {githubUser&&<span className="text-sm font-semibold text-blue-700 bg-blue-50 rounded-full px-4 py-1.5">Welcome, {isAdmin ? "GalibierHub Team" : githubUser}!</span>}
+ {mounted && githubUser && <span className="text-sm font-semibold text-blue-700 bg-blue-50 rounded-full px-4 py-1.5">Welcome, {isAdmin ? "GalibierHub Team" : githubUser}!</span>}
             <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all">New Discussion</button>
             <Link href="/" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">Back to Home</Link>
           </div>

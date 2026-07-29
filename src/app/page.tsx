@@ -72,6 +72,7 @@ export default function HomePage() {
   const [creatorSession, setCreatorSession] = useState<Session | null>(null);
   const [creatorLogin, setCreatorLogin] = useState<string | null>(null);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const expectedAdminLogin = useMemo(
     () => resolveExpectedAdminGithubLogin({ fallbackLabel: SiteConfig.adminGithubLoginFallback }),
@@ -92,6 +93,7 @@ export default function HomePage() {
   }, [dataError]);
 
   useEffect(() => {
+    setMounted(true);
     const supabase = getBrowserSupabase();
     if (!supabase) {
       return undefined;
@@ -343,7 +345,9 @@ export default function HomePage() {
             ))}
             <Link href="/discussions" className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200/60 transition-colors">Discussions</Link>
             <div className="w-px h-5 bg-gray-200 mx-1" />
-            {creatorSession ? (
+            {!mounted ? (
+              <div className="w-[120px] h-8" />
+            ) : creatorSession ? (
               <>
                 <span className="px-2 py-1 text-xs text-gray-500">@{creatorLogin || 'administrator'}</span>
                 <button type="button" onClick={() => void handleCreatorSignOut()}
