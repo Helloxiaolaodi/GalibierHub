@@ -42,7 +42,7 @@ function formatTimeAgo(d: string): string {
   return Math.floor(diff / 2592000) + "mo";
 }
 
-export default function UserMenuPanel({ session, githubUser, isAdmin }: { session: Session | null; githubUser: string | null; isAdmin: boolean }) {
+export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut }: { session: Session | null; githubUser: string | null; isAdmin: boolean; onSignOut?: () => void }) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("notifications");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -329,7 +329,11 @@ export default function UserMenuPanel({ session, githubUser, isAdmin }: { sessio
               {/* Footer links */}
               <div className="border-t border-gray-100 px-4 py-2 flex items-center justify-between">
                 <Link href="/discussions" className="text-xs text-gray-400 hover:text-gray-600">View all</Link>
-                <span className="text-xs text-gray-300">GalibierHub</span>
+                {onSignOut ? (
+                  <button onClick={onSignOut} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Sign out</button>
+                ) : (
+                  <span className="text-xs text-gray-300">GalibierHub</span>
+                )}
               </div>
             </div>
           </div>

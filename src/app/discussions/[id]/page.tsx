@@ -7,6 +7,7 @@ import UserMenuPanel from "@/components/user-menu-panel";
 import { SiteConfig } from "@/site-config";
 import type { FeedbackCommentEntry, SiteFeedbackEntry } from "@/types/genome";
 import type { Session } from "@supabase/supabase-js";
+import { getBrowserSupabase } from "@/utils/supabase-browser";
 
 // ---- helpers ----
 function getCategoryColor(c: string): string {
@@ -336,6 +337,23 @@ export default function DiscussionDetailPage() {
   const contentRefs = useRef<(HTMLDivElement|null)[]>([]);
   const [hideSignupPrompt, setHideSignupPrompt] = useState(false);
 
+  const handleSignIn = useCallback(async () => {
+    const sb = getBrowserSupabase();
+    if (!sb) return;
+    await sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: window.location.href } });
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    const sb = getBrowserSupabase();
+    if (sb) await sb.auth.signOut();
+    localStorage.removeItem("galibierhub-github-user");
+    localStorage.removeItem("galibierhub-user-id");
+    setGithubUser(null);
+    setSession(null);
+    setIsAdmin(false);
+    setCurrentUserId(null);
+  }, []);
+
   // Extract id from URL
   useEffect(() => {
     setMounted(true);
@@ -581,12 +599,18 @@ export default function DiscussionDetailPage() {
             {entry&&<><span className="text-gray-300">/</span><span className="text-sm font-medium text-gray-900 truncate">{entry.title||"Discussion"}</span></>}
           </div>
           <Link href="/discussions" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0 shadow-sm">All Discussions</Link>
-        </div>
-        {mounted && githubUser && (
-          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pb-3 text-base font-bold text-blue-700">
-            Welcome, {isAdmin ? "GalibierHub Team" : githubUser}!
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {!mounted ? (
+              <div className="w-[120px] h-8" />
+            ) : session ? (
+              <UserMenuPanel session={session} githubUser={githubUser} isAdmin={isAdmin} onSignOut={handleSignOut} />
+            ) : (
+              <button onClick={handleSignIn} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100">
+                Log in with GitHub
+              </button>
+            )}
           </div>
-        )}
+        </div>
       </header>
 
       {/* Main content area with relative positioning for sidebar */}

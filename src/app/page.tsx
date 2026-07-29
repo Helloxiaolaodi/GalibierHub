@@ -18,6 +18,7 @@ import DownloadCatalogPanel from '@/components/download-catalog-panel';
 import SiteFeedback from '@/components/site-feedback';
 import SiteUptime from '@/components/site-uptime';
 import { resolveExpectedAdminGithubLogin } from '@/lib/admin-login';
+import UserMenuPanel from '@/components/user-menu-panel';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
@@ -348,14 +349,7 @@ export default function HomePage() {
             {!mounted ? (
               <div className="w-[120px] h-8" />
             ) : creatorSession ? (
-              <>
-                <span className="px-2 py-1 text-xs text-gray-500">@{creatorLogin || 'administrator'}</span>
-                <button type="button" onClick={() => void handleCreatorSignOut()}
-                className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
-              >
-                Log out
-              </button>
-              </>
+              <UserMenuPanel session={creatorSession} githubUser={creatorLogin} isAdmin={isCreatorAdmin} onSignOut={() => void handleCreatorSignOut()} />
             ) : (
               <button type="button" onClick={() => void handleCreatorSignIn()}
                 className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
