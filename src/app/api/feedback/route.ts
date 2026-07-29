@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase, getSupabase, hasSupabaseServiceRole, isSupabaseConfigured } from "@/utils/supabase";
 import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
 

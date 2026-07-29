@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS genome_samples (
   assembly_version TEXT NOT NULL,
   total_variants INTEGER DEFAULT 0,
   coverage NUMERIC DEFAULT 0,
-  -- Phenotype / cohort metadata Ã¢â‚¬â€ optional, drives the metadata filter panel
+  -- Phenotype / cohort metadata — optional, drives the metadata filter panel
   cohort TEXT,
   bmi NUMERIC,
   age INTEGER,
@@ -165,6 +165,7 @@ CREATE TABLE IF NOT EXISTS feedback_comments (
 ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS author_email TEXT;
 ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS hidden BOOLEAN DEFAULT false;
+ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE feedback_comments ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
 CREATE INDEX IF NOT EXISTS idx_feedback_comments_feedback_id ON feedback_comments (feedback_id);
 CREATE INDEX IF NOT EXISTS idx_feedback_comments_created_at ON feedback_comments (created_at);
