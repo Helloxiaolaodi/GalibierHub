@@ -39,7 +39,10 @@ export default function NotificationBell({ session }: { session: Session | null 
     if (!userId) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/notifications");
+      const token = session?.access_token || "";
+      const res = await fetch("/api/notifications", {
+        headers: token ? { Authorization: "Bearer " + token } : {},
+      });
       if (res.ok) {
         const data = await res.json() as { notifications?: NotificationItem[] };
         const items = data.notifications || [];

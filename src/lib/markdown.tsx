@@ -23,7 +23,7 @@ export function renderInline(text: string, onImageClick?: (src: string, alt: str
   while ((m = imgRe.exec(text)) !== null) {
     const imgSrc = m[2], imgAlt = m[1] || 'image';
     if (m.index > lastIdx) parts.push(renderInlineText(text.substring(lastIdx, m.index), `${pf}-it-${pi++}`));
-    parts.push(<img key={`${pf}-img-${pi++}`} src={imgSrc} alt={imgAlt} className="my-2 max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" onClick={() => onImageClick?.(imgSrc, imgAlt)} />);
+    parts.push(<img key={`${pf}-img-${pi++}`} src={imgSrc} alt={imgAlt} className="my-2 max-w-full max-h-36 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" onClick={() => onImageClick?.(imgSrc, imgAlt)} />);
     lastIdx = m.index + m[0].length;
   }
   if (lastIdx < text.length) parts.push(renderInlineText(text.substring(lastIdx), `${pf}-it-${pi++}`));

@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BadgeDisplay from "@/components/badge-display";
+import { getBrowserSupabase } from "@/utils/supabase-browser";
 import type { Session } from "@supabase/supabase-js";
 
 type TabId = "notifications" | "replies" | "likes" | "badges" | "settings";
@@ -25,6 +26,18 @@ type BadgeItem = {
   tier?: string;
   badge_definitions?: { name: string; description: string; icon: string; tier: string };
 };
+type ReplyItem = {
+  id: string;
+  feedback_id: string;
+  message: string;
+  created_at: string;
+  thread_title?: string;
+};
+type LikeItem = {
+  entry_id: string;
+  title: string;
+  like_count: number;
+};
 
 const TIER_COLORS: Record<string, string> = {
   bronze: "bg-amber-50 border-amber-200 text-amber-700",
@@ -42,11 +55,15 @@ function formatTimeAgo(d: string): string {
   return Math.floor(diff / 2592000) + "mo";
 }
 
-export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut }: { session: Session | null; githubUser: string | null; isAdmin: boolean; onSignOut?: () => void }) {
+export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut, avatarUrl }: { session: Session | null; githubUser: string | null; isAdmin: boolean; onSignOut?: () => void; avatarUrl?: string | null }) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("notifications");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
+  const [replies, setReplies] = useState<ReplyItem[]>([]);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+  const [likesReceived, setLikesReceived] = useState<LikeItem[]>([]);
+  const [loadingLikes, setLoadingLikes] = useState(false);
   const [notifUnread, setNotifUnread] = useState(0);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const [loadingBadges, setLoadingBadges] = useState(false);
@@ -54,6 +71,9 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [pauseNotifications, setPauseNotifications] = useState(false);
   const [onlineStatus, setOnlineStatus] = useState<"online" | "away" | "busy">("online");
+  const [userBio, setUserBio] = useState<string>('');
+  const [editingBio, setEditingBio] = useState(false);
+  const [bioText, setBioText] = useState('');
 
   const userId = session?.user?.id;
   const displayName = isAdmin ? "GalibierHub Team" : (githubUser || "Visitor");
@@ -63,7 +83,10 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut 
     if (!userId) return;
     setLoadingNotifs(true);
     try {
-      const res = await fetch("/api/notifications");
+      const token = session?.access_token || "";
+      const res = await fetch("/api/notifications", {
+        headers: token ? { Authorization: "Bearer " + token } : {},
+      });
       if (res.ok) {
         const data = await res.json() as { notifications?: NotificationItem[] };
         const items = data.notifications || [];
@@ -93,8 +116,49 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut 
     } catch {}
     finally { setLoadingBadges(false); }
   }, [userId]);
+  // Fetch replies - comments made by this user
+  const fetchReplies = useCallback(async () => {
+    if (!userId) return;
+    setLoadingReplies(true);
+    try {
+      const sb = getBrowserSupabase();
+      if (!sb) { setLoadingReplies(false); return; }
+      const { data } = await sb.from("feedback_comments").select("id, feedback_id, message, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(30);
+      if (data) {
+        const feedbackIds = [...new Set(data.map((d: { feedback_id: string }) => d.feedback_id))];
+        const { data: threads } = await sb.from("site_feedback").select("id, title").in("id", feedbackIds);
+        const titleMap: Record<string, string> = {};
+        if (threads) threads.forEach((t: { id: string; title: string }) => { titleMap[t.id] = t.title; });
+        setReplies(data.map((d: { feedback_id: string; id: string; message: string; created_at: string }) => ({ ...d, thread_title: titleMap[d.feedback_id] || "Untitled" })));
+      } else { setReplies([]); }
+    } catch { setReplies([]); }
+    finally { setLoadingReplies(false); }
+  }, [userId]);
 
-  useEffect(() => { if (open && userId) { fetchNotifications(); fetchBadges(); } }, [open, userId, fetchNotifications, fetchBadges]);
+  // Fetch likes received
+  const fetchLikesReceived = useCallback(async () => {
+    if (!userId) return;
+    setLoadingLikes(true);
+    try {
+      const sb = getBrowserSupabase();
+      if (!sb) { setLoadingLikes(false); return; }
+      const { data: myEntries } = await sb.from("site_feedback").select("id, title").eq("user_id", userId);
+      if (!myEntries || myEntries.length === 0) { setLikesReceived([]); setLoadingLikes(false); return; }
+      const entryIds = myEntries.map((e: { id: string }) => e.id);
+      const { data: reactions } = await sb.from("site_reactions").select("entry_id").eq("reaction_type", "like").in("entry_id", entryIds);
+      if (!reactions) { setLikesReceived([]); setLoadingLikes(false); return; }
+      const countMap: Record<string, number> = {};
+      reactions.forEach((r: { entry_id: string }) => { countMap[r.entry_id] = (countMap[r.entry_id] || 0) + 1; });
+      setLikesReceived(myEntries
+         .filter((e: { id: string }) => countMap[e.id])
+         .map((e: { id: string; title: string }) => ({ entry_id: e.id, title: e.title, like_count: countMap[e.id] }))
+         .sort((a: LikeItem, b: LikeItem) => b.like_count - a.like_count));
+    } catch { setLikesReceived([]); }
+    finally { setLoadingLikes(false); }
+  }, [userId]);
+
+
+  useEffect(() => { if (open && userId) { fetchNotifications(); fetchBadges(); fetchReplies(); fetchLikesReceived(); } }, [open, userId, fetchNotifications, fetchBadges]);
 
   // Close on outside click
   useEffect(() => {
@@ -157,9 +221,13 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut 
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all"
       >
-        <span className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-semibold text-white">
-          {displayName ? displayName.substring(0, 1).toUpperCase() : "?"}
-        </span>
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={displayName || "User"} className="h-6 w-6 rounded-full object-cover" referrerPolicy="no-referrer" />
+        ) : (
+          <span className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-semibold text-white">
+            {displayName ? displayName.substring(0, 1).toUpperCase() : "?"}
+          </span>
+        )}
         <span className="hidden sm:inline max-w-[120px] truncate">{displayName}</span>
         {showNotificationBadge && (
           <span className="inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-[10px] font-bold text-white">
@@ -252,28 +320,54 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut 
 
                 {/* Replies tab */}
                 {activeTab === "replies" && (
-                  <div className="px-5 py-10 text-center">
-                    <svg className="mx-auto mb-3 h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-                    <p className="text-sm font-medium text-gray-700">Your replies</p>
-                    <p className="mt-2 text-xs text-gray-500 leading-relaxed max-w-[260px] mx-auto">
-                      Track discussions you have participated in. Your replies across all topics will appear here.
-                    </p>
-                    <Link href="/discussions" className="mt-3 inline-block text-xs text-blue-600 hover:text-blue-800 font-medium">Browse discussions</Link>
-                  </div>
+                  <>
+                    {loadingReplies ? (
+                      <div className="px-4 py-8 text-center text-sm text-gray-400">Loading...</div>
+                    ) : replies.length === 0 ? (
+                      <div className="px-5 py-10 text-center">
+                        <svg className="mx-auto mb-3 h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                        <p className="text-sm font-medium text-gray-700">No replies yet</p>
+                        <p className="mt-2 text-xs text-gray-500 leading-relaxed max-w-[260px] mx-auto">Your replies to discussions will appear here.</p>
+                      </div>
+                    ) : (
+                      replies.map(r => (
+                        <Link key={r.id} href={"/discussions/" + r.feedback_id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
+                          <svg className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-900 truncate">{r.thread_title}</p>
+                            <p className="text-xs text-gray-500 truncate mt-0.5">{r.message.substring(0, 60)}{r.message.length>60?"...":""}</p>
+                            <p className="text-xs text-gray-400 mt-1">{formatTimeAgo(r.created_at)}</p>
+                          </div>
+                        </Link>
+                      ))
+                    )}
+                  </>
                 )}
-
-                {/* Likes tab */}
                 {activeTab === "likes" && (
-                  <div className="px-5 py-10 text-center">
-                    <svg className="mx-auto mb-3 h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                    <p className="text-sm font-medium text-gray-700">Likes you have received</p>
-                    <p className="mt-2 text-xs text-gray-500 leading-relaxed max-w-[260px] mx-auto">
-                      See who liked your posts and replies. Likes help surface quality contributions.
-                    </p>
-                  </div>
+                  <>
+                    {loadingLikes ? (
+                      <div className="px-4 py-8 text-center text-sm text-gray-400">Loading...</div>
+                    ) : likesReceived.length === 0 ? (
+                      <div className="px-5 py-10 text-center">
+                        <svg className="mx-auto mb-3 h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                        <p className="text-sm font-medium text-gray-700">No likes yet</p>
+                        <p className="mt-2 text-xs text-gray-500 leading-relaxed max-w-[260px] mx-auto">Likes on your posts and replies will appear here once other users react to your contributions.</p>
+                      </div>
+                    ) : (
+                      likesReceived.map(item => (
+                        <Link key={item.entry_id} href={"/discussions/" + item.entry_id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
+                          <span className="h-5 w-5 flex-shrink-0 flex items-center justify-center rounded-full bg-red-50 text-red-500 text-[10px]">
+                            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-900 truncate">{item.title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{item.like_count} {item.like_count === 1 ? "like" : "likes"} received</p>
+                          </div>
+                        </Link>
+                      ))
+                    )}
+                  </>
                 )}
-
-                {/* Badges tab */}
                 {activeTab === "badges" && (
                   <>
                     {loadingBadges ? (
@@ -293,7 +387,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut 
                           const colors = TIER_COLORS[(def.tier as string) || "bronze"];
                           return (
                             <div key={badge.badge_id} className={`flex items-start gap-3 rounded-xl border p-3 ${colors}`}>
-                              <span className="text-xl flex-shrink-0">{def.icon || "🏅"}</span>
+                              <span className="text-xl flex-shrink-0">{def.icon || "??"}</span>
                               <div className="min-w-0">
                                 <p className="text-sm font-semibold">{def.name}</p>
                                 <p className="text-xs mt-0.5 opacity-80">{def.description}</p>
@@ -309,15 +403,70 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut 
 
                 {/* Settings tab */}
                 {activeTab === "settings" && (
-                  <div className="p-4 space-y-2">
+                  <div className="p-3 space-y-3">
+                    {/* Profile section */}
+                    <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                      <div className="flex items-center gap-3 mb-2">
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt={displayName||"User"} className="h-10 w-10 rounded-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-semibold text-white">
+                            {displayName ? displayName.substring(0,1).toUpperCase() : "?"}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
+                          {localStorage.getItem("galibierhub-affiliation") && <p className="text-xs text-gray-500 truncate">{localStorage.getItem("galibierhub-affiliation")}</p>}
+                          {localStorage.getItem("galibierhub-role") && <p className="text-xs text-gray-400 truncate">{localStorage.getItem("galibierhub-role")}</p>}
+                        </div>
+                        <button onClick={()=>setEditingBio(!editingBio)} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex-shrink-0">
+                          {editingBio ? "Done" : "Edit"}
+                        </button>
+                      </div>
+                      {editingBio && (
+                        <div className="space-y-2 mt-2 pt-2 border-t border-gray-200">
+                          <div>
+                            <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Affiliation / Institution</label>
+                            <input type="text" value={localStorage.getItem("galibierhub-affiliation")||""} onChange={e=>{localStorage.setItem("galibierhub-affiliation",e.target.value);setUserBio(e.target.value)}} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-blue-500 mt-0.5" placeholder="e.g. Peking University" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Research Field</label>
+                            <input type="text" value={localStorage.getItem("galibierhub-research-field")||""} onChange={e=>localStorage.setItem("galibierhub-research-field",e.target.value)} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-blue-500 mt-0.5" placeholder="e.g. Microbiology" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Role / Identity</label>
+                            <select value={localStorage.getItem("galibierhub-role")||""} onChange={e=>localStorage.setItem("galibierhub-role",e.target.value)} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-blue-500 mt-0.5">
+                              <option value="">Select role</option>
+                              <option value="Professor">Professor</option>
+                              <option value="Postdoc">Postdoc</option>
+                              <option value="PhD Student">PhD Student</option>
+                              <option value="Master Student">Master Student</option>
+                              <option value="Undergraduate">Undergraduate</option>
+                              <option value="Researcher">Researcher</option>
+                              <option value="Developer">Developer</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Motto / Bio</label>
+                            <textarea value={localStorage.getItem("galibierhub-bio")||""} onChange={e=>localStorage.setItem("galibierhub-bio",e.target.value)} rows={2} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-blue-500 mt-0.5 resize-none" placeholder="A brief introduction about yourself..." />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {/* Drafts link */}
                     <Link href="/discussions" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       <span>Drafts</span>
+                      <span className="ml-auto text-[10px] text-gray-400"></span>
                     </Link>
-                    <Link href="/" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                    {/* Activity link */}
+                    <Link href="/discussions" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
                       <span>Activity</span>
+                      <span className="ml-auto text-[10px] text-gray-400"></span>
                     </Link>
+                    {/* Preferences */}
                     <button type="button" onClick={() => setPauseNotifications(!pauseNotifications)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors w-full text-left">
                       <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
                       <span>{pauseNotifications ? "Resume notifications" : "Pause notifications"}</span>

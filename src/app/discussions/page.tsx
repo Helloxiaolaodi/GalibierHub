@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import UserMenuPanel from "@/components/user-menu-panel";
 import type { FeedbackCommentEntry, SiteFeedbackEntry } from "@/types/genome";
 import type { Session } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
-import { renderMarkdown } from "@/lib/markdown";
+import { renderInlineText, renderMarkdown } from "@/lib/markdown";
 
 function getCategoryColor(c: string): string {
   const m: Record<string,string>={general:"bg-blue-100 text-blue-800",issue:"bg-red-100 text-red-800",idea:"bg-amber-100 text-amber-800",data:"bg-emerald-100 text-emerald-800",collaboration:"bg-purple-100 text-purple-800"};
@@ -54,8 +54,9 @@ export default function DiscussionsPage() {
   const [session, setSession] = useState<Session|null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string|null>(null);
   const [showComposer, setShowComposer] = useState(false);
-  const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",category:"general",message:"",visibility:"public"});
+  const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public"});
   type MarkdownAction = "bold"|"italic"|"code"|"quote"|"link"|"image"|"list";
   const [composerPreview, setComposerPreview] = useState(false);
   const [composerSubmitting, setComposerSubmitting] = useState(false);
@@ -63,6 +64,9 @@ export default function DiscussionsPage() {
   const [composerSuccess, setComposerSuccess] = useState<string|null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [composerUploadMsg, setComposerUploadMsg] = useState<{type:"success"|"error";text:string}|null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const insertComposerMarkdown = (action: MarkdownAction) => {
     const ta = composerRef.current; if (!ta) return;
@@ -97,12 +101,16 @@ export default function DiscussionsPage() {
           if (login) {
             setGithubUser(String(login));
             localStorage.setItem("galibierhub-github-user", String(login));
+            const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+            if (avatar) setAvatarUrl(String(avatar));
             if (login === "Helloxiaolaodi" || login === "xulab-admin") { setIsAdmin(true); }
           }
         }
       }).catch(()=>{});
     }
   }, []);
+
+  useEffect(() => { setCurrentPage(1); }, [statusFilter, sortMode, searchQuery]);
 
   const handleSignIn = useCallback(async () => {
     const sb = getBrowserSupabase();
@@ -121,6 +129,8 @@ export default function DiscussionsPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null);
+    const authHeaders: Record<string,string> = {};
+    if (session?.access_token) { authHeaders["Authorization"] = "Bearer " + session.access_token; }
     try {
       const res = await fetch("/api/feedback");
       if (!res.ok) throw new Error("Failed to load discussions");
@@ -133,7 +143,7 @@ export default function DiscussionsPage() {
       const likes: Record<string,number>={};
       await Promise.all(publicEntries.map(async entry=>{
         try {
-          const cr = await fetch("/api/feedback?feedback_id="+encodeURIComponent(entry.id));
+          const cr = await fetch("/api/feedback?feedback_id="+encodeURIComponent(entry.id), { headers: authHeaders });
           if (cr.ok) {
             const cd = await cr.json() as {comments?:FeedbackCommentEntry[]};
             const cmts = cd.comments||[];
@@ -181,10 +191,10 @@ export default function DiscussionsPage() {
     const displayName = composerForm.displayName.trim() || (githubUser || "Visitor");
     setComposerSubmitting(true); setComposerError(null);
     try {
-      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,category:composerForm.category,visibility:composerForm.visibility}) });
+      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,affiliation:composerForm.affiliation,visibility:composerForm.visibility}) });
       if (!res.ok) { const d = await res.json() as {error?:string}; throw new Error(d.error||"Failed to submit"); }
       setComposerSuccess("Discussion created!");
-      setComposerForm({title:"",displayName:"",visitorEmail:"",category:"general",message:"",visibility:"public"});
+      setComposerForm({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public"});
       await fetchData();
       setTimeout(()=>{ setShowComposer(false); setComposerSuccess(null); }, 1500);
     } catch (err) { setComposerError(err instanceof Error?err.message:"Failed to submit"); }
@@ -197,6 +207,10 @@ export default function DiscussionsPage() {
     if (statusFilter==="in_progress") return !hasCreatorReply(e);
     if (statusFilter==="resolved") return hasCreatorReply(e);
     return true;
+  }).filter(e => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (e.title||'').toLowerCase().includes(q) || (e.message||'').toLowerCase().includes(q) || (e.display_name||'').toLowerCase().includes(q);
   });
 
   const sortedEntries = [...filteredEntries].sort((a,b)=>{
@@ -221,7 +235,7 @@ export default function DiscussionsPage() {
             {!mounted ? (
               <div className="w-[120px] h-8" />
             ) : session ? (
-              <UserMenuPanel session={session} githubUser={githubUser} isAdmin={isAdmin} onSignOut={handleSignOut} />
+              <UserMenuPanel session={session} githubUser={githubUser} isAdmin={isAdmin} onSignOut={handleSignOut} avatarUrl={avatarUrl} />
             ) : (
               <button onClick={handleSignIn} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100">
                 Log in with GitHub
@@ -237,6 +251,25 @@ export default function DiscussionsPage() {
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Community Discussions</h2>
           <p className="mt-2 text-sm text-gray-600">Browse public discussions, share ideas, and collaborate with the community.</p>
+        </div>
+
+        {/* Search */}
+        <div className="mb-4">
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search discussions by title, content, or author..."
+              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filter & Sort Controls */}
@@ -273,8 +306,9 @@ export default function DiscussionsPage() {
           </div>
         )}
         {!loading&&!error&&sortedEntries.length>0&&(
+        <>
           <div className="space-y-3">
-            {sortedEntries.map(entry=>{
+            {sortedEntries.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).map(entry=>{
               const replyCount = commentCounts[entry.id]||0;
               const activityTime = lastActivity[entry.id]||entry.created_at;
               const preview = truncateText(entry.message, 120);
@@ -286,8 +320,8 @@ export default function DiscussionsPage() {
                     <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-semibold text-white">{getInitials(entry.display_name)}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center flex-wrap gap-2 mb-1.5">
-                        <h3 className="text-base font-semibold text-gray-900 hover:text-blue-700 truncate">{entry.title||"Untitled Discussion"}</h3>
-                        {entry.category !== "general" && <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium "+getCategoryColor(entry.category)}>{getCategoryLabel(entry.category)}</span>}
+                        <h3 className="text-base font-semibold text-gray-900 hover:text-blue-700 truncate">{entry.title?renderInlineText(entry.title, "t-"+entry.id):"Untitled Discussion"}</h3>
+                        {entry.affiliation && <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">{entry.affiliation}</span>}
                         {isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"><svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>Resolved</span>}
                         {!isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">In Progress</span>}
                         
@@ -300,7 +334,7 @@ export default function DiscussionsPage() {
                             </div>
                             <span>·</span>
                         <span>{formatTimeAgo(entry.created_at)}</span>
-                        {likeCounts[entry.id]>0&&<><span>·</span><span className="text-red-500">♥ {(likeCounts[entry.id])}</span></>}
+                        {likeCounts[entry.id]>0&&<><span className="text-red-500">â™¥</span><span className="text-red-500"> {likeCounts[entry.id]}</span></>}
                       </div>
                     </div>
                     <div className="flex-shrink-0 flex flex-col items-end gap-1 text-right">
@@ -315,6 +349,26 @@ export default function DiscussionsPage() {
               );
             })}
           </div>
+          {/* Pagination footer */}
+          {sortedEntries.length > ITEMS_PER_PAGE && (
+            <div className="flex items-center justify-between border-t border-gray-100 bg-white rounded-b-2xl px-4 py-3 mt-3">
+              <div className="text-xs text-gray-500">
+                Showing {((currentPage-1)*ITEMS_PER_PAGE)+1}â€“{Math.min(currentPage*ITEMS_PER_PAGE, sortedEntries.length)} of {sortedEntries.length} discussions
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1} className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                  <svg className="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>Prev
+                </button>
+                {Array.from({length:Math.ceil(sortedEntries.length/ITEMS_PER_PAGE)},(_,i)=>i+1).map(p=>(
+                  <button key={p} onClick={()=>setCurrentPage(p)} className={"inline-flex items-center justify-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors "+(p===currentPage?"bg-blue-600 text-white":"border border-gray-200 bg-white text-gray-700 hover:bg-gray-50")}>{p}</button>
+                ))}
+                <button onClick={()=>setCurrentPage(p=>Math.min(Math.ceil(sortedEntries.length/ITEMS_PER_PAGE),p+1))} disabled={currentPage>=Math.ceil(sortedEntries.length/ITEMS_PER_PAGE)} className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                  Next<svg className="h-3.5 w-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                </button>
+              </div>
+            </div>
+          )}
+        </>
         )}
       </main>
       {/* New Discussion Composer Modal */}
@@ -344,15 +398,10 @@ export default function DiscussionsPage() {
                     placeholder={githubUser || "Your name"} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <select value={composerForm.category} onChange={e => setComposerForm(p => ({...p, category: e.target.value}))}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all">
-                    <option value="general">General</option>
-                    <option value="issue">Issue</option>
-                    <option value="idea">Idea</option>
-                    <option value="data">Data</option>
-                    <option value="collaboration">Collaboration</option>
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Affiliation</label>
+                  <input type="text" value={composerForm.affiliation||""} onChange={e => setComposerForm(p => ({...p, affiliation: e.target.value}))}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    placeholder="e.g. Peking University" />
                 </div>
               </div>
               <div>
@@ -387,31 +436,7 @@ export default function DiscussionsPage() {
                 )}
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <label className="inline-flex items-center gap-1.5 cursor-pointer">
-                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                      const file = e.target.files?.[0]; if (!file) return;
-                      setUploadingImage(true); setComposerUploadMsg(null);
-                      const formData = new FormData(); formData.append("file", file);
-                      try {
-                        const resp = await fetch("/api/upload-image", { method: "POST", body: formData });
-                        const data = await resp.json() as { url?: string; error?: string };
-                        if (!resp.ok || data.error) throw new Error(data.error || "Upload failed");
-                        if (data.url) {
-                          setComposerForm(p => ({...p, message: p.message + `\n![${file.name}](${data.url})`}));
-                          setComposerUploadMsg({type:"success", text:"Image uploaded!"});
-                        }
-                      } catch (err) {
-                        setComposerUploadMsg({type:"error", text: err instanceof Error ? err.message : "Upload failed"});
-                      } finally { setUploadingImage(false); }
-                    }} />
-                    <span className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth={2}/><circle cx="8.5" cy="8.5" r="1.5" strokeWidth={2}/><polyline points="21 15 16 10 5 21" strokeWidth={2}/></svg>
-                      {uploadingImage ? "Uploading..." : "Add Image"}
-                    </span>
-                  </label>
-                  {composerUploadMsg && <span className={`text-xs ${composerUploadMsg.type==="success"?"text-emerald-600":"text-red-600"}`}>{composerUploadMsg.text}</span>}
-                </div>
+                  {composerUploadMsg && <div className="text-xs"><span className={composerUploadMsg.type==="success"?"text-emerald-600":"text-red-600"}>{composerUploadMsg.text}</span></div>}
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => { setShowComposer(false); setComposerError(null); setComposerSuccess(null); }}
                     className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
