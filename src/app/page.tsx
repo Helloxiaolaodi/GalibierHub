@@ -383,12 +383,10 @@ export default function HomePage() {
             <span>{creatorSignInError}</span>
             <button type="button" onClick={() => setCreatorSignInError(null)} aria-label="Dismiss" className="shrink-0 text-red-400 hover:text-red-600">X</button>
           </div>
-        )}
-        {creatorSession && (
-          <div className={`rounded-xl border px-4 py-3 text-sm shadow-sm ${isCreatorAdmin ? 'border-emerald-100 bg-emerald-50/80 text-emerald-800' : 'border-amber-100 bg-amber-50/80 text-amber-800'}`}>
-            {isCreatorAdmin
-              ? `Administrator access enabled for @${creatorLogin || 'unknown'}.`
-              : `Signed in as @${creatorLogin || 'unknown'}, but this account does not have administrator access. Expected: @${expectedAdminLogin || 'not configured'}.`}
+       )}
+        {creatorSession && isCreatorAdmin && (
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-800 shadow-sm">
+            Administrator access enabled for @{creatorLogin || 'unknown'}.
           </div>
         )}
         {dataError && (
