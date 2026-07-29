@@ -40,6 +40,10 @@ function timeGapLabel(prev: string|null, curr: string): string|null {
   if(mo<12)return mo+" month"+(mo>1?"s":"")+" later";return Math.floor(mo/12)+" year"+(Math.floor(mo/12)>1?"s":"")+" later";
 }
 
+
+function hasCreatorReply(entry: SiteFeedbackEntry): boolean {
+  return Boolean(entry.creator_reply);
+}
 // ---- TimelineSidebar: positioned relative to main content, not viewport ----
 function TimelineSidebar({ total, currentIndex, firstDate, lastDate, onNavigate }: {
   total: number; currentIndex: number; firstDate: string|null; lastDate: string|null;
@@ -162,7 +166,7 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
           ))}
         </div>
         {previewMode ? (
-          <div className="min-h-[150px] px-4 py-3 text-sm text-gray-700 prose prose-sm max-w-none">{text.trim() ? renderMarkdown(text) : <span className="text-gray-400 italic">Nothing to preview</span>}</div>
+<div className="min-h-[150px] max-h-[400px] overflow-y-auto px-4 py-3 text-sm text-gray-700 prose prose-sm max-w-none">{text.trim() ? renderMarkdown(text) : <span className="text-gray-400 italic">Nothing to preview</span>}</div>
         ) : (
           <textarea ref={textareaRef} value={text} onChange={e => setText(e.target.value)} rows={6}
             placeholder="Write your reply... (Markdown supported)" 
@@ -205,7 +209,7 @@ function renderInline(text: string, onImageClick?: (src: string, alt: string) =>
   while ((m = imgRe.exec(text)) !== null) {
     const imgSrc = m[2], imgAlt = m[1] || 'image';
     if (m.index > lastIdx) parts.push(renderInlineText(text.substring(lastIdx, m.index), `${pf}-it-${pi++}`));
-    parts.push(<img key={`${pf}-img-${pi++}`} src={imgSrc} alt={imgAlt} className="my-2 max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" onClick={() => onImageClick?.(imgSrc, imgAlt)} />);
+    parts.push(<img key={`${pf}-img-${pi++}`} src={imgSrc} alt={imgAlt} className="my-2 max-w-full max-h-36 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" onClick={() => onImageClick?.(imgSrc, imgAlt)} />);
     lastIdx = m.index + m[0].length;
   }
   if (lastIdx < text.length) parts.push(renderInlineText(text.substring(lastIdx), `${pf}-it-${pi++}`));
@@ -336,6 +340,8 @@ export default function DiscussionDetailPage() {
   const [adminGithubLogin, setAdminGithubLogin] = useState<string|null>(null);
   const contentRefs = useRef<(HTMLDivElement|null)[]>([]);
   const [hideSignupPrompt, setHideSignupPrompt] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string|null>(null);
+  const [commentSearch, setCommentSearch] = useState('');
 
   const handleSignIn = useCallback(async () => {
     const sb = getBrowserSupabase();
@@ -384,6 +390,8 @@ export default function DiscussionDetailPage() {
             setGithubUser(String(login));
             localStorage.setItem("galibierhub-github-user", String(login));
             if (user.id) { setCurrentUserId(String(user.id)); localStorage.setItem("galibierhub-user-id", String(user.id)); }
+            const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+            if (avatar) setAvatarUrl(String(avatar));
             import("@/lib/admin-login").then(async ({resolveExpectedAdminGithubLogin}) => {
               const expected = resolveExpectedAdminGithubLogin({});
               if (expected && String(login).toLowerCase() === expected.toLowerCase()) {
@@ -400,13 +408,15 @@ export default function DiscussionDetailPage() {
   const fetchData = useCallback(async () => {
     if (!id) return; setLoading(true); setError(null);
     try {
-      const res = await fetch("/api/feedback");
+      const authHeaders: Record<string,string> = {};
+      if (session?.access_token) { authHeaders["Authorization"] = "Bearer " + session.access_token; }
+      const res = await fetch("/api/feedback", { headers: authHeaders });
       if (!res.ok) throw new Error("Failed to load discussion");
       const data = await res.json() as {entries?:SiteFeedbackEntry[]};
       const found = (data.entries||[]).find(e=>e.id===id);
       if (!found) throw new Error("Discussion not found");
       setEntry(found);
-      const cr = await fetch("/api/feedback?feedback_id="+encodeURIComponent(id));
+      const cr = await fetch("/api/feedback?feedback_id="+encodeURIComponent(id), { headers: authHeaders });
       if (cr.ok) { const cd = await cr.json() as {comments?:FeedbackCommentEntry[]}; setComments(cd.comments||[]); }
       // Fetch existing likes
       try {
@@ -434,6 +444,34 @@ export default function DiscussionDetailPage() {
   }, [id]);
 
   useEffect(()=>{fetchData();},[fetchData]);
+
+  // Realtime subscription for likes and comments sync
+  useEffect(() => {
+    const sb = getBrowserSupabase();
+    if (!sb || !id) return;
+    
+    const reactionsChannel = sb.channel('reactions-'+id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_reactions', filter: 'entry_id=eq.'+id }, async () => {
+        try {
+          const rr = await fetch('/api/reactions');
+          const rd = await rr.json() as { entries?: Record<string, { like: number }> };
+          if (rd.entries?.[id]) setLikeCounts({ [id]: rd.entries[id].like });
+        } catch {}
+      })
+      .subscribe();
+
+    const commentsChannel = sb.channel('comments-'+id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'feedback_comments', filter: 'feedback_id=eq.'+id }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      sb.removeChannel(reactionsChannel);
+      sb.removeChannel(commentsChannel);
+    };
+  }, [id]);
+
 
   // Fixed like handler - supports toggle (like/unlike)
   const handleLike = useCallback(async (entryId: string) => {
@@ -512,6 +550,11 @@ export default function DiscussionDetailPage() {
 
   const firstDate = timelineItems[0]?.date||null;
   const lastDate = timelineItems[timelineItems.length-1]?.date||null;
+  const filteredTimeline = commentSearch.trim() ? timelineItems.filter(item => {
+    const q = commentSearch.toLowerCase();
+    const text = item.type === 'entry' ? ((item.data as SiteFeedbackEntry).title||'')+((item.data as SiteFeedbackEntry).message||'')+((item.data as SiteFeedbackEntry).display_name||'') : ((item.data as FeedbackCommentEntry).message||'')+((item.data as FeedbackCommentEntry).author_name||'');
+    return text.toLowerCase().includes(q);
+  }) : timelineItems;
 
   function handleTimelineNav(i: number) {
     setCurrentTimelineIndex(i);
@@ -556,6 +599,25 @@ export default function DiscussionDetailPage() {
     fetchData();
   }, [fetchData]);
 
+ const handleMarkResolved = useCallback(async (resolved: boolean) => {
+   if (!entry) return;
+   let token = localStorage.getItem("galibierhub-github-user") || "";
+   try {
+     const { getBrowserSupabase } = await import("@/utils/supabase-browser");
+     const sb2 = getBrowserSupabase();
+     if (sb2) {
+       const { data } = await sb2.auth.getSession();
+       token = data.session?.access_token || token;
+     }
+   } catch {}
+   await fetch("/api/feedback", {
+     method: "PATCH",
+     headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+     body: JSON.stringify({ id: entry.id, creatorReply: resolved ? "resolved" : "" }),
+   });
+   fetchData();
+ }, [entry, fetchData]);
+
  const handleDeletePost = useCallback(async (postId: string, isDiscussion: boolean) => {
    if (!confirm("Permanently delete this post?")) return;
    let token = localStorage.getItem("galibierhub-github-user") || "";
@@ -599,11 +661,17 @@ export default function DiscussionDetailPage() {
             {entry&&<><span className="text-gray-300">/</span><span className="text-sm font-medium text-gray-900 truncate">{entry.title||"Discussion"}</span></>}
           </div>
           <Link href="/discussions" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0 shadow-sm">All Discussions</Link>
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" value={commentSearch} onChange={e=>setCommentSearch(e.target.value)} placeholder="Search comments..."
+              className="rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 w-40 sm:w-52 transition-all"/>
+            {commentSearch && <button onClick={()=>setCommentSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg></button>}
+          </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {!mounted ? (
               <div className="w-[120px] h-8" />
             ) : session ? (
-              <UserMenuPanel session={session} githubUser={githubUser} isAdmin={isAdmin} onSignOut={handleSignOut} />
+              <UserMenuPanel session={session} githubUser={githubUser} isAdmin={isAdmin} onSignOut={handleSignOut} avatarUrl={avatarUrl} />
             ) : (
               <button onClick={handleSignIn} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100">
                 Log in with GitHub
@@ -615,16 +683,25 @@ export default function DiscussionDetailPage() {
 
       {/* Main content area with relative positioning for sidebar */}
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 relative">
-        {/* Timeline sidebar - now positioned relative to content */}
+        {/* Timeline sidebar - draggable */}
         {timelineItems.length>1&&(
           <div className="absolute right-0 top-0 bottom-0 hidden xl:block" style={{transform:"translateX(100%)",paddingLeft:"12px"}}>
-            <div className="sticky top-32 flex flex-col items-center gap-1 rounded-full border border-gray-200 bg-white/90 py-3 px-2 shadow-sm backdrop-blur">
+            <div className="sticky top-32 flex flex-col items-center gap-1 rounded-2xl border border-gray-200 bg-white/90 py-3 px-2 shadow-sm backdrop-blur">
               <div className="text-xs font-mono font-semibold text-gray-500 text-center leading-tight">{currentTimelineIndex+1}<br/><span className="text-[10px] text-gray-400">/ {timelineItems.length}</span></div>
-              <div className="w-1 h-20 bg-gray-200 rounded-full overflow-hidden my-1"><div className="w-full bg-blue-500 rounded-full transition-all duration-300" style={{height:((currentTimelineIndex+1)/Math.max(timelineItems.length,1))*100+"%"}}/></div>
+              {/* Draggable timeline track */}
+              <div className="relative w-3 h-24 bg-gray-200 rounded-full cursor-pointer my-1 group" onClick={(e)=>{const rect=e.currentTarget.getBoundingClientRect();const pct=Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height));const idx=Math.round(pct*(timelineItems.length-1));setCurrentTimelineIndex(idx);contentRefs.current[idx]?.scrollIntoView({behavior:"smooth",block:"center"});}}>
+                <div className="absolute bottom-0 left-0 right-0 bg-blue-500 rounded-full transition-all duration-200" style={{height:((currentTimelineIndex+1)/Math.max(timelineItems.length,1))*100+"%"}}/>
+                <div className="absolute left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white border-2 border-blue-500 rounded-full shadow-sm transition-all duration-200 group-hover:scale-110" style={{bottom:`calc(${((currentTimelineIndex+1)/Math.max(timelineItems.length,1))*100}% - 7px)`}}/>
+              </div>
               {firstDate&&<div className="text-[10px] text-gray-400 text-center leading-tight">{new Date(firstDate).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>}
               {lastDate&&lastDate!==firstDate&&<><div className="text-[10px] text-gray-300">|</div><div className="text-[10px] text-blue-500 text-center leading-tight font-medium">{formatTimeAgo(lastDate)}</div></>}
               <button onClick={()=>handleTimelineNav(Math.max(0,currentTimelineIndex-1))} disabled={currentTimelineIndex<=0} className="mt-1 rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg></button>
               <button onClick={()=>handleTimelineNav(Math.min(timelineItems.length-1,currentTimelineIndex+1))} disabled={currentTimelineIndex>=timelineItems.length-1} className="rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg></button>
+              {/* Post a Reply button in timeline */}
+              <button onClick={()=>{setReplyTarget(null);setFloatingReplyOpen(true);}} className="mt-2 rounded-lg bg-blue-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors whitespace-nowrap">
+                <svg className="h-3.5 w-3.5 inline-block mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                Reply
+              </button>
             </div>
           </div>
         )}
@@ -634,7 +711,7 @@ export default function DiscussionDetailPage() {
           {error&&<div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{error} <button onClick={fetchData} className="ml-3 underline hover:no-underline">Retry</button></div>}
           {!loading&&!error&&entry&&(
             <div className="space-y-6">
-              {timelineItems.map((item,index)=>{
+{filteredTimeline.map((item,index)=>{
                 const prevDate = index>0?timelineItems[index-1].date:null;
                 const gap = timeGapLabel(prevDate,item.date);
                 const isEntry = item.type==="entry";
@@ -644,7 +721,7 @@ export default function DiscussionDetailPage() {
                 return (
                   <div key={(isEntry?"e-":"c-")+itemId}>
                     {gap&&<div className="flex items-center gap-3 my-6"><div className="flex-1 h-px bg-gray-200"/><span className="text-xs font-medium text-gray-400 flex-shrink-0">{gap}</span><div className="flex-1 h-px bg-gray-200"/></div>}
-                    <div ref={el=>{contentRefs.current[index]=el;}} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+                    <div ref={el=>{contentRefs.current[index]=el;}} className={"rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" + ((isEntry && (ed as SiteFeedbackEntry).hidden) || (!isEntry && (cd as FeedbackCommentEntry).hidden) ? " opacity-60 ring-2 ring-amber-200" : "")}>
                       {isEntry?(<>
                         <div className="flex items-start gap-3 mb-4">
                           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-semibold text-white flex-shrink-0">{getInitials(ed.display_name)}</div>
@@ -652,22 +729,22 @@ export default function DiscussionDetailPage() {
                             <div className="flex items-center flex-wrap gap-2">
                               <h1 className="text-lg font-bold text-gray-900">{ed.title||"Untitled"}</h1>
                               
-                              {ed.rating>0&&<span className="text-xs text-amber-500">{"★".repeat(ed.rating)}</span>}
+
                             </div>
                             <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
                               <span className="font-medium text-gray-700">{ed.display_name}</span>
 
                               {ed.user_id && <BadgeDisplay userId={ed.user_id} />}
 
-                              {ed.affiliation&&<><span>·</span><span>{ed.affiliation}</span></>}
-                              <span>·</span><span>{formatDate(ed.created_at)}</span>
+                              {ed.affiliation&&<><span>Â·</span><span>{ed.affiliation}</span></>}
+                              <span>Â·</span><span>{formatDate(ed.created_at)}</span>
                             </div>
                           </div>
                         </div>
                         <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words">{renderMarkdown(ed.message, (src, alt) => setLightbox({src, alt}))}</div>
                         {ed.creator_reply&&(
                           <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
-                            <div className="flex items-center gap-2 mb-2"><div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-semibold text-white">S</div><span className="text-xs font-semibold text-blue-800">GalibierHub Team</span><span className="text-xs text-blue-500">· Official Response</span></div>
+                              <div className="flex items-center gap-2 mb-2"><div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-semibold text-white">S</div><span className="text-xs font-semibold text-blue-800">GalibierHub Team</span><span className="text-xs text-blue-500">Â· Official Response</span></div>
                             <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words">{ed.creator_reply}</div>
                           </div>)}
                       </>):(<>
@@ -711,19 +788,16 @@ export default function DiscussionDetailPage() {
                           <button onClick={()=>handlePinPost(itemId)} className={"inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs transition-colors "+(entry?.pinned?"text-blue-600 bg-blue-50":"text-gray-400 hover:text-blue-500 hover:bg-blue-50")} title={entry?.pinned?"Unpin":"Pin"}>
                             <svg className="h-3.5 w-3.5" fill={entry?.pinned?"currentColor":"none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
                           </button>
+                        )}
+                        {isAdmin && isEntry && (
+                          <button onClick={()=>handleMarkResolved(!hasCreatorReply(entry))} className={"inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs transition-colors "+(hasCreatorReply(entry)?"text-emerald-600 bg-emerald-50":"text-gray-400 hover:text-emerald-500 hover:bg-emerald-50")} title={hasCreatorReply(entry)?"Reopen":"Mark as Resolved"}>
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+                          </button>
                         )}                      </div>
                     </div>
                   </div>
                 );
               })}
-
-              {/* Reply button at bottom */}
-              <div className="flex justify-center">
-                <button onClick={()=>{setReplyTarget(null);setFloatingReplyOpen(true);}} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-blue-300 hover:text-blue-600 transition-all">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                  Post a Reply
-                </button>
-              </div>
 
               <DiscussionFooter comments={comments} entry={entry} totalViews={totalViews} onSignUp={handleSignUp} onMaybeLater={handleMaybeLater} onNoThanks={handleNoThanks} hideSignupPrompt={hideSignupPrompt}/>
             </div>

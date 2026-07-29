@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase, getSupabase, hasSupabaseServiceRole, isSupabaseConfigured } from "@/utils/supabase";
 import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
 
@@ -388,6 +388,35 @@ export async function POST(request: Request) {
         });
       }
     } catch { /* notification insert is best-effort */ }
+
+    // Handle @mentions in comment text - look up mentioned users and notify them
+    try {
+      const mentionMatches = commentMessage.match(/@(\w[\w-]{0,39})/g);
+      if (mentionMatches) {
+        const mentionedNames = [...new Set(mentionMatches.map((m: string) => m.slice(1)))];
+        const { data: mentionedUsers } = await sbComments.from('site_feedback')
+          .select('user_id, display_name').in('display_name', mentionedNames);
+        if (mentionedUsers) {
+          const notifiedUserIds = new Set<string>();
+          const fbEntry2 = feedbackEntry as Record<string, unknown>;
+          const pUid = fbEntry2.user_id as string | null;
+          for (const mu of mentionedUsers) {
+            const r = mu as Record<string, unknown>;
+            const uid = r.user_id as string | null;
+            if (uid && uid !== pUid && !notifiedUserIds.has(uid)) {
+              notifiedUserIds.add(uid);
+              await sbComments.from('site_notifications').insert({
+                recipient_id: uid,
+                discussion_id: feedbackId,
+                actor_name: commentAuthor,
+                preview_text: 'You were mentioned in a reply',
+                is_read: false,
+              });
+            }
+          }
+        }
+      }
+    } catch { /* mentions are best-effort */ }
 
     return NextResponse.json({ comment }, { status: 201 });
   }

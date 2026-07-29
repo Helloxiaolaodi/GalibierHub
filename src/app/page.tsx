@@ -349,7 +349,7 @@ export default function HomePage() {
             {!mounted ? (
               <div className="w-[120px] h-8" />
             ) : creatorSession ? (
-              <UserMenuPanel session={creatorSession} githubUser={creatorLogin} isAdmin={isCreatorAdmin} onSignOut={() => void handleCreatorSignOut()} />
+              <UserMenuPanel session={creatorSession} githubUser={creatorLogin} isAdmin={isCreatorAdmin} onSignOut={() => void handleCreatorSignOut()} avatarUrl={creatorSession?.user?.user_metadata?.avatar_url as string | undefined} />
             ) : (
               <button type="button" onClick={() => void handleCreatorSignIn()}
                 className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"

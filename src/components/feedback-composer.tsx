@@ -2,7 +2,7 @@
 import TurnstileWidget from '@/components/turnstile-widget';
 import { renderMarkdown } from '@/lib/markdown';
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 
 type VisibilityMode = 'public' | 'private';
 type FeedbackCategory = 'general' | 'issue' | 'idea' | 'data' | 'collaboration';
@@ -60,6 +60,43 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
 const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadImageMessage, setUploadImageMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  type MarkdownAction = 'bold' | 'italic' | 'code' | 'quote' | 'link' | 'image' | 'list';
+
+  const insertMarkdown = useCallback((action: MarkdownAction) => {
+    const ta = textareaRef.current; if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const before = form.message.substring(0, start), selected = form.message.substring(start, end), after = form.message.substring(end);
+    let result = '';
+    switch (action) {
+      case 'bold': result = before + '**' + (selected || 'bold text') + '**' + after; break;
+      case 'italic': result = before + '*' + (selected || 'italic text') + '*' + after; break;
+      case 'code': result = before + '`' + (selected || 'code') + '`' + after; break;
+      case 'quote': result = before + '> ' + (selected || 'quote') + after; break;
+      case 'link': result = before + '[' + (selected || 'link text') + '](url)' + after; break;
+      case 'image': {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+        input.onchange = async (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0]; if (!file) return;
+          setUploadingImage(true); setUploadImageMessage(null);
+          const url = await handleImageUpload(file);
+          setUploadingImage(false);
+          if (url) {
+            setForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![' + file.name + '](' + url + ')' }));
+            setUploadImageMessage({ type: 'success', text: 'Image uploaded.' });
+          } else {
+            setUploadImageMessage({ type: 'error', text: 'Image upload failed.' });
+          }
+        };
+        input.click(); return;
+      }
+      case 'list': result = before + '\n- ' + (selected || 'list item') + after; break;
+    }
+    setForm((c) => ({ ...c, message: result }));
+    setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + result.length - after.length; ta.focus(); }, 0);
+  }, [form.message]);
 
   const handleImageUpload = async (file: File): Promise<string | null> => {
     const formData = new FormData();
@@ -374,36 +411,54 @@ const [uploadingImage, setUploadingImage] = useState(false);
             </label>
 
             <label className="block space-y-1 text-sm text-gray-700">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-1">
                 <span>Message (required)</span>
                 <div className="flex gap-1">
                   <button type="button" onClick={() => setPreviewMode(false)} className={!previewMode ? "rounded px-2 py-1 text-xs font-medium text-white bg-blue-600 shadow-sm" : "rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"}>Edit</button>
                   <button type="button" onClick={() => setPreviewMode(true)} className={previewMode ? "rounded px-2 py-1 text-xs font-medium text-white bg-blue-600 shadow-sm" : "rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"}>Preview</button>
                 </div>
               </div>
+              {/* Rich text toolbar */}
+              {!previewMode && (
+                <div className="flex flex-wrap gap-1 py-1">
+                  {([
+                    ["bold", "B", "font-bold"],
+                    ["italic", "I", "italic"],
+                    ["code", "<>", "font-mono"],
+                    ["quote", "\u201c", ""],
+                    ["link", "\uD83D\uDD17", ""],
+                    ["image", "\uD83D\uDDBC", ""],
+                    ["list", "\u2261", ""],
+                  ] as [MarkdownAction, string, string][]).map(([action, label, cls]) => (
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={() => insertMarkdown(action)}
+                      className={"rounded px-1.5 py-0.5 text-xs font-medium text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors " + cls}
+                      title={action.charAt(0).toUpperCase() + action.slice(1)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
               {previewMode ? (
-                <div className="min-h-[200px] px-4 py-3 text-sm text-gray-700 prose prose-sm max-w-none rounded-lg border border-gray-200 bg-[#F5F5F7]">{form.message.trim() ? renderMarkdown(form.message) : (<span className="text-gray-400 italic">Nothing to preview</span>)}</div>
+                <div className="min-h-[200px] px-4 py-3 text-sm text-gray-700 prose prose-sm max-w-none rounded-lg border border-gray-200 bg-[#F5F5F7] overflow-y-auto">{form.message.trim() ? renderMarkdown(form.message) : (<span className="text-gray-400 italic">Nothing to preview</span>)}</div>
               ) : (
                 <textarea
+                  ref={textareaRef}
                   value={form.message}
                   onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
                   rows={6}
-                  className="w-full rounded-lg border border-transparent bg-[#F5F5F7] px-3 py-2 text-sm text-gray-900 outline-none transition-colors hover:bg-slate-200/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
+                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
                 />
               )}
-            {!previewMode && (<div className="mt-2 flex items-center gap-2">
-              <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-               Attach image
-               <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const file = e.target.files?.[0]; if (file) { setUploadingImage(true); setUploadImageMessage(null); const url = await handleImageUpload(file); setUploadingImage(false); if (url) { setForm((c) => ({ ...c, message: c.message + (c.message ? '\n' : '') + '![image](' + url + ')' })); setUploadImageMessage({ type: 'success', text: 'Image uploaded.' }); } else { setUploadImageMessage({ type: 'error', text: 'Image upload failed.' }); } e.target.value = ''; } }} />
-             </label>
-              {uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
-              {uploadImageMessage && (
+              {!previewMode && uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
+              {!previewMode && uploadImageMessage && (
                 <span className={`text-xs ${uploadImageMessage.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
                   {uploadImageMessage.text}
                 </span>
               )}
-            </div>)}
             {validationErrors.message && <span className="text-xs text-red-600">{validationErrors.message}</span>}
             </label>
 
