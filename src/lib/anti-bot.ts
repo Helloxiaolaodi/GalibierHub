@@ -1,5 +1,5 @@
 ﻿// ============================================================
-// SeqEdge Anti-Bot & Security Utilities
+// GalibierHub Anti-Bot & Security Utilities
 // ============================================================
 // Shared by src/middleware.ts (edge runtime) and route handlers.
 // Provides: in-memory rate limiter, Turnstile verification,

@@ -1,25 +1,25 @@
-<a id="readme-top"></a>
+﻿<a id="readme-top"></a>
 
-# SeqEdge
+# GalibierHub
 
 边缘原生基因组数据库模板
 
-SeqEdge 是一个用于构建坐标型基因组门户的开源模板，整合了可检索元数据、嵌入式基因组浏览器、图表、讨论区工作流，以及大文件与前端解耦的部署方式。
+GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整合了可检索元数据、嵌入式基因组浏览器、图表、讨论区工作流，以及大文件与前端解耦的部署方式。
 
 **主站：** [https://seq-edge.vercel.app](https://seq-edge.vercel.app)  
-**镜像：** [https://seqedge.pages.dev](https://seqedge.pages.dev)  
-**GitHub：** [https://github.com/Helloxiaolaodi/SeqEdge](https://github.com/Helloxiaolaodi/SeqEdge)
+**镜像：** [https://galibierhub.pages.dev](https://galibierhub.pages.dev)  
+**GitHub：** [https://github.com/Helloxiaolaodi/GalibierHub](https://github.com/Helloxiaolaodi/GalibierHub)
 
-语言：**简体中文** | [English](./README.md) | [问题反馈](https://github.com/Helloxiaolaodi/SeqEdge/issues)
+语言：**简体中文** | [English](./README.md) | [问题反馈](https://github.com/Helloxiaolaodi/GalibierHub/issues)
 
-详细搭建指南：[SeqEdge 开发者笔记](https://www.cnblogs.com/Administrator/p/21776736)
+详细搭建指南：[GalibierHub 开发者笔记](https://www.cnblogs.com/Administrator/p/21776736)
 
 技术栈：Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts
 
-![License](https://img.shields.io/github/license/Helloxiaolaodi/SeqEdge?style=flat-square)
-![Stars](https://img.shields.io/github/stars/Helloxiaolaodi/SeqEdge?style=flat-square)
-![Forks](https://img.shields.io/github/forks/Helloxiaolaodi/SeqEdge?style=flat-square)
-![Issues](https://img.shields.io/github/issues/Helloxiaolaodi/SeqEdge?style=flat-square)
+![License](https://img.shields.io/github/license/Helloxiaolaodi/GalibierHub?style=flat-square)
+![Stars](https://img.shields.io/github/stars/Helloxiaolaodi/GalibierHub?style=flat-square)
+![Forks](https://img.shields.io/github/forks/Helloxiaolaodi/GalibierHub?style=flat-square)
+![Issues](https://img.shields.io/github/issues/Helloxiaolaodi/GalibierHub?style=flat-square)
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.21-black?style=flat-square&logo=next.js)
 ![Supabase](https://img.shields.io/badge/Supabase-2.110.7-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=flat-square&logo=vercel)
@@ -27,7 +27,7 @@ SeqEdge 是一个用于构建坐标型基因组门户的开源模板，整合了
 ## 目录
 
 1. [项目概览](#项目概览)
-2. [SeqEdge 当前包含的能力](#seqedge-当前包含的能力)
+2. [GalibierHub 当前包含的能力](#galibierhub-当前包含的能力)
 3. [架构与部署模型](#架构与部署模型)
 4. [快速开始](#快速开始)
 5. [数据与下载工作流](#数据与下载工作流)
@@ -40,27 +40,43 @@ SeqEdge 是一个用于构建坐标型基因组门户的开源模板，整合了
 
 ## 项目概览
 
-SeqEdge 当前主要包含五个核心界面：
+GalibierHub 当前主要包含五个核心界面：
 
 - **Overview**：统计图表、悬浮翻转特性卡片（Search & Discovery、Genome Browser、File Distribution、Community & Moderation）。
 - **Records**：记录表格、筛选、详情面板与嵌入式基因组浏览器。
 - **Genome Browser**：独立的 JBrowse 2 线性基因组视图，支持全屏禅定模式、多轨道注释与位点导航，可通过顶部导航栏访问。
 - **Downloads**：站点级文件目录，可浏览层级结构并统一调用下载弹窗。
 - **Discussion**：公开或仅管理员可见的留言讨论区，支持图片、点赞、收藏与回帖。
+- **Notification Center**：应用内通知铃铛，基于 Supabase 实时订阅，当有人回复您的讨论时即时推送。
+- **Badge System**：游戏化徽章系统，包含 16+ 种勋章类别（入门引导、社区互动、技术极客、里程碑成就），以微型徽章形式展示在用户名旁。
 
 需要说明的是，当前默认数据结构与界面命名仍然偏向 promoter / genome 的基因组场景。后续 fork 使用者可以自行泛化，但仓库目前仍以基因组数据库模板为主。
 
+### 名字的由来：Col du Galibier
+
+GalibierHub 的名字源自**加利比耶山口 (Col du Galibier)**，法国阿尔卑斯山脉中海拔 2,642 米的传奇山口。过去一个世纪中，这个被列为 HC 级（"不可分级"）的魔鬼赛段始终是环法自行车赛中对人类极限的终极考验——稀薄的空气和残酷的坡度将顶级运动员推向崩溃的边缘。
+
+**为什么是 Galibier？**
+
+1. **稀薄空气 → 高通量算力**：在海拔两千六百米的高山，空气极度稀薄，哪怕最顶级的运动员也会遭遇引擎"爆缸"的危险。这正如处理数万份口腔与肠道微生物样本时所面临的算力高压——庞大的特征矩阵和内存消耗正是系统面临的"稀薄空气"。Galibier 代表着本平台在应对极大规模队列分析和高通量数据分发时，极其强悍的性能底盘与抗压能力。
+
+2. **爬坡手 → 科研探索者**：科研本身就是一场孤独且极具消耗的"爬坡"。从极其原始粗糙的下机序列，到最终精细如艺术品的系统发育树与热图，中间是无数次的数据清洗、除噪与模型迭代。Galibier 致敬那些在枯燥的数据流中默默承受"死死咬住轮流拉扯"、最终在山顶迎来突破的学术攀登者。
+
+3. **Hub → 探索者的大本营**：后缀 Hub（枢纽）意味着科学不该是一场孤军奋战。正如加利比耶山顶为所有完赛者设立的丰碑，GalibierHub 被设计为一个高度互联的基础设施——不仅沉淀了标准化的代码管道与高质量的参考数据集，更为全球的生信开发者提供了一个下载、交流与协同突围的集散中心。
+
+> *"征服微生态数据的海拔极高点。"* — GalibierHub 口号
+
 ### 预览媒体
 
-![SeqEdge 架构图](./docs/architecture.gif)
+![GalibierHub 架构图](./docs/architecture.gif)
 
 *README 中使用的架构演示 GIF。媒体署名：由 **Gemini 3.1 Pro** 生成。*
 
-![SeqEdge 界面与主要功能总览](./docs/media/seqedge-ui-overview.png)
+![GalibierHub 界面与主要功能总览](./docs/media/galibierhub-ui-overview.png)
 
 *README 中使用的界面与主要功能总览图。媒体署名：由 **Gemini 3.1 Pro** 生成。*
 
-## SeqEdge 当前包含的能力
+## GalibierHub 当前包含的能力
 
 ### 访客与使用者可完成的操作
 
@@ -85,11 +101,16 @@ SeqEdge 当前主要包含五个核心界面：
 
 #### 社区与管理
 
-- 在 `Discussion` 标签页提交公开留言或仅管理员可见留言。
-- 使用被授权的 GitHub 管理员账号登录并发布官方回复。
+- 在 `Discussion` 标签页通过悬浮式富文本 Markdown 编辑器提交讨论主题（支持加粗、斜体、代码块、引用、链接、列表、图片上传）。
+- 发布前可在编辑与预览模式间切换，发布后支持完整 Markdown 渲染（含语法高亮代码块）。
+- 通过工具栏上传图片，点击图片可放大查看（Lightbox 灯箱）。
+- 使用被授权的 GitHub 管理员账号登录并发布官方回复、隐藏/删除帖子、置顶讨论。
 - 在讨论区上传图片，并通过可放大的灯箱查看已发布图片。
-- 在列表与详情中查看点赞和收藏。
-- 在页脚查看同时包含站点运行时长与累积独立访客人数的计数器。
+- 点赞与取消点赞（心形切换），通过模态框分享讨论（支持 Twitter/X、Facebook、Email、LinkedIn、复制链接）。
+- 按状态筛选讨论（全部、进行中、已解决），按最新、最旧或点赞数排序。
+- 通过社区参与获得徽章：Ice Breaker（首次发言）、Nice Reply（10 赞）、Markdown Master（使用代码块）等 16+ 种类别。
+- 页脚统计展示浏览量、链接数、参与者，以及实时站点运行时长和累计独立访客数。
+- macOS 风格设计语言：毛玻璃导航栏、苹果灰 (#F5F5F7) 背景、自定义滚动条、柔和聚焦光晕、按钮微交互动效。
 
 ### 对 fork 使用者的价值
 
@@ -100,7 +121,7 @@ SeqEdge 当前主要包含五个核心界面：
 
 ## 架构与部署模型
 
-SeqEdge 将三部分解耦：
+GalibierHub 将三部分解耦：
 
 - 元数据存放在 Supabase / PostgreSQL
 - 大型基因组文件存放在对象存储或 Hugging Face Datasets
@@ -114,7 +135,7 @@ SeqEdge 将三部分解耦：
 
 ### 当前下载策略
 
-SeqEdge 采用适合免费层级的拆分式下载流程：
+GalibierHub 采用适合免费层级的拆分式下载流程：
 
 - 单文件下载统一通过一个弹窗展示浏览器下载、`wget -c`、`curl -L -C -` 与 `hf download`。
 - 大文件优先展示支持断点续传的命令行方案，其中 `hf download` 是 Hugging Face 大文件的推荐方式。
@@ -130,8 +151,8 @@ SeqEdge 采用适合免费层级的拆分式下载流程：
 ### 1. 安装
 
 ```bash
-git clone https://github.com/<your-account>/SeqEdge.git
-cd SeqEdge
+git clone https://github.com/<your-account>/GalibierHub.git
+cd GalibierHub
 npm install
 ```
 
@@ -168,8 +189,8 @@ NEXT_PUBLIC_REFERENCE_GFF3=scov2.genes.gff3
 可选但建议配置：
 
 ```bash
-NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
-NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/releases/seqedge-release.tar.gz
+NEXT_PUBLIC_HF_PROXY_URL=https://galibierhub-hf-proxy.your-account.workers.dev
+NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/releases/galibierhub-release.tar.gz
 NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=12.5 GB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 NEXT_PUBLIC_REFERENCE_BUNDLE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/reference/reference-bundle.zip
@@ -257,7 +278,7 @@ Cloudflare Pages：
 
 ### Downloads 页面现在支持什么
 
-- 标准面包屑路径导航，例如 `Downloads / seqedge-data / reference_genomes / scov2`，其中每一级父目录都可点击返回。
+- 标准面包屑路径导航，例如 `Downloads / galibierhub-data / reference_genomes / scov2`，其中每一级父目录都可点击返回。
 - 紧凑的控制栏，将目录搜索、`Copy Folder CLI`、`Export Manifest CSV`、README 按钮、批量下载 以及网格/表格视图切换集中在同一层。
 - 适合大目录的表格视图，支持按 `Name`、`Size`、`Updated`、`Actions` 排序。
 - 信息密度更高的卡片视图，在保留视觉浏览体验的同时补充大小与更新时间。
@@ -281,22 +302,22 @@ Cloudflare Pages：
 官方线路：
 
 ```bash
-wget -c -O "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-curl -L -C - -o "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+wget -c -O "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+curl -L -C - -o "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
 ```
 
 亚洲镜像线路：
 
 ```bash
-wget -c -O "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-curl -L -C - -o "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+wget -c -O "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+curl -L -C - -o "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
 ```
 
 这样做的目的，是让站点展示的不是名义上的下载入口，而是真正更贴近不同地区网络条件的可执行交付路径。
 
-### 如何把 Hugging Face 文件接入 SeqEdge
+### 如何把 Hugging Face 文件接入 GalibierHub
 
 当前代码支持三种常见接入方式：
 
@@ -308,10 +329,10 @@ HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data 817-fo
 
 不要使用包含 `/blob/main/` 的 Hugging Face 页面链接。
 
-- 页面链接示例：`https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/blob/main/817-food-biochem/817-food-biochem-materials.zip`
-- 文件直链示例：`https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip`
+- 页面链接示例：`https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/blob/main/817-food-biochem/817-food-biochem-materials.zip`
+- 文件直链示例：`https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip`
 
-SeqEdge 现在会自动把常见的 Hugging Face `blob` 链接规范化成 `resolve` 链接，但数据库和环境变量里仍建议保存真正的直链 URL。
+GalibierHub 现在会自动把常见的 Hugging Face `blob` 链接规范化成 `resolve` 链接，但数据库和环境变量里仍建议保存真正的直链 URL。
 
 #### 2. 让文件显示在首页
 
@@ -320,7 +341,7 @@ SeqEdge 现在会自动把常见的 Hugging Face `blob` 链接规范化成 `reso
 ```bash
 NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download 817 Food Biochem Materials
 NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION=Public Hugging Face dataset package for large-file download, browser delivery, and resume-capable CLI retrieval.
-NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip
+NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip
 NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 ```
@@ -343,7 +364,7 @@ NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 
 ```sql
 update genome_samples
-set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip'
+set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip'
 where sample_id = 'CNhs10881';
 ```
 
@@ -366,9 +387,9 @@ insert into download_metadata (
   sha256_checksum
 )
 values (
-  'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip',
+  'https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip',
   '817 Food Biochem Materials',
-  'Public Hugging Face dataset package exposed through the SeqEdge unified download modal.',
+  'Public Hugging Face dataset package exposed through the GalibierHub unified download modal.',
   'Archive (zip)',
   734003200,
   'public_url',
@@ -391,13 +412,13 @@ on conflict (download_key) do update set
 
 #### 5. 什么时候才算真正的私密下载
 
-如果需要真正受控的下载链路，请把文件存进 Supabase 私有 bucket，并将 `download_metadata.storage_provider` 设为 `supabase_private`。此时 SeqEdge 会通过 `/api/download-metadata/resolve` 返回短时有效的 signed URL。
+如果需要真正受控的下载链路，请把文件存进 Supabase 私有 bucket，并将 `download_metadata.storage_provider` 设为 `supabase_private`。此时 GalibierHub 会通过 `/api/download-metadata/resolve` 返回短时有效的 signed URL。
 
 这也是当前代码中唯一完整实现的真实私有下载路径。
 
 ### 如何上传数据到 Hugging Face
 
-SeqEdge 的大体量文件，例如发布归档、参考序列包和样本级文件，默认托管在 Hugging Face dataset 仓库 `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`。
+GalibierHub 的大体量文件，例如发布归档、参考序列包和样本级文件，默认托管在 Hugging Face dataset 仓库 `https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data`。
 
 #### 1. 安装 CLI
 
@@ -429,7 +450,7 @@ hf upload <用户名/数据集名> <本地路径> <仓库内目标路径> --repo
 示例：
 
 ```bash
-hf upload Helloxiaolaodi/seqedge-data "E:\data\817-food-biochem-materials.zip" "817-food-biochem/817-food-biochem-materials.zip" --repo-type dataset
+hf upload Helloxiaolaodi/galibierhub-data "E:\data\817-food-biochem-materials.zip" "817-food-biochem/817-food-biochem-materials.zip" --repo-type dataset
 ```
 
 #### 4. 断点续传
@@ -471,7 +492,7 @@ curl -I https://huggingface.co
 
 ```bash
 pip install -q "huggingface_hub"
-hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
 ```
 
 传统命令也支持断点续传：
@@ -481,11 +502,11 @@ wget -c -O <文件名> "<resolve url>"
 curl -L -C - -o <文件名> "<resolve url>"
 ```
 
-对于中国和部分亚太网络环境，镜像线路往往比官方域名更稳定，因此 SeqEdge 当前会在下载弹窗里同时展示两套命令，而不是只给一套默认说明。
+对于中国和部分亚太网络环境，镜像线路往往比官方域名更稳定，因此 GalibierHub 当前会在下载弹窗里同时展示两套命令，而不是只给一套默认说明。
 
 ### 基因组浏览器说明
 
-为了获得更稳定的 JBrowse 体验，建议配置 Cloudflare Worker 代理。SeqEdge 的探测顺序如下：
+为了获得更稳定的 JBrowse 体验，建议配置 Cloudflare Worker 代理。GalibierHub 的探测顺序如下：
 
 1. 外部 `NEXT_PUBLIC_HF_PROXY_URL`
 2. 内置 `/api/hf-proxy/<file>` 路由
@@ -498,13 +519,13 @@ curl -L -C - -o <文件名> "<resolve url>"
 - Hugging Face dataset 子目录路径
 - Worker 部署或 `HF_REPO_BASE`
 
-当真实轨道可用时，SeqEdge 还会自动打开首个可达注释轨道，避免落在 `No tracks active` 状态。
+当真实轨道可用时，GalibierHub 还会自动打开首个可达注释轨道，避免落在 `No tracks active` 状态。
 
 ## 讨论区与管理员运维
 
 ### 讨论区模块
 
-SeqEdge 内置了轻量研究交流区：
+GalibierHub 内置了轻量研究交流区：
 
 - 点击 `Discussion` 标签页即可浏览讨论并打开浮动的 `New Discussion` 编辑器。
 - 编辑器采用 Markdown 输入框、可视化工具栏以及 `Write` / `Preview` 双标签页，既保留纯文本效率，也能方便地插入代码块、引用、列表、表格和图片说明。
@@ -543,8 +564,8 @@ SeqEdge 内置了轻量研究交流区：
 3. 在 **Redirect URLs** 中加入所有部署域名：
    - `https://seq-edge.vercel.app`
    - `https://seq-edge.vercel.app/**`
-   - `https://seqedge.pages.dev`
-   - `https://seqedge.pages.dev/**`
+   - `https://galibierhub.pages.dev`
+   - `https://galibierhub.pages.dev/**`
 4. 保存。
 
 如果仍保留 `http://localhost:3000`，生产环境中的 OAuth 登录会被错误重定向到本地地址。
@@ -552,7 +573,7 @@ SeqEdge 内置了轻量研究交流区：
 #### 3. 获取 GitHub OAuth 凭据
 
 1. 打开 GitHub -> **Settings** -> **Developer settings** -> **OAuth Apps** -> **New OAuth App**。
-2. 设置应用名称，例如 `SeqEdge Auth`。
+2. 设置应用名称，例如 `GalibierHub Auth`。
 3. 将 **Homepage URL** 设为生产地址或本地开发地址。
 4. 将 **Authorization callback URL** 设为 `https://<your-project>.supabase.co/auth/v1/callback`。
 5. 注册应用并生成 client secret。
@@ -564,7 +585,7 @@ SeqEdge 内置了轻量研究交流区：
 
 ### 邮件通知设置（Resend）
 
-SeqEdge 使用 [Resend](https://resend.com) 向站点管理员发送反馈通知邮件。
+GalibierHub 使用 [Resend](https://resend.com) 向站点管理员发送反馈通知邮件。
 
 当前实现中，若邮件配置完整，则会发送以下几类通知：
 
@@ -700,7 +721,7 @@ ate_limit_rpm、is_active），RLS 策略将全部访问限制为 service_role�
 
 ## 技术栈与参考资料
 
-SeqEdge 基于一组开源工具构建，用于完成界面渲染、数据访问、基因组浏览器集成与部署发布。
+GalibierHub 基于一组开源工具构建，用于完成界面渲染、数据访问、基因组浏览器集成与部署发布。
 
 | 工具 | 版本 | 功能 | 参考 |
 | --- | --- | --- | --- |
@@ -723,7 +744,7 @@ SeqEdge 基于一组开源工具构建，用于完成界面渲染、数据访问
 
 ### 仓库搭建者
 
-这个 SeqEdge GitHub 仓库由 **Helloxiaolaodi** 与 **yangsanduo** 两个 GitHub 账号共同搭建、维护和迭代。这两个账号均为同一项目拥有者本人使用，用于该仓库及相关部署工作的协同维护。
+这个 GalibierHub GitHub 仓库由 **Helloxiaolaodi** 与 **yangsanduo** 两个 GitHub 账号共同搭建、维护和迭代。这两个账号均为同一项目拥有者本人使用，用于该仓库及相关部署工作的协同维护。
 
 ### 参与本仓库搭建的 AI 工具
 
@@ -736,7 +757,7 @@ SeqEdge 基于一组开源工具构建，用于完成界面渲染、数据访问
 ### README 媒体素材署名
 
 - `docs/architecture.gif`：由 **Gemini 3.1 Pro** 生成。
-- `docs/media/seqedge-ui-overview.png`：由 **Gemini 3.1 Pro** 生成。
+- `docs/media/galibierhub-ui-overview.png`：由 **Gemini 3.1 Pro** 生成。
 
 
 ## 许可证

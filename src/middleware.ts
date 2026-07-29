@@ -1,5 +1,5 @@
 ﻿// ============================================================
-// SeqEdge Middleware -- Edge-layer defense
+// GalibierHub Middleware -- Edge-layer defense
 // ============================================================
 // Runs on Cloudflare Edge (opennextjs-cloudflare edge wrapper).
 // Handles: CORS enforcement, Turnstile verification for write

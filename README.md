@@ -1,23 +1,23 @@
-<a id="readme-top"></a>
+﻿<a id="readme-top"></a>
 
-# SeqEdge
+# GalibierHub
 
 Edge-Native Genomics Database Template
 
 **Primary:** [https://seq-edge.vercel.app](https://seq-edge.vercel.app)  
-**Mirror:** [https://seqedge.pages.dev](https://seqedge.pages.dev)  
-**GitHub:** [https://github.com/Helloxiaolaodi/SeqEdge](https://github.com/Helloxiaolaodi/SeqEdge)
+**Mirror:** [https://galibierhub.pages.dev](https://galibierhub.pages.dev)  
+**GitHub:** [https://github.com/Helloxiaolaodi/GalibierHub](https://github.com/Helloxiaolaodi/GalibierHub)
 
-Language: **English** | [简体中文](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/SeqEdge/issues)
+Language: **English** | [简体中文](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/GalibierHub/issues)
 
-Detailed build guide: [SeqEdge Developer Notes](https://www.cnblogs.com/Administrator/p/21776736)
+Detailed build guide: [GalibierHub Developer Notes](https://www.cnblogs.com/Administrator/p/21776736)
 
 Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts
 
-![License](https://img.shields.io/github/license/Helloxiaolaodi/SeqEdge?style=flat-square)
-![Stars](https://img.shields.io/github/stars/Helloxiaolaodi/SeqEdge?style=flat-square)
-![Forks](https://img.shields.io/github/forks/Helloxiaolaodi/SeqEdge?style=flat-square)
-![Issues](https://img.shields.io/github/issues/Helloxiaolaodi/SeqEdge?style=flat-square)
+![License](https://img.shields.io/github/license/Helloxiaolaodi/GalibierHub?style=flat-square)
+![Stars](https://img.shields.io/github/stars/Helloxiaolaodi/GalibierHub?style=flat-square)
+![Forks](https://img.shields.io/github/forks/Helloxiaolaodi/GalibierHub?style=flat-square)
+![Issues](https://img.shields.io/github/issues/Helloxiaolaodi/GalibierHub?style=flat-square)
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.21-black?style=flat-square&logo=next.js)
 ![Supabase](https://img.shields.io/badge/Supabase-2.110.7-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=flat-square&logo=vercel)
@@ -25,7 +25,7 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 ## Contents
 
 1. [Overview](#overview)
-2. [What SeqEdge Includes](#what-seqedge-includes)
+2. [What GalibierHub Includes](#what-galibierhub-includes)
 3. [Architecture and Deployment Model](#architecture-and-deployment-model)
 4. [Quick Start](#quick-start)
 5. [Data and Download Workflows](#data-and-download-workflows)
@@ -38,27 +38,43 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 
 ## Overview
 
-SeqEdge currently ships with five main product surfaces:
+GalibierHub currently ships with five main product surfaces:
 
 - **Overview**: StatsChart dashboard metrics and interactive hover-flip feature cards (Search & Discovery, Genome Browser, File Distribution, Community & Moderation).
 - **Records**: searchable promoter table with inline filtering, pagination, and record detail panel.
 - **Genome Browser**: standalone JBrowse 2 linear genome view with fullscreen zen mode, multi-track annotation, and locus navigation accessible via the top navigation bar.
 - **Downloads**: site-wide file catalog with browser download and CLI download options.
 - **Discussion**: public or Administrator-only discussions with image upload, likes, bookmarks, follow-up replies, and administrator moderation.
+- **Notification Center**: In-app notification bell with real-time Supabase subscriptions for replies to your discussions.
+- **Badge System**: Gamification with 16+ badge types covering onboarding, engagement, tech, and milestone achievements, displayed as micro-badges next to usernames.
 
 The current default schema and UI are still genomics-oriented. Template users can generalize the project later, but the repository in its present state still uses promoter- and genome-related naming in the main data surfaces.
 
+### Name Origin: Col du Galibier
+
+GalibierHub draws its name from the **Col du Galibier**, a legendary 2,642-meter mountain pass in the French Alps. For over a century, this HC (Hors Catégorie — "beyond categorization") climb has been the Tour de France's ultimate test of human endurance, where thin air and brutal gradients push elite cyclists to their absolute limit.
+
+**Why Galibier?**
+
+1. **Thin Air → High-Throughput Computing**: At 2,642 meters, oxygen is scarce and engines risk catastrophic failure. This mirrors the computational pressure of analyzing thousands of oral and gut microbiome samples — where massive feature matrices and memory consumption strain even high-performance clusters. Galibier represents the platform's robust performance chassis for extreme-scale cohort analysis and high-throughput data distribution.
+
+2. **The Climber → The Researcher**: Scientific research is itself a lonely, grueling ascent. From raw sequencing reads to publication-quality phylogenetic trees and heatmaps, the path is marked by countless rounds of data cleaning, noise reduction, and model iteration. Galibier honors those academic climbers who endure the relentless pull-turn-pull of data analysis and ultimately break through at the summit.
+
+3. **Hub → A Base Camp for Explorers**: The "Hub" suffix signals that science need not be a solo effort. Like the monument atop Col du Galibier commemorating all who finish, GalibierHub is designed as a highly interconnected infrastructure — a distribution center for standardized code pipelines, high-quality reference datasets, and global collaborative exchange among bioinformatics developers.
+
+> *"Conquering the High Altitude of Microbiome Data."* — GalibierHub slogan
+
 ### Preview Media
 
-![SeqEdge Architecture](./docs/architecture.gif)
+![GalibierHub Architecture](./docs/architecture.gif)
 
 *Architecture walkthrough used in the README. Media credit: generated with **Gemini 3.1 Pro**.*
 
-![SeqEdge UI and feature overview](./docs/media/seqedge-ui-overview.png)
+![GalibierHub UI and feature overview](./docs/media/galibierhub-ui-overview.png)
 
 *UI and primary-feature overview image for the README. Media credit: generated with **Gemini 3.1 Pro**.*
 
-## What SeqEdge Includes
+## What GalibierHub Includes
 
 ### End-user capabilities
 
@@ -83,11 +99,17 @@ The current default schema and UI are still genomics-oriented. Template users ca
 
 #### Community & Moderation
 
-- Submit public or Administrator-only discussions from the `Discussion` tab.
-- Sign in with the allowed GitHub Administrator account to publish official replies.
+- Submit public or Administrator-only discussions from the `Discussion` tab with a floating rich-text Markdown composer (bold, italic, code blocks, quotes, links, lists, image upload).
+- Toggle between Edit and Preview modes before posting, with full Markdown rendering including syntax-highlighted code blocks.
+- Upload images via the toolbar and view them in a zoomable lightbox by clicking.
+- Sign in with the allowed GitHub Administrator account to publish official replies, hide/delete posts, and pin discussions.
 - Upload images in discussions and open posted images in a zoomable lightbox.
-- View likes and bookmarks in both the list and detail view.
-- See a footer counter that shows both live site uptime and cumulative unique visitors.
+- Like and unlike posts with toggle heart interaction, and share discussions via a modal with Twitter/X, Facebook, Email, LinkedIn, and copy-link options.
+- Filter discussions by status (All, In Progress, Resolved) and sort by Newest, Oldest, or Most Liked.
+- Earn badges through community participation: Ice Breaker (first post), Nice Reply (10 likes), Markdown Master (code blocks), and 13+ more.
+- See a footer counter that shows live site uptime, cumulative unique visitors, views, links, and participants.
+- macOS-inspired design language with glass-morphism navigation, Apple gray (#F5F5F7) backgrounds, custom scrollbar, smooth focus rings, and subtle button micro-interactions.
+ 
 
 ### Why this template is useful for fork users
 
@@ -98,7 +120,7 @@ The current default schema and UI are still genomics-oriented. Template users ca
 
 ## Architecture and Deployment Model
 
-SeqEdge separates three layers:
+GalibierHub separates three layers:
 
 - Metadata in Supabase / PostgreSQL
 - Large genome files in object storage or Hugging Face Datasets
@@ -112,14 +134,14 @@ Recommended production layout:
 
 ### Current download strategy
 
-SeqEdge uses a free-tier-friendly split workflow:
+GalibierHub uses a free-tier-friendly split workflow:
 
 - Single-file downloads open one modal that shows browser download plus `wget -c`, `curl -L -C -`, and `hf download`.
 - Large files are presented with resume-capable CLI commands, and `hf download` is the recommended option for large Hugging Face assets.
 - JBrowse streaming uses the proxy and fallback chain for indexed browser reads.
 - Bulk downloads generate `.sh` and `.bat` scripts for public files only.
 - The modal shows download count, MD5, SHA256, access mode, hidden/password badges, and region hints.
-- If a file is stored in a private Supabase bucket, SeqEdge can mint a signed URL through `/api/download-metadata/resolve`.
+- If a file is stored in a private Supabase bucket, GalibierHub can mint a signed URL through `/api/download-metadata/resolve`.
 
 This keeps multi-GB transfers off the proxy path, preserves resumable CLI flows for end users, and allows genuinely private delivery when large files are moved from public storage to Supabase private storage.
 
@@ -128,8 +150,8 @@ This keeps multi-GB transfers off the proxy path, preserves resumable CLI flows 
 ### 1. Install
 
 ```bash
-git clone https://github.com/<your-account>/SeqEdge.git
-cd SeqEdge
+git clone https://github.com/<your-account>/GalibierHub.git
+cd GalibierHub
 npm install
 ```
 
@@ -166,8 +188,8 @@ NEXT_PUBLIC_REFERENCE_GFF3=scov2.genes.gff3
 Optional but recommended:
 
 ```bash
-NEXT_PUBLIC_HF_PROXY_URL=https://seqedge-hf-proxy.your-account.workers.dev
-NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/releases/seqedge-release.tar.gz
+NEXT_PUBLIC_HF_PROXY_URL=https://galibierhub-hf-proxy.your-account.workers.dev
+NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/releases/galibierhub-release.tar.gz
 NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=12.5 GB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 NEXT_PUBLIC_REFERENCE_BUNDLE_URL=https://huggingface.co/datasets/<user>/<repo>/resolve/main/reference/reference-bundle.zip
@@ -255,7 +277,7 @@ Cloudflare Pages:
 
 ### What the Downloads view now supports
 
-- Breadcrumb navigation such as `Downloads / seqedge-data / reference_genomes / scov2`, where every parent level remains clickable.
+- Breadcrumb navigation such as `Downloads / galibierhub-data / reference_genomes / scov2`, where every parent level remains clickable.
 - A compact control bar that combines folder search, `Copy Folder CLI`, `Export Manifest CSV`, a README button, batch download, and grid or table view switching.
 - A table view with sortable `Name`, `Size`, `Updated`, and `Actions` columns for directories that would become unwieldy in card mode.
 - A denser grid view that still shows size and updated time so card browsing does not hide basic metadata.
@@ -279,22 +301,22 @@ For the example file `817-food-biochem-materials.zip`, that means the modal can 
 Official route:
 
 ```bash
-wget -c -O "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-curl -L -C - -o "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+wget -c -O "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+curl -L -C - -o "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
 ```
 
 Asia-Pacific mirror route:
 
 ```bash
-wget -c -O "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-curl -L -C - -o "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+wget -c -O "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+curl -L -C - -o "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
+HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
 ```
 
 This keeps the UI aligned with real network conditions instead of documenting only one nominal path.
 
-### Add a Hugging Face file to SeqEdge
+### Add a Hugging Face file to GalibierHub
 
 The current codebase supports three practical Hugging Face integration points:
 
@@ -306,10 +328,10 @@ The current codebase supports three practical Hugging Face integration points:
 
 Do not paste the Hugging Face page URL that contains `/blob/main/`.
 
-- Page URL example: `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/blob/main/817-food-biochem/817-food-biochem-materials.zip`
-- Direct file URL example: `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip`
+- Page URL example: `https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/blob/main/817-food-biochem/817-food-biochem-materials.zip`
+- Direct file URL example: `https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip`
 
-SeqEdge now normalizes common Hugging Face `blob` links to `resolve` links, but you should still store the direct file URL in your database and environment variables.
+GalibierHub now normalizes common Hugging Face `blob` links to `resolve` links, but you should still store the direct file URL in your database and environment variables.
 
 #### 2. Show the file on the homepage
 
@@ -318,7 +340,7 @@ Set the featured archive environment variables:
 ```bash
 NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download 817 Food Biochem Materials
 NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION=Public Hugging Face dataset package for large-file download, browser delivery, and resume-capable CLI retrieval.
-NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip
+NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip
 NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 ```
@@ -341,7 +363,7 @@ Example SQL:
 
 ```sql
 update genome_samples
-set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip'
+set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip'
 where sample_id = 'CNhs10881';
 ```
 
@@ -364,9 +386,9 @@ insert into download_metadata (
   sha256_checksum
 )
 values (
-  'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip',
+  'https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip',
   '817 Food Biochem Materials',
-  'Public Hugging Face dataset package exposed through the SeqEdge unified download modal.',
+  'Public Hugging Face dataset package exposed through the GalibierHub unified download modal.',
   'Archive (zip)',
   734003200,
   'public_url',
@@ -389,13 +411,13 @@ Important: for a public Hugging Face `resolve` URL, hidden/password remain only 
 
 #### 5. When you need real private downloads
 
-For actual gated delivery, store the file in a private Supabase bucket and set the matching `download_metadata.storage_provider` to `supabase_private`. SeqEdge then resolves the file through `/api/download-metadata/resolve` and returns a short-lived signed URL.
+For actual gated delivery, store the file in a private Supabase bucket and set the matching `download_metadata.storage_provider` to `supabase_private`. GalibierHub then resolves the file through `/api/download-metadata/resolve` and returns a short-lived signed URL.
 
 That is the only fully implemented private-download path in the current codebase.
 
 ### Uploading data to Hugging Face
 
-SeqEdge hosts large data files such as release archives, reference bundles, and sample-level files on a Hugging Face dataset repository, by default `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`.
+GalibierHub hosts large data files such as release archives, reference bundles, and sample-level files on a Hugging Face dataset repository, by default `https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data`.
 
 #### 1. Install the CLI
 
@@ -427,7 +449,7 @@ hf upload <namespace/dataset-name> <local-path> <path-in-repo> --repo-type datas
 Example:
 
 ```bash
-hf upload Helloxiaolaodi/seqedge-data "E:\data\817-food-biochem-materials.zip" "817-food-biochem/817-food-biochem-materials.zip" --repo-type dataset
+hf upload Helloxiaolaodi/galibierhub-data "E:\data\817-food-biochem-materials.zip" "817-food-biochem/817-food-biochem-materials.zip" --repo-type dataset
 ```
 
 #### 4. Resumable transfer
@@ -469,7 +491,7 @@ For multi-hundred-MB to GB files prefer the HF CLI:
 
 ```bash
 pip install -q "huggingface_hub"
-hf download Helloxiaolaodi/seqedge-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
 ```
 
 Classic commands also resume:
@@ -479,11 +501,11 @@ wget -c -O <name> "<resolve url>"
 curl -L -C - -o <name> "<resolve url>"
 ```
 
-For users in China and some Asia-Pacific networks, the mirror route may be materially more reliable than the official domain. SeqEdge therefore exposes both command sets in the modal instead of forcing users to discover the mirror path elsewhere.
+For users in China and some Asia-Pacific networks, the mirror route may be materially more reliable than the official domain. GalibierHub therefore exposes both command sets in the modal instead of forcing users to discover the mirror path elsewhere.
 
 ### Genome browser notes
 
-For best JBrowse performance, configure a Cloudflare Worker proxy. SeqEdge probes in order:
+For best JBrowse performance, configure a Cloudflare Worker proxy. GalibierHub probes in order:
 
 1. External `NEXT_PUBLIC_HF_PROXY_URL`
 2. Built-in `/api/hf-proxy/<file>` route
@@ -496,13 +518,13 @@ If the browser still shows `Reference data unreachable`, usually one of these is
 - Hugging Face dataset subdirectory
 - Worker deployment or `HF_REPO_BASE`
 
-SeqEdge also opens the first reachable annotation track automatically so the viewer does not land in `No tracks active` when real tracks are available.
+GalibierHub also opens the first reachable annotation track automatically so the viewer does not land in `No tracks active` when real tracks are available.
 
 ## Discussion and Administrator Operations
 
 ### Discussion module
 
-SeqEdge includes a lightweight interaction area for research communication:
+GalibierHub includes a lightweight interaction area for research communication:
 
 - Click the `Discussion` tab to browse discussions and open the floating `New Discussion` composer.
 - The composer now combines a Markdown editor, a formatting toolbar, and `Write` / `Preview` tabs so users can stay in plain text while still getting code blocks, quotes, lists, tables, and image-friendly formatting.
@@ -541,8 +563,8 @@ In Supabase Dashboard, go to **Authentication** -> **Sign In / Providers**. Find
 3. Under **Redirect URLs**, add all deployed domains:
    - `https://seq-edge.vercel.app`
    - `https://seq-edge.vercel.app/**`
-   - `https://seqedge.pages.dev`
-   - `https://seqedge.pages.dev/**`
+   - `https://galibierhub.pages.dev`
+   - `https://galibierhub.pages.dev/**`
 4. Save.
 
 If the Site URL is left as `http://localhost:3000`, OAuth sign-in will redirect users there in production.
@@ -550,7 +572,7 @@ If the Site URL is left as `http://localhost:3000`, OAuth sign-in will redirect 
 #### 3. Get GitHub OAuth credentials
 
 1. Go to GitHub -> **Settings** -> **Developer settings** -> **OAuth Apps** -> **New OAuth App**.
-2. Set an application name such as `SeqEdge Auth`.
+2. Set an application name such as `GalibierHub Auth`.
 3. Set **Homepage URL** to your production URL or local dev URL.
 4. Set **Authorization callback URL** to `https://<your-project>.supabase.co/auth/v1/callback`.
 5. Register the application and generate a client secret.
@@ -562,7 +584,7 @@ Set both `GITHUB_ADMIN_USERNAME` and `NEXT_PUBLIC_GITHUB_ADMIN_USERNAME` in `.en
 
 ### Email notification setup (Resend)
 
-SeqEdge uses [Resend](https://resend.com) to deliver feedback notification emails to the site Administrator.
+GalibierHub uses [Resend](https://resend.com) to deliver feedback notification emails to the site Administrator.
 
 When configured, the current implementation sends:
 
@@ -696,7 +718,7 @@ ate_limit_rpm, is_active) with RLS policies that restrict all access to the serv
 
 ## Tech Stack and References
 
-SeqEdge builds on an open-source stack for UI rendering, data access, browser-based reference viewing, and deployment.
+GalibierHub builds on an open-source stack for UI rendering, data access, browser-based reference viewing, and deployment.
 
 | Tool | Version | Function | Reference |
 | --- | --- | --- | --- |
@@ -719,11 +741,11 @@ Additional community link:
 
 ### Repository builders
 
-This SeqEdge repository has been jointly built and iterated by the GitHub accounts **Helloxiaolaodi** and **yangsanduo**. Both accounts belong to the same project owner and are used as parallel maintainer identities for this repository and its surrounding deployment workflow.
+This GalibierHub repository has been jointly built and iterated by the GitHub accounts **Helloxiaolaodi** and **yangsanduo**. Both accounts belong to the same project owner and are used as parallel maintainer identities for this repository and its surrounding deployment workflow.
 
 ### AI tools used during repository construction
 
-SeqEdge has also been developed with support from the following AI tools during planning, implementation, documentation, and iteration work:
+GalibierHub has also been developed with support from the following AI tools during planning, implementation, documentation, and iteration work:
 
 - **GLM 5.1**
 - **GPT 5.4**
@@ -732,7 +754,7 @@ SeqEdge has also been developed with support from the following AI tools during 
 ### README media attribution
 
 - `docs/architecture.gif`: generated with **Gemini 3.1 Pro**.
-- `docs/media/seqedge-ui-overview.png`: generated with **Gemini 3.1 Pro**.
+- `docs/media/galibierhub-ui-overview.png`: generated with **Gemini 3.1 Pro**.
 
 
 ## License

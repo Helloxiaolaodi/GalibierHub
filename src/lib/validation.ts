@@ -1,5 +1,5 @@
-// ============================================================
-// SeqEdge API Input Validation Schemas (Zod)
+﻿// ============================================================
+// GalibierHub API Input Validation Schemas (Zod)
 // ============================================================
 // Every /api/* Route Handler validates input through these
 // schemas BEFORE touching the database. Malformed requests

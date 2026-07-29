@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // Site Configuration - Edit this file to customize your database
 // ============================================================
 // This is the single source of truth for all site-wide settings.
@@ -26,7 +26,7 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
     process.env.NEXT_PUBLIC_STORAGE_BASE_URL ||
     process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
     '';
-  const defaultReleaseArchiveUrl = storageBaseUrl.includes('huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main')
+  const defaultReleaseArchiveUrl = storageBaseUrl.includes('huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main')
     ? '817-food-biochem/817-food-biochem-materials.zip'
     : '';
   const items: FeaturedDownloadItem[] = [
@@ -111,18 +111,18 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
 }
 
 export const SiteConfig = {
-  title: 'SeqEdge',
+  title: 'GalibierHub',
   version: 'v1.0.0',
   releaseDate: '2026-07-22',
   dataUpdateDate: '2026-07-28',
   subtitle: '',
   creatorCreditPrefix: 'An open-source project maintained by',
   creatorCreditLabel: '@Helloxiaolaodi',
-  creatorCreditUrl: 'https://github.com/Helloxiaolaodi/SeqEdge',
+  creatorCreditUrl: 'https://github.com/Helloxiaolaodi/GalibierHub',
   adminGithubLoginFallback: 'helloxiaolaodi',
   description:
     'Interactive database for predicted promoters, genome annotations, and genomic data, powered by serverless edge infrastructure.',
-  keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation', 'seqedge'],
+  keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation', 'galibierhub'],
   contactEmail: 'lab@university.edu',
   feedback: {
     sectionTitle: 'Discussions',

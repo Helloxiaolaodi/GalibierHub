@@ -1,4 +1,4 @@
-﻿# SeqEdge Dependabot configuration
+﻿# GalibierHub Dependabot configuration
 # Automatically monitors npm dependencies for security vulnerabilities.
 # When a CVE is published against a dependency, GitHub opens a PR with the fix.
 #

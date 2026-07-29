@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import DownloadActions from '@/components/download-actions';
@@ -71,7 +71,7 @@ function deriveFileName(url: string): string {
 }
 
 function deriveRootLabel(url: string | undefined): string {
-  if (!url) return 'seqedge-data';
+  if (!url) return 'galibierhub-data';
   try {
     const parsed = new URL(url);
     const parts = parsed.pathname.split('/').filter(Boolean);
@@ -80,10 +80,10 @@ function deriveRootLabel(url: string | undefined): string {
       return decodeURIComponent(parts[datasetsIndex + 2]);
     }
     const firstSegment = parts[0];
-    return firstSegment ? decodeURIComponent(firstSegment) : 'seqedge-data';
+    return firstSegment ? decodeURIComponent(firstSegment) : 'galibierhub-data';
   } catch {
     const parts = url.split('?')[0].split('/').filter(Boolean);
-    return parts[0] || 'seqedge-data';
+    return parts[0] || 'galibierhub-data';
   }
 }
 
@@ -93,7 +93,7 @@ function deriveRootLabelFromItems(items: DownloadCatalogItem[]): string {
     const label = deriveRootLabel(item.url);
     if (label) return label;
   }
-  return 'seqedge-data';
+  return 'galibierhub-data';
 }
 
 function deriveFileType(fileName: string): string {
@@ -186,7 +186,7 @@ function downloadText(filename: string, text: string, mime = 'text/plain;charset
 function buildFolderCommands(folderItems: FileRow[], rootLabel: string, path: string): { wget: string; curl: string; hf: string } {
   const scopeLabelValue = path ? `${rootLabel}/${path}` : rootLabel;
   const publicItems = folderItems.filter((item) => item.url);
-  const header = `# SeqEdge directory download\n# Scope: ${scopeLabelValue}\n# Files: ${publicItems.length}\n`;
+  const header = `# GalibierHub directory download\n# Scope: ${scopeLabelValue}\n# Files: ${publicItems.length}\n`;
   const wget = `${header}${publicItems.map((item) => `wget -c -O "${item.fileName}" "${item.url}"`).join('\n')}`;
   const curl = `${header}${publicItems.map((item) => `curl -L -C - -o "${item.fileName}" "${item.url}"`).join('\n')}`;
   const hf = `${header}${publicItems
@@ -539,7 +539,7 @@ export default function DownloadCatalogPanel({
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700 text-sm font-bold">CC</span>
               <div>
                 <p className="text-sm font-semibold text-blue-900">Open Access Data</p>
-                <p className="text-xs text-blue-700">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-blue-900">CC BY 4.0</a>. Please cite SeqEdge when using this data in publications.</p>
+                <p className="text-xs text-blue-700">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-blue-900">CC BY 4.0</a>. Please cite GalibierHub when using this data in publications.</p>
               </div>
             </div>
             <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 transition-colors">Learn more</a>

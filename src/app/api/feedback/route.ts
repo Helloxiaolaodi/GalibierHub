@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase, getSupabase, hasSupabaseServiceRole, isSupabaseConfigured } from "@/utils/supabase";
 import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
 
@@ -39,7 +39,7 @@ function formatFeedbackStorageError(message: string) {
     || message.includes('relation "site_feedback" does not exist')
     || message.includes('relation "public.site_feedback" does not exist')
   ) {
-    return "SeqEdge feedback is not initialized in the current Supabase project. Run the latest schema.sql so that site_feedback exists, then confirm Vercel is using the same NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY values.";
+    return "GalibierHub feedback is not initialized in the current Supabase project. Run the latest schema.sql so that site_feedback exists, then confirm Vercel is using the same NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY values.";
   }
 
   return message;
@@ -84,7 +84,7 @@ async function sendFeedbackEmail(payload: {
     body: JSON.stringify({
       to,
       from,
-      subject: `[SeqEdge] ${payload.title}`,
+      subject: `[GalibierHub] ${payload.title}`,
       text: [
         `Title: ${payload.title}`,
         `Name: ${payload.displayName}`,
@@ -135,11 +135,11 @@ async function sendReplyEmail(payload: {
     body: JSON.stringify({
       to: payload.to,
       from,
-      subject: `[SeqEdge] Reply: ${payload.title}`,
+      subject: `[GalibierHub] Reply: ${payload.title}`,
       text: [
         `Hello ${payload.displayName},`,
         "",
-        "The SeqEdge site Administrator has replied to your message.",
+        "The GalibierHub site Administrator has replied to your message.",
         "",
         `Title: ${payload.title}`,
         `Category: ${payload.category}`,
@@ -189,7 +189,7 @@ async function sendCommentEmail(payload: {
     body: JSON.stringify({
       to,
       from,
-      subject: `[SeqEdge] New discussion reply: ${payload.threadTitle}`,
+      subject: `[GalibierHub] New discussion reply: ${payload.threadTitle}`,
       text: [
         `Thread id: ${payload.feedbackId}`,
         `Thread title: ${payload.threadTitle}`,
@@ -219,8 +219,8 @@ async function trySendEmail(label: string, send: () => Promise<void>) {
 
 const COMMENTS_SELECT = "id, feedback_id, author_name, author_email, message, image_url, created_at, hidden";
 const COMMENTS_SELECT_NO_HIDDEN = "id, feedback_id, author_name, author_email, message, image_url, created_at";
-const FEEDBACK_SELECT = "id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden";
-const FEEDBACK_SELECT_NO_HIDDEN = "id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at";
+const FEEDBACK_SELECT = "id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, pinned, hidden, user_id";
+const FEEDBACK_SELECT_NO_HIDDEN = "id, title, display_name, visitor_email, affiliation, category, rating, visibility, message, creator_reply, replied_at, created_at, user_id";
 
 function getAdminWritableSupabase() {
   if (!hasSupabaseServiceRole) {
@@ -358,8 +358,8 @@ export async function POST(request: Request) {
 
     const { data: comment, error: commentErr } = await sbComments
       .from("feedback_comments")
-      .insert({ feedback_id: feedbackId, author_name: commentAuthor, message: commentMessage })
-      .select("id, feedback_id, author_name, author_email, message, image_url, created_at")
+      .insert({ feedback_id: feedbackId, author_name: commentAuthor, message: commentMessage, user_id: (typeof body === "object" && body !== null && "userId" in body ? (body as Record<string,unknown>).userId : null) })
+      .select("id, feedback_id, author_name, author_email, message, image_url, created_at, user_id")
       .single();
     if (commentErr) {
       return NextResponse.json({ error: formatFeedbackStorageError(commentErr.message) }, { status: 500 });
@@ -673,7 +673,7 @@ export async function PATCH(request: NextRequest) {
   if (creatorReply !== undefined && data.visitor_email) {
     await trySendEmail("sendReplyEmail", () => sendReplyEmail({
       to: data.visitor_email,
-      title: data.title || "SeqEdge message",
+      title: data.title || "GalibierHub message",
       displayName: data.display_name,
       creatorReply,
       category: data.category,

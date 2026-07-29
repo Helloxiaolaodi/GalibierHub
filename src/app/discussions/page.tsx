@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { SiteConfig } from "@/site-config";
+import BadgeDisplay from "@/components/badge-display";
 import type { FeedbackCommentEntry, SiteFeedbackEntry } from "@/types/genome";
 
 function getCategoryColor(c: string): string {
@@ -49,7 +50,7 @@ export default function DiscussionsPage() {
 
   // Detect GitHub login from session/localStorage  
   useEffect(() => {
-    const stored = localStorage.getItem("seqedge-github-user");
+    const stored = localStorage.getItem("galibierhub-github-user");
     if (stored) setGithubUser(stored);
     // Also try to read from Supabase session
     import("@/utils/supabase-browser").then(async ({getBrowserSupabase}) => {
@@ -61,7 +62,7 @@ export default function DiscussionsPage() {
           const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login;
           if (login) {
             setGithubUser(String(login));
-            localStorage.setItem("seqedge-github-user", String(login));
+            localStorage.setItem("galibierhub-github-user", String(login));
           }
         }
       }
@@ -138,7 +139,7 @@ export default function DiscussionsPage() {
             <h1 className="text-base font-semibold text-gray-900">Discussions</h1>
           </div>
           <div className="flex items-center gap-3">
-            {githubUser&&<span className="text-xs text-gray-500 bg-gray-100 rounded-full px-3 py-1">@{githubUser}</span>}
+            {githubUser&&<span className="text-sm font-semibold text-blue-700 bg-blue-50 rounded-full px-4 py-1.5">Welcome, {githubUser}!</span>}
             <Link href="/" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">Back to Home</Link>
           </div>
         </div>
@@ -198,17 +199,20 @@ export default function DiscussionsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center flex-wrap gap-2 mb-1.5">
                         <h3 className="text-base font-semibold text-gray-900 hover:text-blue-700 truncate">{entry.title||"Untitled Discussion"}</h3>
-                        <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium "+getCategoryColor(entry.category)}>{getCategoryLabel(entry.category)}</span>
+                        {entry.category !== "general" && <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium "+getCategoryColor(entry.category)}>{getCategoryLabel(entry.category)}</span>}
                         {isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"><svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>Resolved</span>}
                         {!isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">In Progress</span>}
                         {entry.rating>0&&<span className="inline-flex items-center gap-0.5 text-xs text-amber-600">{Array.from({length:entry.rating}).map((_,i)=><svg key={i} className="h-3 w-3 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>)}</span>}
                       </div>
                       <p className="text-sm text-gray-600 line-clamp-2 mb-2">{preview}</p>
                       <div className="flex items-center gap-3 text-xs text-gray-500">
-                        <span>{entry.display_name}</span>
-                        <span>·</span>
+                            <div className="flex items-center gap-2">
+                              <span>{entry.display_name}</span>
+                              {entry.user_id && <BadgeDisplay userId={entry.user_id} />}
+                            </div>
+                            <span>Ã‚Â·</span>
                         <span>{formatTimeAgo(entry.created_at)}</span>
-                        {likeCounts[entry.id]>0&&<><span>·</span><span className="text-red-500">♥ {(likeCounts[entry.id])}</span></>}
+                        {likeCounts[entry.id]>0&&<><span>Ã‚Â·</span><span className="text-red-500">Ã¢â„¢Â¥ {(likeCounts[entry.id])}</span></>}
                       </div>
                     </div>
                     <div className="flex-shrink-0 flex flex-col items-end gap-1 text-right">
@@ -227,4 +231,3 @@ export default function DiscussionsPage() {
       </main>
     </div>
   );
-}

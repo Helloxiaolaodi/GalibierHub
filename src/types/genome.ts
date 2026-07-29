@@ -94,6 +94,7 @@ export interface SiteFeedbackEntry {
   created_at: string;
   pinned?: boolean;
   hidden?: boolean;
+  user_id?: string | null;
 }
 
 export interface FeedbackCommentEntry {
@@ -105,6 +106,7 @@ export interface FeedbackCommentEntry {
   image_url: string | null;
   created_at: string;
   hidden?: boolean;
+  user_id?: string | null;
 }
 
 export interface FeedbackSummary {

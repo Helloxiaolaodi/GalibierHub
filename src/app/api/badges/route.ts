@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
 export async function GET(request: NextRequest) {
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       await sb.from('site_notifications').insert({
         recipient_id: body.user_id,
         discussion_id: body.discussion_id || 'badges',
-        actor_name: 'SeqEdge',
+        actor_name: 'GalibierHub',
         preview_text: badgeDef.icon + ' You earned the "' + badgeDef.name + '" badge!',
         is_read: false,
       });
