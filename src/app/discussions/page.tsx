@@ -231,3 +231,4 @@ export default function DiscussionsPage() {
       </main>
     </div>
   );
+}
