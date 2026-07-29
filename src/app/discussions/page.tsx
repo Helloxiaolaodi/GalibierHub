@@ -7,6 +7,7 @@ import BadgeDisplay from "@/components/badge-display";
 import UserMenuPanel from "@/components/user-menu-panel";
 import type { FeedbackCommentEntry, SiteFeedbackEntry } from "@/types/genome";
 import type { Session } from "@supabase/supabase-js";
+import { getBrowserSupabase } from "@/utils/supabase-browser";
 
 function getCategoryColor(c: string): string {
   const m: Record<string,string>={general:"bg-blue-100 text-blue-800",issue:"bg-red-100 text-red-800",idea:"bg-amber-100 text-amber-800",data:"bg-emerald-100 text-emerald-800",collaboration:"bg-purple-100 text-purple-800"};
@@ -66,11 +67,9 @@ export default function DiscussionsPage() {
     setMounted(true);
     const stored = localStorage.getItem("galibierhub-github-user");
     if (stored) setGithubUser(stored);
-    // Also try to read from Supabase session
-    import("@/utils/supabase-browser").then(async ({getBrowserSupabase}) => {
-      const sb = getBrowserSupabase();
-      if (sb) {
-        const {data} = await sb.auth.getSession();
+    const sb = getBrowserSupabase();
+    if (sb) {
+      sb.auth.getSession().then(({data}) => {
         if (data.session) { setSession(data.session); }
         const user = data.session?.user;
         if (user) {
@@ -81,8 +80,23 @@ export default function DiscussionsPage() {
             if (login === "Helloxiaolaodi" || login === "xulab-admin") { setIsAdmin(true); }
           }
         }
-      }
-    }).catch(()=>{});
+      }).catch(()=>{});
+    }
+  }, []);
+
+  const handleSignIn = useCallback(async () => {
+    const sb = getBrowserSupabase();
+    if (!sb) return;
+    await sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: window.location.origin + "/discussions" } });
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    const sb = getBrowserSupabase();
+    if (sb) await sb.auth.signOut();
+    localStorage.removeItem("galibierhub-github-user");
+    setGithubUser(null);
+    setSession(null);
+    setIsAdmin(false);
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -184,7 +198,15 @@ export default function DiscussionsPage() {
             <h1 className="text-base font-semibold text-gray-900">Discussions</h1>
           </div>
           <div className="flex items-center gap-3">
- {mounted && githubUser && <span className="text-sm font-semibold text-blue-700 bg-blue-50 rounded-full px-4 py-1.5">Welcome, {isAdmin ? "GalibierHub Team" : githubUser}!</span>}
+            {!mounted ? (
+              <div className="w-[120px] h-8" />
+            ) : session ? (
+              <UserMenuPanel session={session} githubUser={githubUser} isAdmin={isAdmin} onSignOut={handleSignOut} />
+            ) : (
+              <button onClick={handleSignIn} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100">
+                Log in with GitHub
+              </button>
+            )}
             <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all">New Discussion</button>
             <Link href="/" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">Back to Home</Link>
           </div>
