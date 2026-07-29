@@ -464,3 +464,58 @@ CREATE POLICY "Service role can insert notifications"
 -- Index for fast lookups
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON site_notifications(recipient_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON site_notifications(recipient_id, is_read) WHERE is_read = false;
+
+
+-- ============================================================
+-- Badges system for gamification
+-- ============================================================
+
+-- Badge definitions table
+CREATE TABLE IF NOT EXISTS badge_definitions (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'engagement',
+  icon TEXT DEFAULT '',
+  tier TEXT DEFAULT 'bronze',  -- bronze, silver, gold, platinum
+  criteria TEXT NOT NULL       -- human-readable criteria
+);
+
+-- User badges (awarded badges)
+CREATE TABLE IF NOT EXISTS user_badges (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  badge_id TEXT REFERENCES badge_definitions(id) ON DELETE CASCADE,
+  awarded_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  discussion_id TEXT,          -- the discussion that triggered this badge
+  UNIQUE(user_id, badge_id)    -- each badge awarded only once
+);
+
+-- RLS for user_badges
+ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view badges" ON user_badges FOR SELECT USING (true);
+CREATE POLICY "Service role can insert badges" ON user_badges FOR INSERT WITH CHECK (true);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_badges_badge ON user_badges(badge_id);
+
+-- Seed badge definitions
+INSERT INTO badge_definitions (id, name, description, category, icon, tier, criteria) VALUES
+('ice_breaker', 'Ice Breaker', 'Posted your first discussion or reply', 'onboarding', '❄️', 'bronze', 'First comment or discussion'),
+('first_like', 'First Like', 'Liked someone else''s post for the first time', 'onboarding', '👍', 'bronze', 'First like given'),
+('welcome', 'Welcome', 'Your post received its first like', 'onboarding', '👋', 'bronze', 'Received first like on a post'),
+('nice_reply', 'Nice Reply', 'A single reply earned 10 likes', 'engagement', '💬', 'silver', 'Single reply reaches 10 likes'),
+('nice_topic', 'Nice Topic', 'A single discussion earned 10 likes', 'engagement', '📝', 'silver', 'Single topic reaches 10 likes'),
+('enthusiast', 'Enthusiast', 'Visited Discussions for 10 consecutive days', 'engagement', '🔥', 'silver', '10-day activity streak'),
+('appreciated', 'Appreciated', 'Received likes on 20 different posts', 'engagement', '⭐', 'gold', 'Liked on 20 different posts'),
+('thank_you', 'Thank You', 'Gave 10 likes and received 20 likes', 'engagement', '🙏', 'gold', '10 given + 20 received likes'),
+('markdown_master', 'Markdown Master', 'Used code blocks in a discussion', 'tech', '💻', 'bronze', 'Used code block syntax'),
+('cli_maestro', 'CLI Maestro', 'Shared download CLI commands that earned 5 likes', 'tech', '🖥️', 'silver', 'CLI script with 5 likes'),
+('data_visualizer', 'Data Visualizer', 'Uploaded a data visualization image', 'tech', '📊', 'silver', 'Uploaded visualization'),
+('open_science', 'Open Science Advocate', 'Shared a GitHub/ repository link', 'tech', '🔬', 'bronze', 'Shared external repo link'),
+('great_topic', 'Great Topic', 'Discussion reached 1000+ views and 20+ replies', 'milestone', '🏆', 'gold', '1000 views + 20 replies'),
+('top_contributor', 'Top Contributor', 'Among top 5% most-liked users this year', 'milestone', '👑', 'platinum', 'Top 5% annual likes'),
+('community_curator', 'Community Curator', 'Reply marked as official answer by admin', 'exclusive', '✅', 'gold', 'Official answer marked'),
+('bug_hunter', 'Bug Hunter', 'Reported a valid bug that was resolved', 'exclusive', '🐛', 'gold', 'Bug report resolved')
+ON CONFLICT (id) DO NOTHING;
