@@ -46,9 +46,11 @@ GalibierHub currently ships with five main product surfaces:
 - **Downloads**: academic-grade file catalog with browser/CLI download, file preview (head 20 lines), SHA-256 checksum verification, citation export (BibTeX/RIS/DataCite), batch script generator (aria2c/wget/Python/R), and linked Discussions tutorials.
 - **Discussion**: public or Administrator-only discussions with image upload, likes, bookmarks, follow-up replies, and administrator moderation.
 - **World Clock**: global timezone command palette (Ctrl+K) with major research hub defaults and full city search, plus sidebar widget on discussion detail pages.
-- **Auth System**: dual GitHub OAuth and email/password authentication with Turnstile bot protection, split Log In / Sign Up flow, and auto-saved drafts.
-- **Notification Center**: In-app notification bell with real-time Supabase subscriptions for replies to your discussions.
+- **Auth System**: dual GitHub OAuth and email/password authentication with Turnstile bot protection, split Log In / Sign Up flow, auto-saved drafts, forgot-password reset, and post-signup onboarding.
+- **User Profiles**: public profile pages at /user/[username] with research tags, activity dashboards (Profile & Threads & Replies tabs), follow/unfollow system persisted to Supabase, and online-status indicators (Online / Away / Busy).
+- **Notification Center**: In-app notification bell with real-time Supabase subscriptions for @mentions, replies, and likes.
 - **Badge System**: Gamification with 16+ badge types covering onboarding, engagement, tech, and milestone achievements, displayed as micro-badges next to usernames.
+- **Settings & Preferences**: Protected /settings/preferences page with avatar photo upload, profile editing, email notification opt-ins, and theme switching (Light / Dark / System).
 
 The current default schema and UI are still genomics-oriented. Template users can generalize the project later, but the repository in its present state still uses promoter- and genome-related naming in the main data surfaces.
 
@@ -86,6 +88,17 @@ The current default schema and UI are still genomics-oriented. Template users ca
 - Generate `.sh` and `.bat` batch download scripts for public sample files.
 
 #### Community & Moderation
+
+*   **Authentication** -- GitHub OAuth, Google OAuth, or email/password with Cloudflare Turnstile bot protection.
+*   **Onboarding** -- Guided profile setup after first login with research field, preferred tools, and affiliation.
+*   **User profiles** -- Public `/user/[username]` pages with badges, activity feeds, and follow/unfollow.
+*   **Badge system** -- Gamified reputation with bronze/silver/gold/platinum tiers earned through community contributions.
+*   **World clock** -- Timezone companion panel and command-palette global time search for international collaboration.
+*   **Real-time notifications** -- Instant alerts for replies, @mentions, and badge unlocks via Supabase Realtime WebSockets.
+*   **Password reset** -- Full self-service flow at `/update-password` with styled email templates via Resend.
+*   **Admin dashboard** -- Total registered users, discussion counts, download stats, visitors, and recent sign-ups.
+*   **View tracking** -- Per-discussion view counts synchronized to the server.
+*   **Profile sync** -- Profile data persisted to Supabase and restored across devices and sessions.
 
 - Submit public or Administrator-only discussions from the `Discussion` tab with a floating rich-text Markdown composer (bold, italic, code blocks, quotes, links, lists, image upload).
 - Toggle between Edit and Preview modes before posting, with full Markdown rendering including syntax-highlighted code blocks.

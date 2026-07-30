@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ClipboardEvent, type PointerEvent } from "react";
 import Link from "next/link";
@@ -64,7 +64,7 @@ function TimelineSidebar({ total, currentIndex, firstDate, lastDate, onNavigate 
             style={{height:((currentIndex+1)/Math.max(total,1))*100+"%"}} />
         </div>
         {firstDate&&<div className="text-[10px] text-gray-400 text-center leading-tight">{new Date(firstDate).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>}
-        {lastDate&&lastDate!==firstDate&&<><div className="text-[10px] text-gray-300">|</div><div className="text-[10px] text-slate-500 text-center leading-tight font-medium">{formatTimeAgo(lastDate)}</div></>}
+        {lastDate&&lastDate!==firstDate&&<><div className="text-[10px] text-gray-300">|</div><div className="text-[10px] text-blue-500 text-center leading-tight font-medium">{formatTimeAgo(lastDate)}</div></>}
         <button onClick={()=>onNavigate(Math.max(0,currentIndex-1))} disabled={currentIndex<=0} className="mt-1 rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg></button>
         <button onClick={()=>onNavigate(Math.min(total-1,currentIndex+1))} disabled={currentIndex>=total-1} className="rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg></button>
       </div>
@@ -101,7 +101,7 @@ function ShareModal({ open, onClose, entryId }: { open: boolean; onClose: () => 
 }
 
 // ---- FloatingReply ----
-type MarkdownAction = "bold"|"italic"|"code"|"quote"|"link"|"image"|"list"|"ordered-list";
+type MarkdownAction = "bold"|"italic"|"code"|"quote"|"link"|"image"|"list";
 
 function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
   open: boolean; onClose: () => void; replyTarget: string|null; onSubmit: (text: string) => Promise<void>;
@@ -147,7 +147,6 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
       case "link": result = before + "[" + (selected || "link text") + "](url)" + after; break;
       case "image": { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = async (e) => { const file = (e.target as HTMLInputElement).files?.[0]; if (!file) return; setError(null); const formData = new FormData(); formData.append("file", file); try { const resp = await fetch("/api/upload-image", { method: "POST", body: formData }); const data = await resp.json() as { url?: string; error?: string }; if (!resp.ok) throw new Error(data.error || "Upload failed"); if (data.url) { const r = before + "![" + (selected || file.name) + "](" + data.url + ")" + after; setText(r); } } catch (err) { setError(err instanceof Error ? err.message : "Upload failed"); } }; input.click(); break; }
       case "list": result = before + "\n- " + (selected || "list item") + after; break;
-      case "ordered-list": result = before + "\n1. " + (selected || "First item") + after; break;
     }
     setText(result);
   };
@@ -219,7 +218,7 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
         </div>
         {/* Toolbar */}
         <div className="flex items-center gap-1 border-b border-gray-100 px-3 py-1.5 bg-white">
-          {(["bold","italic","code","quote","link","image","list","ordered-list"] as MarkdownAction[]).map(a => (
+          {(["bold","italic","code","quote","link","image","list"] as MarkdownAction[]).map(a => (
             <button key={a} type="button" onClick={() => insertMarkdown(a)}
               className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors" title={a}>
               {a==="bold"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/></svg>}
@@ -229,7 +228,6 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
               {a==="link"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>}
               {a==="image"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth={2}/><circle cx="8.5" cy="8.5" r="1.5" strokeWidth={2}/><polyline points="21 15 16 10 5 21" strokeWidth={2}/></svg>}
               {a==="list"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6" strokeWidth={2}/><line x1="8" y1="12" x2="21" y2="12" strokeWidth={2}/><line x1="8" y1="18" x2="21" y2="18" strokeWidth={2}/><line x1="3" y1="6" x2="3.01" y2="6" strokeWidth={2}/><line x1="3" y1="12" x2="3.01" y2="12" strokeWidth={2}/><line x1="3" y1="18" x2="3.01" y2="18" strokeWidth={2}/></svg>}
-              {a==="ordered-list"&&<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="10" y1="6" x2="21" y2="6" strokeWidth={2}/><line x1="10" y1="12" x2="21" y2="12" strokeWidth={2}/><line x1="10" y1="18" x2="21" y2="18" strokeWidth={2}/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h2v1H4zM4 12h2v1H4zM4 18h2v1H4z"/></svg>}
             </button>
           ))}
         </div>
@@ -249,7 +247,7 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
           <div>{error&&<span className="text-xs text-red-600">{error}</span>}{success&&<span className="text-xs text-emerald-600">{success}</span>}</div>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSubmit} disabled={submitting||!text.trim()} className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors">{submitting?"Posting...":"Reply"}</button>
+            <button onClick={handleSubmit} disabled={submitting||!text.trim()} className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors">{submitting?"Posting...":"Reply"}</button>
           </div>
         </div>
       </div>
@@ -313,7 +311,7 @@ function DiscussionFooter({ comments, entry, totalViews, onSignUp, onMaybeLater,
         <div className="flex items-center gap-2">
           <span className="text-gray-500">Participants:</span>
           <div className="flex -space-x-2">
-            {participants.slice(0,6).map(p=>(<div key={p.name} className="relative" onMouseEnter={()=>setHovered(p.name)} onMouseLeave={()=>setHovered(null)}><div className="h-7 w-7 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-[10px] font-semibold text-white ring-2 ring-white cursor-default">{getInitials(p.name)}</div>{hovered===p.name&&(<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50"><div className="rounded-lg border border-gray-200 bg-white shadow-lg px-4 py-3 text-center min-w-[140px]"><div className="mx-auto mb-2 h-12 w-12 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-lg font-semibold text-white">{getInitials(p.name)}</div><div className="text-sm font-semibold text-gray-900">{p.name}</div><div className="text-xs text-gray-500 mt-0.5">{p.email?"Public profile":"Visitor"}</div></div><div className="mx-auto h-2 w-2 rotate-45 border-r border-b border-gray-200 bg-white -mt-1"/></div>)}</div>))}
+            {participants.slice(0,6).map(p=>(<div key={p.name} className="relative" onMouseEnter={()=>setHovered(p.name)} onMouseLeave={()=>setHovered(null)}><div className="h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-[10px] font-semibold text-white ring-2 ring-white cursor-default">{getInitials(p.name)}</div>{hovered===p.name&&(<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50"><div className="rounded-lg border border-gray-200 bg-white shadow-lg px-4 py-3 text-center min-w-[140px]"><div className="mx-auto mb-2 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg font-semibold text-white">{getInitials(p.name)}</div><div className="text-sm font-semibold text-gray-900">{p.name}</div><div className="text-xs text-gray-500 mt-0.5">{p.email?"Public profile":"Visitor"}</div></div><div className="mx-auto h-2 w-2 rotate-45 border-r border-b border-gray-200 bg-white -mt-1"/></div>)}</div>))}
             {participants.length>6&&<div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-medium text-gray-600 ring-2 ring-white">+{participants.length-6}</div>}
           </div>
         </div>
@@ -321,7 +319,7 @@ function DiscussionFooter({ comments, entry, totalViews, onSignUp, onMaybeLater,
 
       {/* Sign-up prompt */}
       {!hideSignupPrompt && !isLoggedIn && (
-      <div className="rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 p-6">
+      <div className="rounded-xl border border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
           <div><h4 className="text-base font-semibold text-gray-900">Join the conversation</h4><p className="mt-1 text-sm text-gray-600">Sign in to receive notifications, save bookmarks, and like discussions.</p></div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -348,7 +346,7 @@ export default function DiscussionDetailPage() {
   const [likeCounts, setLikeCounts] = useState<Record<string,number>>({});
   const [likeLoading, setLikeLoading] = useState<Record<string,boolean>>({});
   const [currentTimelineIndex, setCurrentTimelineIndex] = useState(0);
-  const [totalViews, setTotalViews] = useState(() => { try { const v = localStorage.getItem("galibierhub-view-" + window.location.pathname.split("/").pop()); return v ? parseInt(v,10) : 0; } catch { return 0; } });
+  const [totalViews, setTotalViews] = useState(0);
   const [floatingReplyOpen, setFloatingReplyOpen] = useState(false);
   const [replyTarget, setReplyTarget] = useState<string|null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -369,13 +367,6 @@ export default function DiscussionDetailPage() {
   const [profileCardAnchor, setProfileCardAnchor] = useState<HTMLElement|null>(null);
   const [commentSearch, setCommentSearch] = useState('');
   const [searchScope, setSearchScope] = useState<'thread'|'everywhere'>('thread');
-  const [onlineStatus, setOnlineStatus] = useState<"online"|"away"|"busy">(() => {
-    try {
-      const s = localStorage.getItem("galibierhub-online-status");
-      if (s === "online" || s === "away" || s === "busy") return s;
-    } catch {}
-    return "online";
-  });
   const [similarPosts, setSimilarPosts] = useState<SiteFeedbackEntry[]>([]);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
@@ -420,8 +411,8 @@ export default function DiscussionDetailPage() {
         const {data} = await sb.auth.getSession();
         const user = data.session?.user;
         if (data.session) { setSession(data.session); }
-       if (user) {
-          const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login || user.email;
+        if (user) {
+          const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login;
           if (login) {
             setGithubUser(String(login));
             localStorage.setItem("galibierhub-github-user", String(login));
@@ -437,31 +428,6 @@ export default function DiscussionDetailPage() {
             }).catch(()=>{});
           }
         }
-      }
-    }).catch(()=>{});
-
-    // Listen for auth state changes
-    import("@/utils/supabase-browser").then(async ({getBrowserSupabase}) => {
-      const sb = getBrowserSupabase();
-      if (sb) {
-        const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
-          if (session) {
-            setSession(session);
-            const user = session.user;
-            const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login || user.email;
-            if (login) {
-              setGithubUser(String(login));
-              localStorage.setItem("galibierhub-github-user", String(login));
-              if (user.id) { setCurrentUserId(String(user.id)); localStorage.setItem("galibierhub-user-id", String(user.id)); }
-              const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
-              if (avatar) setAvatarUrl(String(avatar));
-            }
-          } else {
-            setSession(null);
-            setGithubUser(null);
-            setIsAdmin(false);
-          }
-        });
       }
     }).catch(()=>{});
   }, []);
@@ -499,7 +465,6 @@ export default function DiscussionDetailPage() {
         const count = stored ? parseInt(stored,10)+1 : 1;
         localStorage.setItem(viewKey, String(count));
         setTotalViews(count);
-        fetch("/api/discussions/views", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entryId: id }) }).catch(() => {});
       } catch { setTotalViews(0); }
     } catch (err) { setError(err instanceof Error?err.message:"Unknown error"); }
     finally { setLoading(false); }
@@ -689,11 +654,18 @@ export default function DiscussionDetailPage() {
 
   const handleMarkResolved = useCallback(async (resolved: boolean) => {
     if (!isAdmin || !entry) return;
-    const token = session?.access_token || "";
-    if (!token) return;
-    await fetch("/api/feedback", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ id: entry.id, creatorReply: resolved ? "\u2705 This discussion has been marked as resolved by the GalibierHub Team." : "" }) });
+    let token = localStorage.getItem("galibierhub-github-user") || "";
+    try {
+      const {getBrowserSupabase} = await import("@/utils/supabase-browser");
+      const sb2 = getBrowserSupabase();
+      if (sb2) {
+        const {data} = await sb2.auth.getSession();
+        token = data.session?.access_token || token;
+      }
+    } catch {}
+    await fetch("/api/feedback", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ id: entry.id, creator_reply: resolved ? "\u2705 This discussion has been marked as resolved by the GalibierHub Team." : null }) });
     fetchData();
-  }, [entry, fetchData, isAdmin, session]);
+  }, [entry, fetchData]);
 
     const handleLockPost = useCallback(async (postId: string) => {
     if (!isAdmin || !entry) return;
@@ -777,12 +749,12 @@ const isLoggedIn = !!(session || githubUser);
             <div className="sticky top-32 flex flex-col items-center gap-1 rounded-2xl border border-gray-200 bg-white/90 py-3 px-2 shadow-sm backdrop-blur">
               <div className="text-xs font-mono font-semibold text-gray-500 text-center leading-tight">{currentTimelineIndex+1}<br/><span className="text-[10px] text-gray-400">/ {timelineItems.length}</span></div>
               {/* Draggable timeline track */}
-              <div className="relative w-3 h-24 bg-gray-200 rounded-full cursor-pointer my-1 group" onPointerDown={(e)=>{e.currentTarget.setPointerCapture(e.pointerId);const rect=e.currentTarget.getBoundingClientRect();const pct=Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height));const idx=Math.round(pct*(timelineItems.length-1));setCurrentTimelineIndex(idx);contentRefs.current[idx]?.scrollIntoView({behavior:"smooth",block:"center"});}} onPointerMove={(e)=>{if(!e.currentTarget.hasPointerCapture(e.pointerId))return;const rect=e.currentTarget.getBoundingClientRect();const pct=Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height));const idx=Math.round(pct*(timelineItems.length-1));setCurrentTimelineIndex(idx);contentRefs.current[idx]?.scrollIntoView({behavior:"instant",block:"center"});}}>
+              <div className="relative w-3 h-24 bg-gray-200 rounded-full cursor-pointer my-1 group" onClick={(e)=>{const rect=e.currentTarget.getBoundingClientRect();const pct=Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height));const idx=Math.round(pct*(timelineItems.length-1));setCurrentTimelineIndex(idx);contentRefs.current[idx]?.scrollIntoView({behavior:"smooth",block:"center"});}}>
                 <div className="absolute bottom-0 left-0 right-0 bg-slate-700 rounded-full transition-all duration-200" style={{height:((currentTimelineIndex+1)/Math.max(timelineItems.length,1))*100+"%"}}/>
-                <div className="absolute left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white border-2 border-slate-500 rounded-full shadow-sm transition-all duration-200 group-hover:scale-110" style={{bottom:`calc(${((currentTimelineIndex+1)/Math.max(timelineItems.length,1))*100}% - 7px)`}}/>
+                <div className="absolute left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white border-2 border-blue-500 rounded-full shadow-sm transition-all duration-200 group-hover:scale-110" style={{bottom:`calc(${((currentTimelineIndex+1)/Math.max(timelineItems.length,1))*100}% - 7px)`}}/>
               </div>
               {firstDate&&<div className="text-[10px] text-gray-400 text-center leading-tight">{new Date(firstDate).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>}
-              {lastDate&&lastDate!==firstDate&&<><div className="text-[10px] text-gray-300">|</div><div className="text-[10px] text-slate-500 text-center leading-tight font-medium">{formatTimeAgo(lastDate)}</div></>}
+              {lastDate&&lastDate!==firstDate&&<><div className="text-[10px] text-gray-300">|</div><div className="text-[10px] text-blue-500 text-center leading-tight font-medium">{formatTimeAgo(lastDate)}</div></>}
               <button onClick={()=>handleTimelineNav(Math.max(0,currentTimelineIndex-1))} disabled={currentTimelineIndex<=0} className="mt-1 rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg></button>
               <button onClick={()=>handleTimelineNav(Math.min(timelineItems.length-1,currentTimelineIndex+1))} disabled={currentTimelineIndex>=timelineItems.length-1} className="rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg></button>
               {/* Post a Reply button in timeline */}
@@ -812,7 +784,7 @@ const isLoggedIn = !!(session || githubUser);
                     <div ref={el=>{contentRefs.current[index]=el;}} className={"rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" + ((isEntry && (ed as SiteFeedbackEntry).hidden) || (!isEntry && (cd as FeedbackCommentEntry).hidden) ? " opacity-60 ring-2 ring-amber-200" : "")}>
                       {isEntry?(<>
                         <div className="flex items-start gap-3 mb-4">
-                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(ed.display_name); setProfileCardUserId(ed.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-sm font-semibold text-white flex-shrink-0 hover:ring-2 hover:ring-slate-300 transition-all cursor-pointer">{getInitials(ed.display_name)}</button>
+                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(ed.display_name); setProfileCardUserId(ed.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-semibold text-white flex-shrink-0 hover:ring-2 hover:ring-blue-300 transition-all cursor-pointer">{getInitials(ed.display_name)}</button>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center flex-wrap gap-2">
                               <h1 className="text-lg font-bold text-gray-900">{ed.title||"Untitled"}</h1>
@@ -824,15 +796,15 @@ const isLoggedIn = !!(session || githubUser);
 
                               {ed.user_id && <BadgeDisplay userId={ed.user_id} />}
 
-                              {ed.affiliation&&<><span>·</span><span>{ed.affiliation}</span></>}
-                              <span>·</span><span>{formatDate(ed.created_at)}</span>
+                              {ed.affiliation&&<><span>Â·</span><span>{ed.affiliation}</span></>}
+                              <span>Â·</span><span>{formatDate(ed.created_at)}</span>
                             </div>
                           </div>
                         </div>
                         <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words">{renderMarkdown(ed.message, (src, alt) => setLightbox({src, alt}))}</div>
                         {ed.creator_reply&&(
                           <div className="mt-4 rounded-xl border border-slate-200 bg-teal-50 p-4">
-                              <div className="flex items-center gap-2 mb-2"><div className="h-6 w-6 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-semibold text-white">S</div><span className="text-xs font-semibold text-slate-800">GalibierHub Team</span><span className="text-xs text-slate-500">· Official Response</span></div>
+                              <div className="flex items-center gap-2 mb-2"><div className="h-6 w-6 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-semibold text-white">S</div><span className="text-xs font-semibold text-slate-800">GalibierHub Team</span><span className="text-xs text-blue-500">Â· Official Response</span></div>
                             <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words">{ed.creator_reply}</div>
                           </div>)}
                       </>):(<>
@@ -928,8 +900,9 @@ const isLoggedIn = !!(session || githubUser);
           </div>
         </div>
       )}
-      <UserProfileCard open={profileCardOpen} onClose={() => setProfileCardOpen(false)} displayName={profileCardName} userId={profileCardUserId} anchorEl={profileCardAnchor} onlineStatus={onlineStatus} />
       <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 }
+
+

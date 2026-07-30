@@ -46,7 +46,7 @@ export function renderInlineText(text: string, key: string): React.ReactNode {
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-gray-900">$1</strong>')
     .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
     .replace(/`(.+?)`/g, '<code class="rounded bg-gray-100 px-1.5 py-0.5 text-sm text-pink-600 font-mono">$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="text-blue-600 hover:underline">$1</a>');
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="text-slate-700 hover:underline">$1</a>');
   return <span key={key} dangerouslySetInnerHTML={{ __html: html }} className="whitespace-pre-wrap break-words" />;
 }
 
@@ -81,7 +81,7 @@ export function renderMarkdown(text: string, onImageClick?: (src: string, alt: s
       continue;
     }
     if (inCodeBlock) { codeContent += (codeContent ? '\n' : '') + line; continue; }
-    if (line.startsWith('> ')) { result.push(<div key={`bq-${i}`} className="my-1 border-l-4 border-blue-300 pl-3 italic text-gray-600">{renderInline(line.substring(2), onImageClick, `bqi-${i}`)}</div>); continue; }
+    if (line.startsWith('> ')) { result.push(<div key={`bq-${i}`} className="my-1 border-l-4 border-slate-300 pl-3 italic text-gray-600">{renderInline(line.substring(2), onImageClick, `bqi-${i}`)}</div>); continue; }
     if (line.trim() === '') { result.push(<div key={`br-${i}`} className="h-2" />); continue; }
     result.push(<div key={`ln-${i}`}>{renderInline(line, onImageClick, `lni-${i}`)}</div>);
   }
