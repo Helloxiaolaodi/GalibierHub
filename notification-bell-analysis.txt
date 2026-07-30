@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -46,24 +46,10 @@ export default function NotificationBell({ session }: { session: Session | null 
       if (res.ok) {
         const data = await res.json() as { notifications?: NotificationItem[] };
         const items = data.notifications || [];
-        // Merge with localStorage notifications
-        const localNotifs = JSON.parse(localStorage.getItem("galibierhub-local-notifs") || "[]") as NotificationItem[];
-        const merged = [...localNotifs.filter((n: NotificationItem) => n.is_read === false), ...items];
-        const unique = merged.filter((n: NotificationItem, i: number, arr: NotificationItem[]) => arr.findIndex(x => x.id === n.id) === i);
-        setNotifications(unique);
-        setUnreadCount(unique.filter(n => !n.is_read).length);
-      } else {
-        // Fallback to localStorage only
-        const localNotifs = JSON.parse(localStorage.getItem("galibierhub-local-notifs") || "[]") as NotificationItem[];
-        setNotifications(localNotifs);
-        setUnreadCount(localNotifs.filter((n: NotificationItem) => !n.is_read).length);
+        setNotifications(items);
+        setUnreadCount(items.filter(n => !n.is_read).length);
       }
-    } catch {
-      // Fallback to localStorage only
-      const localNotifs = JSON.parse(localStorage.getItem("galibierhub-local-notifs") || "[]") as NotificationItem[];
-      setNotifications(localNotifs);
-      setUnreadCount(localNotifs.filter((n: NotificationItem) => !n.is_read).length);
-    }
+    } catch { /* ignore */ }
     finally { setLoading(false); }
   }, [userId]);
 
@@ -156,7 +142,7 @@ export default function NotificationBell({ session }: { session: Session | null 
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <h4 className="text-sm font-semibold text-gray-900">Notifications</h4>
             {unreadCount > 0 && (
-              <button onClick={markAllRead} className="text-xs text-slate-600 hover:text-slate-800 font-medium">
+              <button onClick={markAllRead} className="text-xs text-blue-600 hover:text-blue-800 font-medium">
                 Mark all read
               </button>
             )}
@@ -181,10 +167,10 @@ export default function NotificationBell({ session }: { session: Session | null 
                 key={notif.id}
                 href={"/discussions/" + notif.discussion_id}
                 onClick={() => markAsRead(notif.id, notif.discussion_id)}
-                className={"flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 " + (!notif.is_read ? "bg-slate-50/50" : "")}
+                className={"flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 " + (!notif.is_read ? "bg-blue-50/50" : "")}
               >
                 <div className="flex-shrink-0 mt-0.5">
-                  {!notif.is_read && <div className="h-2 w-2 rounded-full bg-slate-500" />}
+                  {!notif.is_read && <div className="h-2 w-2 rounded-full bg-blue-500" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-900">

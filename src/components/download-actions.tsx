@@ -402,8 +402,22 @@ const [unlocked, setUnlocked] = useState(false);
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">SHA-256:</span>
-                    <code className="block max-w-full truncate font-mono text-xs text-gray-700">{effectiveInfo.sha256_checksum || 'Unavailable'}</code>
-                    {effectiveInfo.sha256_checksum && <button type="button" onClick={() => handleCopy('sha256', effectiveInfo.sha256_checksum)} className="text-xs text-teal-600 hover:underline">{copied === 'sha256' ? 'Copied' : 'Copy SHA-256'}</button>}
+                    {effectiveInfo.sha256_checksum ? (
+                      <>
+                        <code className="block max-w-full truncate font-mono text-xs text-gray-700">{effectiveInfo.sha256_checksum}</code>
+                        <button type="button" onClick={() => handleCopy('sha256', effectiveInfo.sha256_checksum)} className="text-xs text-teal-600 hover:underline">{copied === 'sha256' ? 'Copied' : 'Copy SHA-256'}</button>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-1 group relative">
+                        <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200 text-gray-400">N/A</span>
+                        <svg className="h-3.5 w-3.5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 hidden w-56 bg-slate-800 text-white text-xs rounded-lg p-2 text-center leading-relaxed group-hover:block z-20 shadow-lg">
+                          Hash not pre-computed for this file.
+                          <br />Verify locally: <code className="text-emerald-300">sha256sum &lt;file&gt;</code>
+                          <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-slate-800"></div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               
@@ -448,10 +462,10 @@ const [unlocked, setUnlocked] = useState(false);
                     ) : publicRouteAvailable ? (
                       <div className="space-y-3">
                         {(effectiveInfo.public_url || effectiveInfo.mirror_public_url) && (
-                          <div className="space-y-3 rounded-md border border-slate-200 bg-teal-50 px-3 py-3">
+                          <div className="space-y-3 rounded-md border border-slate-200 bg-white px-3 py-3">
                             <div className="flex flex-wrap items-center justify-between gap-3">
                               <div>
-                                <div className="text-sm font-medium text-blue-900">Regional download routing</div>
+                                <div className="text-sm font-medium text-slate-800">Regional download routing</div>
                                 <div className="text-xs text-slate-800">
                                   Pick the endpoint that matches the downloader network location.
                                 </div>
@@ -460,7 +474,7 @@ const [unlocked, setUnlocked] = useState(false);
                                 <button
                                   type="button"
                                   onClick={() => setDownloadRegion('global')}
-                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-slate-800 text-white shadow-sm' : 'text-teal-700 hover:bg-teal-50'}`}
+                                   className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
                                 >
                                   Global (Official)
                                 </button>
@@ -473,19 +487,19 @@ const [unlocked, setUnlocked] = useState(false);
                                 </button>
                               </div>
                             </div>
-                            <div className={`rounded-md border px-3 py-3 ${downloadRegion === 'apac' ? 'border-emerald-200 bg-emerald-100' : 'border-slate-200 bg-white'}`}>
+                            <div className={`rounded-md border px-3 py-3 border-slate-200 bg-white`}>
                               <div className="flex items-center justify-between gap-3">
-                                <span className={`text-sm font-medium ${downloadRegion === 'apac' ? 'text-emerald-900' : 'text-blue-900'}`}>
+                                <span className={`text-sm font-medium text-slate-900`}>
                                   {downloadRegion === 'apac' ? 'Mirror direct URL for Free Download Manager and similar tools' : 'Official direct URL for Free Download Manager and similar tools'}
                                 </span>
-                                <button type="button" onClick={() => handleCopy('public-url', activePublicUrl)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-700' : 'text-teal-700'}`}>{copied === 'public-url' ? 'Copied' : 'Copy direct URL'}</button>
+                                <button type="button" onClick={() => handleCopy('public-url', activePublicUrl)} className="text-xs hover:underline text-slate-600">{copied === 'public-url' ? 'Copied' : 'Copy direct URL'}</button>
                               </div>
-                              <p className={`mt-2 text-xs leading-5 ${downloadRegion === 'apac' ? 'text-emerald-800' : 'text-slate-800'}`}>
+                              <p className="mt-2 text-xs leading-5 text-slate-500">
                                 {downloadRegion === 'apac'
                                   ? 'Optimized routing via community mirrors for faster and more reliable downloads in China and the Asia-Pacific region. Paste this link into Free Download Manager, Motrix, IDM, or another resumable download client.'
                                   : 'Direct downloads from official servers. Paste this public direct link into Free Download Manager, Motrix, IDM, or another resumable download client.'}
                               </p>
-                              <code className={`mt-2 block break-all rounded px-3 py-2 font-mono text-[11px] ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-100 text-emerald-950 ring-emerald-200' : 'bg-teal-50 text-blue-950 ring-blue-100'}`}>{activePublicUrl}</code>
+                              <code className="mt-2 block break-all rounded px-3 py-2 font-mono text-[11px] ring-1 bg-gray-50 text-gray-900 ring-gray-200">{activePublicUrl}</code>
                             </div>
                           </div>
                         )}
@@ -493,27 +507,27 @@ const [unlocked, setUnlocked] = useState(false);
                           <div>
                             <div className="mb-1 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">Linux/macOS: wget (resume)</span>
-                              <button type="button" onClick={() => handleCopy('wget', activeWgetCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-teal-600'}`}>{copied === 'wget' ? 'Copied' : 'Copy'}</button>
+                              <button type="button" onClick={() => handleCopy('wget', activeWgetCommand)} className="text-xs hover:underline text-slate-600">{copied === 'wget' ? 'Copied' : 'Copy'}</button>
                             </div>
-                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-teal-50 text-blue-950 ring-blue-100'}`}>{activeWgetCommand}</code>
+                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-gray-50 text-gray-900 ring-gray-200' : 'bg-gray-50 text-gray-900 ring-gray-200'}`}>{activeWgetCommand}</code>
                           </div>
                         )}
                         {cliOptionsVisible && activeCurlCommand && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">Windows/Linux/macOS: curl (resume)</span>
-                              <button type="button" onClick={() => handleCopy('curl', activeCurlCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-teal-600'}`}>{copied === 'curl' ? 'Copied' : 'Copy'}</button>
+                              <button type="button" onClick={() => handleCopy('curl', activeCurlCommand)} className="text-xs hover:underline text-slate-600">{copied === 'curl' ? 'Copied' : 'Copy'}</button>
                             </div>
-                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-teal-50 text-blue-950 ring-blue-100'}`}>{activeCurlCommand}</code>
+                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 bg-gray-50 text-gray-900 ring-gray-200`}>{activeCurlCommand}</code>
                           </div>
                         )}
                         {cliOptionsVisible && activeHfCliCommand && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">{downloadRegion === 'apac' ? 'CLI (mirror endpoint)' : 'CLI (recommended)'}</span>
-                              <button type="button" onClick={() => handleCopy('hf', activeHfCliCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-teal-600'}`}>{copied === 'hf' ? 'Copied' : 'Copy'}</button>
+                              <button type="button" onClick={() => handleCopy('hf', activeHfCliCommand)} className="text-xs hover:underline text-slate-600">{copied === 'hf' ? 'Copied' : 'Copy'}</button>
                             </div>
-                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-teal-50 text-blue-950 ring-blue-100'}`}>{activeHfCliCommand}</code>
+                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 bg-gray-50 text-gray-900 ring-gray-200`}>{activeHfCliCommand}</code>
                           </div>
                         )}
                         {activeRegionHint && <p className="text-xs text-gray-500">{activeRegionHint}</p>}

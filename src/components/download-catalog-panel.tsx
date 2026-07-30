@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import DownloadActions from '@/components/download-actions';
@@ -21,6 +21,10 @@ type DownloadCatalogItem = {
   updatedAt?: string | null;
   sha256Checksum?: string | null;
   md5Checksum?: string | null;
+  sha256_checksum?: string | null;
+  sha256?: string | null;
+  oid?: string | null;
+  cksum?: string | null;
 };
 
 type FolderNode = {
@@ -215,7 +219,7 @@ function buildManifestRows(folderItems: FileRow[], rootLabel: string): Array<Rec
     File_Type: item.fileType,
     Size_Bytes: item.sizeBytes != null ? String(item.sizeBytes) : '',
     Direct_URL: item.url,
-    'SHA-256': item.sha256Checksum || 'NA',
+    'SHA-256': item.sha256_checksum || item.sha256Checksum || item.sha256 || item.oid || 'NA',
   }));
 }
 
@@ -533,13 +537,13 @@ export default function DownloadCatalogPanel({
 
       {/* Academic License Banner */}
       {!error && !loading && (
-        <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 mb-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+        <div className="rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50 to-slate-100 p-4 mb-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-700 text-sm font-bold">CC</span>
               <div>
-                <p className="text-sm font-semibold text-blue-900">Open Access Data</p>
-                <p className="text-xs text-teal-700">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-blue-900">CC BY 4.0</a>. Please cite GalibierHub when using this data in publications.</p>
+                <p className="text-sm font-semibold text-slate-900">Open Access Data</p>
+                <p className="text-xs text-teal-700">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-slate-900">CC BY 4.0</a>. Please cite GalibierHub when using this data in publications.</p>
               </div>
             </div>
             <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-teal-700 hover:bg-teal-50 transition-colors">Learn more</a>
@@ -703,7 +707,7 @@ export default function DownloadCatalogPanel({
                       type="checkbox"
                       checked={selectedIds.has(item.id)}
                       onChange={() => toggleSelect(item.id)}
-                      className="mt-1 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-blue-500"
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-slate-500"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="text-base font-semibold text-gray-900 break-all leading-snug">{item.fileName}</div>
@@ -750,7 +754,7 @@ export default function DownloadCatalogPanel({
                       type="checkbox"
                       checked={paginatedFiles.length > 0 && paginatedFiles.every((item) => selectedIds.has(item.id))}
                       onChange={toggleSelectAll}
-                      className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-slate-500"
                     />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -779,7 +783,7 @@ export default function DownloadCatalogPanel({
                         type="checkbox"
                         checked={selectedIds.has(item.id)}
                         onChange={() => toggleSelect(item.id)}
-                        className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-blue-500"
+                        className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-slate-500"
                       />
                     </td>
                     <td className="px-4 py-3">

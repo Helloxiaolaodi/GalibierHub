@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import TurnstileWidget from '@/components/turnstile-widget';
 import { renderMarkdown } from '@/lib/markdown';
 
@@ -63,7 +63,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  type MarkdownAction = 'bold' | 'italic' | 'code' | 'quote' | 'link' | 'image' | 'list';
+  type MarkdownAction = 'bold' | 'italic' | 'code' | 'quote' | 'link' | 'image' | 'list' | 'ordered-list';
 
   const insertMarkdown = useCallback((action: MarkdownAction) => {
     const ta = textareaRef.current; if (!ta) return;
@@ -93,6 +93,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
         input.click(); return;
       }
       case 'list': result = before + '\n- ' + (selected || 'list item') + after; break;
+      case 'ordered-list': result = before + '\n1. ' + (selected || 'First item') + after; break;
     }
     setForm((c) => ({ ...c, message: result }));
     setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + result.length - after.length; ta.focus(); }, 0);
@@ -372,7 +373,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                {validationErrors.title && <span className="text-xs text-red-600">{validationErrors.title}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
-               <span>Name or nickname (required)</span>
+               <span>Name (required)</span>
                <input
                  value={form.displayName}
                 onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
@@ -429,6 +430,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                     ["link", "\uD83D\uDD17", ""],
                     ["image", "\uD83D\uDDBC", ""],
                     ["list", "\u2261", ""],
+                     ["ordered-list", "1.", "font-mono"],
                   ] as [MarkdownAction, string, string][]).map(([action, label, cls]) => (
                     <button
                       key={action}
@@ -478,7 +480,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center justify-center rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:bg-blue-300"
+                className="inline-flex items-center justify-center rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {submitting ? 'Submitting...' : 'Submit'}
               </button>
