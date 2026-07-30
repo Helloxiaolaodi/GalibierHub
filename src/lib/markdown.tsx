@@ -1,5 +1,41 @@
-import React from 'react';
+﻿import React from 'react';
+import { CodeBlock } from './code-block';
 
+
+// KaTeX-inspired math rendering (lightweight, no external dependency)
+function renderMathExpression(formula: string): React.ReactNode {
+  return React.createElement("span", { className: "font-mono text-sm text-slate-700 bg-slate-100 rounded px-1.5 py-0.5 italic" }, formula);
+}
+function renderDisplayMath(formula: string): React.ReactNode {
+  return React.createElement("div", { className: "my-3 p-3 bg-slate-50 rounded-lg border border-slate-200 overflow-x-auto text-center" },
+    React.createElement("span", { className: "font-mono text-sm text-slate-700 italic" }, formula));
+}
+function processMathExpressions(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  const displayMathRe = /\$\$([\s\S]+?)\$\$/g;
+  let lastIdx = 0, kid = 0;
+  let dm: RegExpExecArray | null;
+  while ((dm = displayMathRe.exec(text)) !== null) {
+    if (dm.index > lastIdx) parts.push(renderInlineMath(text.substring(lastIdx, dm.index), kid++));
+    parts.push(React.createElement("span", { key: "dm-" + (kid++) }, renderDisplayMath((dm[1]||"").trim())));
+    lastIdx = dm.index + dm[0].length;
+  }
+  if (lastIdx < text.length) parts.push(renderInlineMath(text.substring(lastIdx), kid++));
+  return parts.length > 1 ? React.createElement(React.Fragment, null, ...parts) : parts[0] || null;
+}
+function renderInlineMath(text: string, baseKey: number): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  const re = /\$(.+?)\$/g;
+  let lastIdx = 0, kid = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > lastIdx) parts.push(React.createElement("span", { key: "imt-" + baseKey + "-" + (kid++) }, text.substring(lastIdx, m.index)));
+    parts.push(React.createElement("span", { key: "imm-" + baseKey + "-" + (kid++) }, renderMathExpression(m[1]||"")));
+    lastIdx = m.index + m[0].length;
+  }
+  if (lastIdx < text.length) parts.push(React.createElement("span", { key: "imt-" + baseKey + "-" + (kid++) }, text.substring(lastIdx)));
+  return parts.length > 1 ? React.createElement(React.Fragment, null, ...parts) : parts[0] || null;
+}
 export function htmlEscape(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -34,14 +70,14 @@ export function renderMarkdown(text: string, onImageClick?: (src: string, alt: s
   if (!text) return null;
   const lines = text.split('\n');
   const result: React.ReactNode[] = [];
-  let inCodeBlock = false, codeContent = '';
+  let inCodeBlock = false, codeContent = '', lang = '';
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (/^```/.test(line)) {
       if (inCodeBlock) {
-        result.push(<pre key={`cb-${i}`} className="my-2 rounded-lg bg-slate-900 text-green-400 p-3 text-sm overflow-x-auto whitespace-pre-wrap font-mono">{codeContent}</pre>);
-        inCodeBlock = false; codeContent = '';
-      } else { inCodeBlock = true; }
+        result.push(<CodeBlock key={`cb-${i}`} code={codeContent} language={lang} />);
+        inCodeBlock = false; codeContent = ''; lang = '';
+      } else { inCodeBlock = true; lang = line.replace(/^```/, '').trim() || ''; }
       continue;
     }
     if (inCodeBlock) { codeContent += (codeContent ? '\n' : '') + line; continue; }

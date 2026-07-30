@@ -504,7 +504,7 @@ export default function DownloadCatalogPanel({
               Browse files by directory, export manifests, and choose browser or CLI delivery.
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
-              <span className="rounded bg-blue-50 px-2 py-1 text-blue-700">Files: {totals.all}</span>
+              <span className="rounded bg-teal-50 px-2 py-1 text-teal-700">Files: {totals.all}</span>
               <span className="rounded bg-slate-100 px-2 py-1 text-slate-700">Folders: {currentFolderSummary.folderCount}</span>
               {visibleFiles.length > 0 && (
                 <button
@@ -536,13 +536,13 @@ export default function DownloadCatalogPanel({
         <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 mb-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700 text-sm font-bold">CC</span>
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-700 text-sm font-bold">CC</span>
               <div>
                 <p className="text-sm font-semibold text-blue-900">Open Access Data</p>
-                <p className="text-xs text-blue-700">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-blue-900">CC BY 4.0</a>. Please cite GalibierHub when using this data in publications.</p>
+                <p className="text-xs text-teal-700">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-blue-900">CC BY 4.0</a>. Please cite GalibierHub when using this data in publications.</p>
               </div>
             </div>
-            <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 transition-colors">Learn more</a>
+            <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-teal-700 hover:bg-teal-50 transition-colors">Learn more</a>
           </div>
         </div>
       )}
@@ -553,7 +553,7 @@ export default function DownloadCatalogPanel({
             <button
               type="button"
               onClick={() => goToFolder('')}
-              className={`rounded px-2 py-1 ${currentPath === '' ? 'font-semibold text-gray-900' : 'text-blue-700 hover:bg-blue-50'}`}
+              className={`rounded px-2 py-1 ${currentPath === '' ? 'font-semibold text-gray-900' : 'text-teal-700 hover:bg-teal-50'}`}
             >
               Downloads
             </button>
@@ -561,7 +561,7 @@ export default function DownloadCatalogPanel({
             <button
               type="button"
               onClick={() => goToFolder('')}
-              className={`rounded px-2 py-1 ${currentPath === '' ? 'font-semibold text-gray-900' : 'text-blue-700 hover:bg-blue-50'}`}
+              className={`rounded px-2 py-1 ${currentPath === '' ? 'font-semibold text-gray-900' : 'text-teal-700 hover:bg-teal-50'}`}
             >
               {rootLabel}
             </button>
@@ -577,7 +577,7 @@ export default function DownloadCatalogPanel({
                     <button
                       type="button"
                       onClick={() => goToFolder(path)}
-                      className="rounded px-2 py-1 text-blue-700 hover:bg-blue-50"
+                      className="rounded px-2 py-1 text-teal-700 hover:bg-teal-50"
                     >
                       {part}
                     </button>
@@ -607,13 +607,13 @@ export default function DownloadCatalogPanel({
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
                 placeholder="Search files or folders"
-                className="w-full rounded-lg border border-slate-200 bg-[#F5F5F7] px-3 py-2 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:bg-slate-200/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 lg:max-w-md"
+                className="w-full rounded-lg border border-slate-200 bg-[#F5F5F7] px-3 py-2 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:bg-slate-200/50 focus:bg-white focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 lg:max-w-md"
               />
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setFolderCliOpen(true)}
-                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all"
+                  className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all"
                 >
                   Copy Folder CLI
                 </button>
@@ -628,7 +628,7 @@ export default function DownloadCatalogPanel({
                   <button
                     type="button"
                     onClick={() => setBatchOpen(true)}
-                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all"
+                    className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all"
                   >
                     Download Selected ({selectedFiles.length})
                   </button>
@@ -674,7 +674,7 @@ export default function DownloadCatalogPanel({
                 key={folder.path}
                 type="button"
                 onClick={() => goToFolder(folder.path)}
-                className="flex min-h-24 flex-col items-start justify-between rounded-lg border border-gray-200 bg-white p-4 text-left transition-colors hover:border-blue-200 hover:bg-blue-50"
+                className="flex min-h-24 flex-col items-start justify-between rounded-lg border border-gray-200 bg-white p-4 text-left transition-colors hover:border-slate-200 hover:bg-teal-50"
               >
                 <div>
                   <div className="text-base font-semibold text-gray-900 break-all">{folder.name}</div>
@@ -696,14 +696,14 @@ export default function DownloadCatalogPanel({
           <div className="border-b bg-gray-50 px-4 py-3 text-sm font-medium text-gray-800">Files</div>
           <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
             {paginatedFiles.map((item) => (
-              <div key={item.id} className={`flex min-h-44 flex-col justify-between gap-4 border p-4 ${selectedIds.has(item.id) ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200 bg-white'}`}>
+              <div key={item.id} className={`flex min-h-44 flex-col justify-between gap-4 border p-4 ${selectedIds.has(item.id) ? 'border-slate-300 bg-teal-50/30' : 'border-gray-200 bg-white'}`}>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-start gap-2">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(item.id)}
                       onChange={() => toggleSelect(item.id)}
-                      className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-blue-500"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="text-base font-semibold text-gray-900 break-all leading-snug">{item.fileName}</div>
@@ -750,7 +750,7 @@ export default function DownloadCatalogPanel({
                       type="checkbox"
                       checked={paginatedFiles.length > 0 && paginatedFiles.every((item) => selectedIds.has(item.id))}
                       onChange={toggleSelectAll}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-blue-500"
                     />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -773,18 +773,18 @@ export default function DownloadCatalogPanel({
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {paginatedFiles.map((item) => (
-                  <tr key={item.id} className={selectedIds.has(item.id) ? 'bg-blue-50/30' : ''}>
+                  <tr key={item.id} className={selectedIds.has(item.id) ? 'bg-teal-50/30' : ''}>
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(item.id)}
                         onChange={() => toggleSelect(item.id)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-blue-500"
                       />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-start gap-3">
-                        <span className="mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded bg-blue-50 px-2 text-[11px] font-medium text-blue-700">
+                        <span className="mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded bg-teal-50 px-2 text-[11px] font-medium text-teal-700">
                           {item.fileType.replace('.', '') || 'file'}
                         </span>
                         <div className="min-w-0">
@@ -845,7 +845,7 @@ export default function DownloadCatalogPanel({
                 key={page}
                 type="button"
                 onClick={() => setCurrentPage(page)}
-                className={`inline-flex items-center rounded px-3 py-1.5 text-sm font-medium ${page === currentPage ? 'bg-blue-600 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                className={`inline-flex items-center rounded px-3 py-1.5 text-sm font-medium ${page === currentPage ? 'bg-slate-800 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
               >
                 {page}
               </button>
@@ -886,7 +886,7 @@ export default function DownloadCatalogPanel({
                 <div key={block.key} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <span className="text-sm font-medium text-gray-800">{block.title}</span>
-                    <button type="button" onClick={() => void handleCopyFolderCommand(block.key, block.content)} className="text-xs text-blue-600 hover:underline">
+                    <button type="button" onClick={() => void handleCopyFolderCommand(block.key, block.content)} className="text-xs text-teal-600 hover:underline">
                       {folderCliCopied === block.key ? 'Copied' : 'Copy'}
                     </button>
                   </div>
@@ -924,7 +924,7 @@ export default function DownloadCatalogPanel({
                 <button
                   type="button"
                   onClick={() => { selectedFiles.forEach((item) => { const a = document.createElement('a'); a.href = item.url; a.download = item.fileName || ''; a.click(); }); }}
-                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all"
+                  className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all"
                 >
                   Start Browser Download
                 </button>
@@ -936,7 +936,7 @@ export default function DownloadCatalogPanel({
                 <div key={block.key} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <span className="text-sm font-medium text-gray-800">{block.title}</span>
-                    <button type="button" onClick={() => { navigator.clipboard.writeText(block.cmd); }} className="text-xs text-blue-600 hover:underline">Copy</button>
+                    <button type="button" onClick={() => { navigator.clipboard.writeText(block.cmd); }} className="text-xs text-teal-600 hover:underline">Copy</button>
                   </div>
                   <code className="block whitespace-pre-wrap break-all rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{block.cmd}</code>
                 </div>

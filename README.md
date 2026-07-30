@@ -43,26 +43,14 @@ GalibierHub currently ships with five main product surfaces:
 - **Overview**: StatsChart dashboard metrics and interactive hover-flip feature cards (Search & Discovery, Genome Browser, File Distribution, Community & Moderation).
 - **Records**: searchable promoter table with inline filtering, pagination, and record detail panel.
 - **Genome Browser**: standalone JBrowse 2 linear genome view with fullscreen zen mode, multi-track annotation, and locus navigation accessible via the top navigation bar.
-- **Downloads**: site-wide file catalog with browser download and CLI download options.
+- **Downloads**: academic-grade file catalog with browser/CLI download, file preview (head 20 lines), SHA-256 checksum verification, citation export (BibTeX/RIS/DataCite), batch script generator (aria2c/wget/Python/R), and linked Discussions tutorials.
 - **Discussion**: public or Administrator-only discussions with image upload, likes, bookmarks, follow-up replies, and administrator moderation.
+- **World Clock**: global timezone command palette (Ctrl+K) with major research hub defaults and full city search, plus sidebar widget on discussion detail pages.
+- **Auth System**: dual GitHub OAuth and email/password authentication with Turnstile bot protection, split Log In / Sign Up flow, and auto-saved drafts.
 - **Notification Center**: In-app notification bell with real-time Supabase subscriptions for replies to your discussions.
 - **Badge System**: Gamification with 16+ badge types covering onboarding, engagement, tech, and milestone achievements, displayed as micro-badges next to usernames.
 
 The current default schema and UI are still genomics-oriented. Template users can generalize the project later, but the repository in its present state still uses promoter- and genome-related naming in the main data surfaces.
-
-### Name Origin: Col du Galibier
-
-GalibierHub draws its name from the **Col du Galibier**, a legendary 2,642-meter mountain pass in the French Alps. For over a century, this HC (Hors Catégorie — "beyond categorization") climb has been the Tour de France's ultimate test of human endurance, where thin air and brutal gradients push elite cyclists to their absolute limit.
-
-**Why Galibier?**
-
-1. **Thin Air → High-Throughput Computing**: At 2,642 meters, oxygen is scarce and engines risk catastrophic failure. This mirrors the computational pressure of analyzing thousands of oral and gut microbiome samples — where massive feature matrices and memory consumption strain even high-performance clusters. Galibier represents the platform's robust performance chassis for extreme-scale cohort analysis and high-throughput data distribution.
-
-2. **The Climber → The Researcher**: Scientific research is itself a lonely, grueling ascent. From raw sequencing reads to publication-quality phylogenetic trees and heatmaps, the path is marked by countless rounds of data cleaning, noise reduction, and model iteration. Galibier honors those academic climbers who endure the relentless pull-turn-pull of data analysis and ultimately break through at the summit.
-
-3. **Hub → A Base Camp for Explorers**: The "Hub" suffix signals that science need not be a solo effort. Like the monument atop Col du Galibier commemorating all who finish, GalibierHub is designed as a highly interconnected infrastructure — a distribution center for standardized code pipelines, high-quality reference datasets, and global collaborative exchange among bioinformatics developers.
-
-> *"Conquering the High Altitude of Microbiome Data."* — GalibierHub slogan
 
 ### Preview Media
 
@@ -110,13 +98,6 @@ GalibierHub draws its name from the **Col du Galibier**, a legendary 2,642-meter
 - See a footer counter that shows live site uptime, cumulative unique visitors, views, links, and participants.
 - macOS-inspired design language with glass-morphism navigation, Apple gray (#F5F5F7) backgrounds, custom scrollbar, smooth focus rings, and subtle button micro-interactions.
  
-
-### Why this template is useful for fork users
-
-- It separates metadata, UI, and large-file storage cleanly.
-- It already includes a practical free-tier deployment pattern.
-- It covers both research-data presentation and lightweight community interaction.
-- It exposes enough configuration points for reuse without forcing a full rewrite on day one.
 
 ## Architecture and Deployment Model
 
@@ -277,7 +258,7 @@ Cloudflare Pages:
 
 ### What the Downloads view now supports
 
-- Breadcrumb navigation such as `Downloads / galibierhub-data / reference_genomes / scov2`, where every parent level remains clickable.
+- Breadcrumb navigation such as `Downloads / seqedge-data / reference_genomes / scov2`, where every parent level remains clickable.
 - A compact control bar that combines folder search, `Copy Folder CLI`, `Export Manifest CSV`, a README button, batch download, and grid or table view switching.
 - A table view with sortable `Name`, `Size`, `Updated`, and `Actions` columns for directories that would become unwieldy in card mode.
 - A denser grid view that still shows size and updated time so card browsing does not hide basic metadata.
@@ -289,29 +270,30 @@ Cloudflare Pages:
 
 ### What the download modal now exposes
 
-For public files with a stable raw URL, the `Download options` modal now exposes four practical delivery paths in the same dialog:
+For public files with a stable raw URL, the `Download options` modal now uses a tabbed structure exposing:
 
-- Browser download
-- Copyable public direct URL for tools such as `Free Download Manager`, `Motrix`, and `IDM`
-- `Global (Official)` resumable commands on `huggingface.co`
-- `Asia-Pacific (Mirror)` resumable commands on `hf-mirror.com`
+- **Download & CLI**: Browser download, copyable direct URL, Global (Official) resumable commands on `huggingface.co`, and Asia-Pacific (Mirror) resumable commands on `hf-mirror.com`.
+- **File Preview**: Head preview (first 20 lines) for text-based files (FASTA, GFF3, CSV, TSV, R scripts) using HTTP Range Requests with syntax highlighting.
+- **Checksum**: SHA-256 hash display with a copyable terminal verification command.
+- **Linked Tutorials**: Direct link to related Discussion posts for pipeline integration tutorials (e.g. loading datasets into MaAsLin3 or QIIME 2).
+- **Cite Dataset**: BibTeX, RIS, DataCite, and Plain Text citation format export.
 
-For the example file `817-food-biochem-materials.zip`, that means the modal can show both the official route and the Asia-friendly mirror route without changing the dataset path itself.
+For the example file `scov2.fa`, that means the modal can show both the official route and the Asia-friendly mirror route without changing the dataset path itself.
 
 Official route:
 
 ```bash
-wget -c -O "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-curl -L -C - -o "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+wget -c -O "scov2.fa" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
+curl -L -C - -o "scov2.fa" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
+hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
 ```
 
 Asia-Pacific mirror route:
 
 ```bash
-wget -c -O "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-curl -L -C - -o "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+wget -c -O "scov2.fa" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
+curl -L -C - -o "scov2.fa" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
+HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
 ```
 
 This keeps the UI aligned with real network conditions instead of documenting only one nominal path.
@@ -328,8 +310,8 @@ The current codebase supports three practical Hugging Face integration points:
 
 Do not paste the Hugging Face page URL that contains `/blob/main/`.
 
-- Page URL example: `https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/blob/main/817-food-biochem/817-food-biochem-materials.zip`
-- Direct file URL example: `https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip`
+- Page URL example: `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/blob/main/scov2.fa`
+- Direct file URL example: `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa`
 
 GalibierHub now normalizes common Hugging Face `blob` links to `resolve` links, but you should still store the direct file URL in your database and environment variables.
 
@@ -338,9 +320,9 @@ GalibierHub now normalizes common Hugging Face `blob` links to `resolve` links, 
 Set the featured archive environment variables:
 
 ```bash
-NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download 817 Food Biochem Materials
+NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download scov2 Reference Genome
 NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION=Public Hugging Face dataset package for large-file download, browser delivery, and resume-capable CLI retrieval.
-NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip
+NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa
 NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 ```
@@ -363,7 +345,7 @@ Example SQL:
 
 ```sql
 update genome_samples
-set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip'
+set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa'
 where sample_id = 'CNhs10881';
 ```
 
@@ -386,10 +368,10 @@ insert into download_metadata (
   sha256_checksum
 )
 values (
-  'https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip',
-  '817 Food Biochem Materials',
+  'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa',
+  'scov2 Reference Genome',
   'Public Hugging Face dataset package exposed through the GalibierHub unified download modal.',
-  'Archive (zip)',
+  'FASTA (.fa)',
   734003200,
   'public_url',
   false,
@@ -417,7 +399,7 @@ That is the only fully implemented private-download path in the current codebase
 
 ### Uploading data to Hugging Face
 
-GalibierHub hosts large data files such as release archives, reference bundles, and sample-level files on a Hugging Face dataset repository, by default `https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data`.
+GalibierHub hosts large data files such as release archives, reference bundles, and sample-level files on a Hugging Face dataset repository, by default `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`.
 
 #### 1. Install the CLI
 
@@ -449,7 +431,7 @@ hf upload <namespace/dataset-name> <local-path> <path-in-repo> --repo-type datas
 Example:
 
 ```bash
-hf upload Helloxiaolaodi/galibierhub-data "E:\data\817-food-biochem-materials.zip" "817-food-biochem/817-food-biochem-materials.zip" --repo-type dataset
+hf upload Helloxiaolaodi/seqedge-data "E:\data\scov2.fa" "scov2.fa" --repo-type dataset
 ```
 
 #### 4. Resumable transfer
@@ -491,7 +473,7 @@ For multi-hundred-MB to GB files prefer the HF CLI:
 
 ```bash
 pip install -q "huggingface_hub"
-hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
 ```
 
 Classic commands also resume:

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -72,8 +72,26 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
   const [pauseNotifications, setPauseNotifications] = useState(false);
   const [onlineStatus, setOnlineStatus] = useState<"online" | "away" | "busy">("online");
   const [userBio, setUserBio] = useState<string>('');
-  const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState('');
+
+  // Profile fields as React state (initialized from localStorage)
+  const [profileAffiliation, setProfileAffiliation] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('galibierhub-affiliation') || ''; return '';
+  });
+  const [profileResearchField, setProfileResearchField] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('galibierhub-research-field') || ''; return '';
+  });
+  const [profileRole, setProfileRole] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('galibierhub-role') || ''; return '';
+  });
+  const [profileBio, setProfileBio] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('galibierhub-bio') || ''; return '';
+  });
+  const [customAvatar, setCustomAvatar] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('galibierhub-custom-avatar') || ''; return '';
+  });
+
+  const resolvedAvatar = customAvatar || avatarUrl;
 
   const userId = session?.user?.id;
   const displayName = isAdmin ? "GalibierHub Team" : (githubUser || "Visitor");
@@ -221,8 +239,8 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all"
       >
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={displayName || "User"} className="h-6 w-6 rounded-full object-cover" referrerPolicy="no-referrer" />
+        {resolvedAvatar ? (
+          <img src={resolvedAvatar} alt={displayName || "User"} className="h-6 w-6 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} referrerPolicy="no-referrer" />
         ) : (
           <span className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-semibold text-white">
             {displayName ? displayName.substring(0, 1).toUpperCase() : "?"}
@@ -264,7 +282,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${activeTab === tab.id ? "bg-white text-blue-600 shadow-sm ring-1 ring-gray-200" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"}`}
+                  className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${activeTab === tab.id ? "bg-white text-teal-600 shadow-sm ring-1 ring-gray-200" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"}`}
                   title={tab.label}
                 >
                   {tab.icon}
@@ -283,7 +301,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-900">{tabs.find(t => t.id === activeTab)?.label || ""}</h4>
                 {activeTab === "notifications" && notifUnread > 0 && (
-                  <button onClick={markAllRead} className="text-xs text-blue-600 hover:text-blue-800 font-medium">Mark all read</button>
+                  <button onClick={markAllRead} className="text-xs text-teal-600 hover:text-slate-800 font-medium">Mark all read</button>
                 )}
               </div>
 
@@ -305,8 +323,8 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                     ) : (
                       notifications.map(notif => (
                         <Link key={notif.id} href={"/discussions/" + notif.discussion_id} onClick={() => { markAsRead(notif.id); }}
-                          className={"flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 " + (!notif.is_read ? "bg-blue-50/50" : "")}>
-                          {!notif.is_read && <div className="mt-1.5 h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />}
+                          className={"flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 " + (!notif.is_read ? "bg-teal-50/50" : "")}>
+                          {!notif.is_read && <div className="mt-1.5 h-2 w-2 rounded-full bg-slate-700 flex-shrink-0" />}
                           <div className={`flex-1 min-w-0 ${notif.is_read ? "ml-5" : ""}`}>
                             <p className="text-sm text-gray-900"><span className="font-semibold">{notif.actor_name}</span> replied</p>
                             <p className="text-xs text-gray-500 mt-0.5 truncate">{notif.preview_text}</p>
@@ -407,8 +425,8 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                     {/* Profile section */}
                     <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
                       <div className="flex items-center gap-3 mb-2">
-                        {avatarUrl ? (
-                          <img src={avatarUrl} alt={displayName||"User"} className="h-10 w-10 rounded-full object-cover" referrerPolicy="no-referrer" />
+                        {resolvedAvatar ? (
+                          <img src={resolvedAvatar} alt={displayName||"User"} className="h-10 w-10 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} referrerPolicy="no-referrer" />
                         ) : (
                           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-semibold text-white">
                             {displayName ? displayName.substring(0,1).toUpperCase() : "?"}
@@ -416,26 +434,42 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                         )}
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
-                          {localStorage.getItem("galibierhub-affiliation") && <p className="text-xs text-gray-500 truncate">{localStorage.getItem("galibierhub-affiliation")}</p>}
-                          {localStorage.getItem("galibierhub-role") && <p className="text-xs text-gray-400 truncate">{localStorage.getItem("galibierhub-role")}</p>}
-                        </div>
-                        <button onClick={()=>setEditingBio(!editingBio)} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex-shrink-0">
-                          {editingBio ? "Done" : "Edit"}
-                        </button>
-                      </div>
-                      {editingBio && (
+                          {profileAffiliation && <p className="text-xs text-gray-500 truncate">{profileAffiliation}</p>}
+                          {profileRole && <p className="text-xs text-gray-400 truncate">{profileRole}</p>}
+                        </div>                      </div>
                         <div className="space-y-2 mt-2 pt-2 border-t border-gray-200">
                           <div>
+                            <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Profile Picture</label>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <label className="cursor-pointer rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+                                Upload Photo
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                                  const file = e.target.files?.[0]; if (!file) return;
+                                  const reader = new FileReader();
+                                  reader.onload = () => {
+                                    const dataUrl = reader.result as string;
+                                    setCustomAvatar(dataUrl);
+                                    localStorage.setItem("galibierhub-custom-avatar", dataUrl);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }} />
+                              </label>
+                              {customAvatar && (
+                                <button onClick={() => { setCustomAvatar(""); localStorage.removeItem("galibierhub-custom-avatar"); }} className="text-xs text-red-500 hover:text-red-700">Remove</button>
+                              )}
+                            </div>
+                          </div>
+                          <div>
                             <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Affiliation / Institution</label>
-                            <input type="text" value={localStorage.getItem("galibierhub-affiliation")||""} onChange={e=>{localStorage.setItem("galibierhub-affiliation",e.target.value);setUserBio(e.target.value)}} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-blue-500 mt-0.5" placeholder="e.g. Peking University" />
+                            <input type="text" value={profileAffiliation} onChange={e => { setProfileAffiliation(e.target.value); localStorage.setItem("galibierhub-affiliation", e.target.value); }} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-slate-400 mt-0.5" placeholder="e.g. Peking University" />
                           </div>
                           <div>
                             <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Research Field</label>
-                            <input type="text" value={localStorage.getItem("galibierhub-research-field")||""} onChange={e=>localStorage.setItem("galibierhub-research-field",e.target.value)} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-blue-500 mt-0.5" placeholder="e.g. Microbiology" />
+                            <input type="text" value={profileResearchField} onChange={e => { setProfileResearchField(e.target.value); localStorage.setItem("galibierhub-research-field", e.target.value); }} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-slate-400 mt-0.5" placeholder="e.g. Microbiology" />
                           </div>
                           <div>
                             <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Role / Identity</label>
-                            <select value={localStorage.getItem("galibierhub-role")||""} onChange={e=>localStorage.setItem("galibierhub-role",e.target.value)} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-blue-500 mt-0.5">
+                            <select value={profileRole} onChange={e => { setProfileRole(e.target.value); localStorage.setItem("galibierhub-role", e.target.value); }} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-slate-400 mt-0.5">
                               <option value="">Select role</option>
                               <option value="Professor">Professor</option>
                               <option value="Postdoc">Postdoc</option>
@@ -449,10 +483,9 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                           </div>
                           <div>
                             <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Motto / Bio</label>
-                            <textarea value={localStorage.getItem("galibierhub-bio")||""} onChange={e=>localStorage.setItem("galibierhub-bio",e.target.value)} rows={2} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-blue-500 mt-0.5 resize-none" placeholder="A brief introduction about yourself..." />
+                            <textarea value={profileBio} onChange={e => { setProfileBio(e.target.value); localStorage.setItem("galibierhub-bio", e.target.value); }} rows={2} className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none focus:border-slate-400 mt-0.5 resize-none" placeholder="A brief introduction about yourself..." />
                           </div>
                         </div>
-                      )}
                     </div>
                     {/* Drafts link */}
                     <Link href="/discussions" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
@@ -460,6 +493,13 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                       <span>Drafts</span>
                       <span className="ml-auto text-[10px] text-gray-400"></span>
                     </Link>
+                    {/* Moderation Dashboard - admin only */}
+                    {isAdmin && (
+                      <Link href="/discussions?mod=1" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-amber-700 hover:bg-amber-50 transition-colors">
+                        <svg className="h-4 w-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span>Moderation Dashboard</span>
+                      </Link>
+                    )}
                     {/* Activity link */}
                     <Link href="/discussions" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>

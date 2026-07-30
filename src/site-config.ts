@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // Site Configuration - Edit this file to customize your database
 // ============================================================
 // This is the single source of truth for all site-wide settings.
@@ -26,8 +26,8 @@ function buildFeaturedDownloads(): FeaturedDownloadItem[] {
     process.env.NEXT_PUBLIC_STORAGE_BASE_URL ||
     process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
     '';
-  const defaultReleaseArchiveUrl = storageBaseUrl.includes('huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main')
-    ? '817-food-biochem/817-food-biochem-materials.zip'
+  const defaultReleaseArchiveUrl = storageBaseUrl.includes('huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main')
+    ? 'scov2.fa'
     : '';
   const items: FeaturedDownloadItem[] = [
     {
