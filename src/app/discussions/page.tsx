@@ -1,17 +1,19 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { SiteConfig } from "@/site-config";
+import WorldClock from "@/components/world-clock";
 import BadgeDisplay from "@/components/badge-display";
 import UserMenuPanel from "@/components/user-menu-panel";
+import UserProfileCard from "@/components/user-profile-card";
 import type { FeedbackCommentEntry, SiteFeedbackEntry } from "@/types/genome";
 import type { Session } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
 import { renderInlineText, renderMarkdown } from "@/lib/markdown";
 
 function getCategoryColor(c: string): string {
-  const m: Record<string,string>={general:"bg-blue-100 text-blue-800",issue:"bg-red-100 text-red-800",idea:"bg-amber-100 text-amber-800",data:"bg-emerald-100 text-emerald-800",collaboration:"bg-purple-100 text-purple-800"};
+  const m: Record<string,string>={general:"bg-teal-100 text-slate-800",issue:"bg-red-100 text-red-800",idea:"bg-amber-100 text-amber-800",data:"bg-emerald-100 text-emerald-800",collaboration:"bg-purple-100 text-purple-800"};
   return m[c]||"bg-gray-100 text-gray-800";
 }
 function getCategoryLabel(c: string): string {
@@ -55,8 +57,12 @@ export default function DiscussionsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string|null>(null);
+  const [profileCardOpen, setProfileCardOpen] = useState(false);
+  const [profileCardName, setProfileCardName] = useState("");
+  const [profileCardUserId, setProfileCardUserId] = useState<string|null>(null);
+  const [profileCardAnchor, setProfileCardAnchor] = useState<HTMLElement|null>(null);
   const [showComposer, setShowComposer] = useState(false);
-  const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public"});
+  const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public",category:"general"});
   type MarkdownAction = "bold"|"italic"|"code"|"quote"|"link"|"image"|"list";
   const [composerPreview, setComposerPreview] = useState(false);
   const [composerSubmitting, setComposerSubmitting] = useState(false);
@@ -65,8 +71,9 @@ export default function DiscussionsPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [composerUploadMsg, setComposerUploadMsg] = useState<{type:"success"|"error";text:string}|null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 15;
+  const [pageSize, setPageSize] = useState(20);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const insertComposerMarkdown = (action: MarkdownAction) => {
     const ta = composerRef.current; if (!ta) return;
@@ -110,9 +117,40 @@ export default function DiscussionsPage() {
     }
   }, []);
 
-  useEffect(() => { setCurrentPage(1); }, [statusFilter, sortMode, searchQuery]);
+ useEffect(() => { setCurrentPage(1); }, [statusFilter, sortMode, searchQuery]);
 
-  const handleSignIn = useCallback(async () => {
+  // Auto-save composer draft to localStorage every 3 seconds
+  useEffect(() => {
+    const key = "galibierhub-draft-new-post";
+    const timer = setInterval(() => {
+      if (composerForm.message.trim() || composerForm.title.trim()) {
+        localStorage.setItem(key, JSON.stringify({ title: composerForm.title, message: composerForm.message, category: composerForm.category }));
+      }
+    }, 3000);
+   return () => clearInterval(timer);
+ }, [composerForm.message, composerForm.title, composerForm.category]);
+
+  // Load saved draft when composer opens
+  useEffect(() => {
+    if (!showComposer) return;
+    const key = "galibierhub-draft-new-post";
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved);
+        if (draft.title || draft.message) {
+          setComposerForm(p => ({
+            ...p,
+            title: draft.title || "",
+            message: draft.message || "",
+            category: draft.category || "general"
+          }));
+        }
+      } catch {}
+    }
+  }, [showComposer]);
+
+ const handleSignIn = useCallback(async () => {
     const sb = getBrowserSupabase();
     if (!sb) return;
     await sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: window.location.origin + "/discussions" } });
@@ -191,10 +229,11 @@ export default function DiscussionsPage() {
     const displayName = composerForm.displayName.trim() || (githubUser || "Visitor");
     setComposerSubmitting(true); setComposerError(null);
     try {
-      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,affiliation:composerForm.affiliation,visibility:composerForm.visibility}) });
+      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,affiliation:composerForm.affiliation,visibility:composerForm.visibility,category:composerForm.category}) });
       if (!res.ok) { const d = await res.json() as {error?:string}; throw new Error(d.error||"Failed to submit"); }
-      setComposerSuccess("Discussion created!");
-      setComposerForm({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public"});
+     setComposerSuccess("Discussion created!");
+      localStorage.removeItem("galibierhub-draft-new-post");
+     setComposerForm({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public",category:"general"});
       await fetchData();
       setTimeout(()=>{ setShowComposer(false); setComposerSuccess(null); }, 1500);
     } catch (err) { setComposerError(err instanceof Error?err.message:"Failed to submit"); }
@@ -204,10 +243,12 @@ export default function DiscussionsPage() {
 
   // Filter and sort entries
   const filteredEntries = entries.filter(e=>{
-    if (statusFilter==="in_progress") return !hasCreatorReply(e);
-    if (statusFilter==="resolved") return hasCreatorReply(e);
+     if (statusFilter==="in_progress") return !hasCreatorReply(e);
+     if (statusFilter==="resolved") return hasCreatorReply(e);
+
+     if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
     return true;
-  }).filter(e => {
+   }).filter(e => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (e.title||'').toLowerCase().includes(q) || (e.message||'').toLowerCase().includes(q) || (e.display_name||'').toLowerCase().includes(q);
@@ -227,7 +268,7 @@ export default function DiscussionsPage() {
       <header className="sticky top-0 z-40 border-b border-white/20 bg-white/70 backdrop-blur-xl saturate-150 shadow-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-lg font-bold text-blue-700 hover:text-blue-800">{SiteConfig.title}</Link>
+            <Link href="/" className="text-lg font-bold text-teal-700 hover:text-slate-800">{SiteConfig.title}</Link>
             <span className="text-gray-500">/</span>
             <h1 className="text-base font-semibold text-gray-900">Discussions</h1>
           </div>
@@ -237,11 +278,12 @@ export default function DiscussionsPage() {
             ) : session ? (
               <UserMenuPanel session={session} githubUser={githubUser} isAdmin={isAdmin} onSignOut={handleSignOut} avatarUrl={avatarUrl} />
             ) : (
-              <button onClick={handleSignIn} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100">
+              <button onClick={handleSignIn} className="rounded-lg border border-slate-200 bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700 transition-colors hover:bg-teal-100">
                 Log in with GitHub
               </button>
             )}
-            <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all">New Discussion</button>
+            <WorldClock />
+            <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="rounded-lg bg-slate-800 px-4 py-1.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all">New Discussion</button>
             <Link href="/" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">Back to Home</Link>
           </div>
         </div>
@@ -262,7 +304,7 @@ export default function DiscussionsPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search discussions by title, content, or author..."
-              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm"
+              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all shadow-sm"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -272,13 +314,30 @@ export default function DiscussionsPage() {
           </div>
         </div>
 
+        {/* Category Filter Chips */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-xs font-medium text-gray-500 mr-1">Tags:</span>
+          {(["all","general","issue","idea","data","collaboration"] as string[]).map(cat => (
+            <button
+              key={cat}
+              onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
+              className={"rounded-full px-3 py-1 text-xs font-medium transition-all " +
+                (categoryFilter === cat
+                  ? "bg-slate-800 text-white shadow-sm"
+                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-400 hover:text-gray-900")}
+            >
+              {cat === "all" ? "All" : getCategoryLabel(cat)}
+            </button>
+          ))}
+        </div>
+
         {/* Filter & Sort Controls */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
           {/* Status filter */}
           <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
             {(["all","in_progress","resolved"] as StatusFilter[]).map(f=>(
               <button key={f} onClick={()=>setStatusFilter(f)}
-                className={"rounded-md px-3 py-1.5 text-xs font-medium transition-colors "+(statusFilter===f?"bg-blue-600 text-white shadow-sm":"text-gray-600 hover:text-gray-900")}>
+                className={"rounded-md px-3 py-1.5 text-xs font-medium transition-colors "+(statusFilter===f?"bg-slate-800 text-white shadow-sm":"text-gray-600 hover:text-gray-900")}>
                 {f==="all"?"All":f==="in_progress"?"In Progress":"Resolved"}
               </button>
             ))}
@@ -287,7 +346,7 @@ export default function DiscussionsPage() {
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-xs text-gray-500">Sort:</span>
             <select value={sortMode} onChange={e=>setSortMode(e.target.value as SortMode)}
-              className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none focus:border-blue-500">
+              className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none focus:border-slate-400">
               <option value="newest">Newest</option>
               <option value="oldest">Oldest</option>
               <option value="most_liked">Most Liked</option>
@@ -302,13 +361,13 @@ export default function DiscussionsPage() {
             <svg className="mx-auto mb-4 h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
             <h3 className="text-base font-medium text-gray-900">No discussions yet</h3>
             <p className="mt-2 text-sm text-gray-500">Be the first to start a discussion.</p>
-            <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-all hover:-translate-y-0.5 hover:shadow-md">Start a Discussion</button>
+            <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="mt-4 inline-flex items-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 transition-all hover:-translate-y-0.5 hover:shadow-md">Start a Discussion</button>
           </div>
         )}
         {!loading&&!error&&sortedEntries.length>0&&(
         <>
           <div className="space-y-3">
-            {sortedEntries.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).map(entry=>{
+            {sortedEntries.slice((currentPage-1)*pageSize, currentPage*pageSize).map(entry=>{
               const replyCount = commentCounts[entry.id]||0;
               const activityTime = lastActivity[entry.id]||entry.created_at;
               const preview = truncateText(entry.message, 120);
@@ -317,10 +376,10 @@ export default function DiscussionsPage() {
                 <Link key={entry.id} href={"/discussions/"+entry.id}
                   className="block rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-gray-200 transition-all">
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-semibold text-white">{getInitials(entry.display_name)}</div>
+                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(entry.display_name); setProfileCardUserId(entry.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-semibold text-white hover:ring-2 hover:ring-blue-300 transition-all cursor-pointer">{getInitials(entry.display_name)}</button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center flex-wrap gap-2 mb-1.5">
-                        <h3 className="text-base font-semibold text-gray-900 hover:text-blue-700 truncate">{entry.title?renderInlineText(entry.title, "t-"+entry.id):"Untitled Discussion"}</h3>
+                        <h3 className="text-base font-semibold text-gray-900 hover:text-teal-700 truncate">{entry.title?renderInlineText(entry.title, "t-"+entry.id):"Untitled Discussion"}</h3>
                         {entry.affiliation && <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">{entry.affiliation}</span>}
                         {isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"><svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>Resolved</span>}
                         {!isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">In Progress</span>}
@@ -332,37 +391,57 @@ export default function DiscussionsPage() {
                               <span>{entry.display_name}</span>
                               {entry.user_id && <BadgeDisplay userId={entry.user_id} />}
                             </div>
-                            <span>·</span>
+                            <span>�</span>
                         <span>{formatTimeAgo(entry.created_at)}</span>
-                        {likeCounts[entry.id]>0&&<><span className="text-red-500">♥</span><span className="text-red-500"> {likeCounts[entry.id]}</span></>}
+                        {likeCounts[entry.id]>0&&<><span className="text-red-500">?</span><span className="text-red-500"> {likeCounts[entry.id]}</span></>}
                       </div>
                     </div>
-                    <div className="flex-shrink-0 flex flex-col items-end gap-1 text-right">
+                    <div className="flex-shrink-0 flex items-center gap-4 text-right">
+                    {/* Votes */}
+                    <div className="flex flex-col items-center min-w-[48px]">
+                      <span className="text-lg font-bold text-gray-900">{likeCounts[entry.id]||0}</span>
+                      <span className="text-[10px] text-gray-400 uppercase tracking-wide">Votes</span>
+                    </div>
+                    {/* Replies */}
+                    <div className="flex flex-col items-center min-w-[48px]">
+                      <span className="text-lg font-bold text-gray-900">{replyCount}</span>
+                      <span className="text-[10px] text-gray-400 uppercase tracking-wide">Replies</span>
+                    </div>
+                    {/* Views */}
+                    <div className="flex flex-col items-center min-w-[48px]">
+                      <span className="text-lg font-bold text-gray-900">-</span>
+                      <span className="text-[10px] text-gray-400 uppercase tracking-wide">Views</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-1 text-sm font-medium text-gray-700">
                         <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                         <span>{replyCount}</span>
                       </div>
                       <span className="text-xs text-gray-500">{formatTimeAgo(activityTime)}</span>
                     </div>
+                    </div>
                   </div>
                 </Link>
               );
             })}
           </div>
-          {/* Pagination footer */}
-          {sortedEntries.length > ITEMS_PER_PAGE && (
+          {/* Pagination footer with page size toggle */}
+          {sortedEntries.length > pageSize && (
             <div className="flex items-center justify-between border-t border-gray-100 bg-white rounded-b-2xl px-4 py-3 mt-3">
               <div className="text-xs text-gray-500">
-                Showing {((currentPage-1)*ITEMS_PER_PAGE)+1}–{Math.min(currentPage*ITEMS_PER_PAGE, sortedEntries.length)} of {sortedEntries.length} discussions
+                <div className="flex items-center gap-3"><span className="text-xs text-gray-500">Show:</span><select value={pageSize} onChange={e=>{setPageSize(Number(e.target.value));setCurrentPage(1);}} className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-slate-400"><option value={20}>20</option><option value={50}>50</option></select></div>
+              <div className="text-xs text-gray-500">
+                Showing {((currentPage-1)*pageSize)+1}�{Math.min(currentPage*pageSize, sortedEntries.length)} of {sortedEntries.length} discussions
+              </div>
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1} className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                   <svg className="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>Prev
                 </button>
-                {Array.from({length:Math.ceil(sortedEntries.length/ITEMS_PER_PAGE)},(_,i)=>i+1).map(p=>(
-                  <button key={p} onClick={()=>setCurrentPage(p)} className={"inline-flex items-center justify-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors "+(p===currentPage?"bg-blue-600 text-white":"border border-gray-200 bg-white text-gray-700 hover:bg-gray-50")}>{p}</button>
+                {Array.from({length:Math.ceil(sortedEntries.length/pageSize)},(_,i)=>i+1).map(p=>(
+                  <button key={p} onClick={()=>setCurrentPage(p)} className={"inline-flex items-center justify-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors "+(p===currentPage?"bg-slate-800 text-white":"border border-gray-200 bg-white text-gray-700 hover:bg-gray-50")}>{p}</button>
                 ))}
-                <button onClick={()=>setCurrentPage(p=>Math.min(Math.ceil(sortedEntries.length/ITEMS_PER_PAGE),p+1))} disabled={currentPage>=Math.ceil(sortedEntries.length/ITEMS_PER_PAGE)} className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                <button onClick={()=>setCurrentPage(p=>Math.min(Math.ceil(sortedEntries.length/pageSize),p+1))} disabled={currentPage>=Math.ceil(sortedEntries.length/pageSize)} className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                   Next<svg className="h-3.5 w-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
                 </button>
               </div>
@@ -387,21 +466,32 @@ export default function DiscussionsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
                 <input type="text" value={composerForm.title} onChange={e => setComposerForm(p => ({...p, title: e.target.value}))} required minLength={3}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all"
                   placeholder="What would you like to discuss?" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
                   <input type="text" value={composerForm.displayName} onChange={e => setComposerForm(p => ({...p, displayName: e.target.value}))}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all"
                     placeholder={githubUser || "Your name"} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Affiliation</label>
                   <input type="text" value={composerForm.affiliation||""} onChange={e => setComposerForm(p => ({...p, affiliation: e.target.value}))}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all"
                     placeholder="e.g. Peking University" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select value={composerForm.category} onChange={e => setComposerForm(p => ({...p, category: e.target.value}))}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all">
+                    <option value="general">General</option>
+                    <option value="issue">Issue / Bug Report</option>
+                    <option value="idea">Feature Request</option>
+                    <option value="data">Dataset / Data</option>
+                    <option value="collaboration">Collaboration</option>
+                  </select>
                 </div>
               </div>
               <div>
@@ -423,15 +513,15 @@ export default function DiscussionsPage() {
                     ))}
                   </div>
                   <div className="flex items-center gap-1">
-                    <button type="button" onClick={() => setComposerPreview(false)} className={"rounded px-2 py-1 text-xs font-medium transition-colors "+(composerPreview?"text-gray-500 hover:bg-gray-200":"bg-blue-600 text-white")}>Edit</button>
-                    <button type="button" onClick={() => setComposerPreview(true)} className={"rounded px-2 py-1 text-xs font-medium transition-colors "+(composerPreview?"bg-blue-600 text-white":"text-gray-500 hover:bg-gray-200")}>Preview</button>
+                    <button type="button" onClick={() => setComposerPreview(false)} className={"rounded px-2 py-1 text-xs font-medium transition-colors "+(composerPreview?"text-gray-500 hover:bg-gray-200":"bg-slate-800 text-white")}>Edit</button>
+                    <button type="button" onClick={() => setComposerPreview(true)} className={"rounded px-2 py-1 text-xs font-medium transition-colors "+(composerPreview?"bg-slate-800 text-white":"text-gray-500 hover:bg-gray-200")}>Preview</button>
                   </div>
                 </div>
                 {composerPreview ? (
                   <div className="min-h-[200px] rounded-b-lg border border-t-0 border-gray-200 px-4 py-3 text-sm text-gray-700 prose prose-sm max-w-none overflow-y-auto">{composerForm.message.trim() ? renderMarkdown(composerForm.message) : <span className="text-gray-400 italic">Nothing to preview</span>}</div>
                 ) : (
                   <textarea ref={composerRef} value={composerForm.message} onChange={e => setComposerForm(p => ({...p, message: e.target.value}))} required minLength={3} rows={8}
-                    className="w-full rounded-b-lg border border-t-0 border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all resize-y"
+                    className="w-full rounded-b-lg border border-t-0 border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all resize-y"
                     placeholder="Write your message... (Markdown supported)" />
                 )}
               </div>
@@ -441,7 +531,7 @@ export default function DiscussionsPage() {
                   <button type="button" onClick={() => { setShowComposer(false); setComposerError(null); setComposerSuccess(null); }}
                     className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                   <button type="submit" disabled={composerSubmitting}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all disabled:opacity-50">
+                    className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all disabled:opacity-50">
                     {composerSubmitting ? "Posting..." : "Post Discussion"}
                   </button>
                 </div>
@@ -450,6 +540,7 @@ export default function DiscussionsPage() {
           </div>
         </div>
       )}
+      <UserProfileCard open={profileCardOpen} onClose={() => setProfileCardOpen(false)} displayName={profileCardName} userId={profileCardUserId} anchorEl={profileCardAnchor} />
     </div>
   );
 }

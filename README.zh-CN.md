@@ -52,20 +52,6 @@ GalibierHub 当前主要包含五个核心界面：
 
 需要说明的是，当前默认数据结构与界面命名仍然偏向 promoter / genome 的基因组场景。后续 fork 使用者可以自行泛化，但仓库目前仍以基因组数据库模板为主。
 
-### 名字的由来：Col du Galibier
-
-GalibierHub 的名字源自**加利比耶山口 (Col du Galibier)**，法国阿尔卑斯山脉中海拔 2,642 米的传奇山口。过去一个世纪中，这个被列为 HC 级（"不可分级"）的魔鬼赛段始终是环法自行车赛中对人类极限的终极考验——稀薄的空气和残酷的坡度将顶级运动员推向崩溃的边缘。
-
-**为什么是 Galibier？**
-
-1. **稀薄空气 → 高通量算力**：在海拔两千六百米的高山，空气极度稀薄，哪怕最顶级的运动员也会遭遇引擎"爆缸"的危险。这正如处理数万份口腔与肠道微生物样本时所面临的算力高压——庞大的特征矩阵和内存消耗正是系统面临的"稀薄空气"。Galibier 代表着本平台在应对极大规模队列分析和高通量数据分发时，极其强悍的性能底盘与抗压能力。
-
-2. **爬坡手 → 科研探索者**：科研本身就是一场孤独且极具消耗的"爬坡"。从极其原始粗糙的下机序列，到最终精细如艺术品的系统发育树与热图，中间是无数次的数据清洗、除噪与模型迭代。Galibier 致敬那些在枯燥的数据流中默默承受"死死咬住轮流拉扯"、最终在山顶迎来突破的学术攀登者。
-
-3. **Hub → 探索者的大本营**：后缀 Hub（枢纽）意味着科学不该是一场孤军奋战。正如加利比耶山顶为所有完赛者设立的丰碑，GalibierHub 被设计为一个高度互联的基础设施——不仅沉淀了标准化的代码管道与高质量的参考数据集，更为全球的生信开发者提供了一个下载、交流与协同突围的集散中心。
-
-> *"征服微生态数据的海拔极高点。"* — GalibierHub 口号
-
 ### 预览媒体
 
 ![GalibierHub 架构图](./docs/architecture.gif)
@@ -75,6 +61,8 @@ GalibierHub 的名字源自**加利比耶山口 (Col du Galibier)**，法国阿�
 ![GalibierHub 界面与主要功能总览](./docs/media/galibierhub-ui-overview.png)
 
 *README 中使用的界面与主要功能总览图。媒体署名：由 **Gemini 3.1 Pro** 生成。*
+
+*(详细搭建指南、项目命名故事及深度技术讨论，见 [GalibierHub 开发者笔记](https://www.cnblogs.com/Administrator/p/21776736)。)*
 
 ## GalibierHub 当前包含的能力
 
@@ -278,7 +266,7 @@ Cloudflare Pages：
 
 ### Downloads 页面现在支持什么
 
-- 标准面包屑路径导航，例如 `Downloads / galibierhub-data / reference_genomes / scov2`，其中每一级父目录都可点击返回。
+- 标准面包屑路径导航，例如 `Downloads / seqedge-data / reference_genomes / scov2`，其中每一级父目录都可点击返回。
 - 紧凑的控制栏，将目录搜索、`Copy Folder CLI`、`Export Manifest CSV`、README 按钮、批量下载 以及网格/表格视图切换集中在同一层。
 - 适合大目录的表格视图，支持按 `Name`、`Size`、`Updated`、`Actions` 排序。
 - 信息密度更高的卡片视图，在保留视觉浏览体验的同时补充大小与更新时间。
@@ -297,22 +285,22 @@ Cloudflare Pages：
 - 基于 `huggingface.co` 的 `Global (Official)` 断点续传命令
 - 基于 `hf-mirror.com` 的 `Asia-Pacific (Mirror)` 断点续传命令
 
-以 `817-food-biochem-materials.zip` 为例，弹窗会在不改变数据集路径的前提下，同时提供官方线路和亚洲镜像线路。
+以 `scov2.fa` 为例，弹窗会在不改变数据集路径的前提下，同时提供官方线路和亚洲镜像线路。
 
 官方线路：
 
 ```bash
-wget -c -O "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-curl -L -C - -o "817-food-biochem-materials.zip" "https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+wget -c -O "scov2.fa" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
+curl -L -C - -o "scov2.fa" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
+hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
 ```
 
 亚洲镜像线路：
 
 ```bash
-wget -c -O "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-curl -L -C - -o "817-food-biochem-materials.zip" "https://hf-mirror.com/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip?download=true"
-HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+wget -c -O "scov2.fa" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
+curl -L -C - -o "scov2.fa" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
+HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
 ```
 
 这样做的目的，是让站点展示的不是名义上的下载入口，而是真正更贴近不同地区网络条件的可执行交付路径。
@@ -329,8 +317,8 @@ HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/galibierhub-data 81
 
 不要使用包含 `/blob/main/` 的 Hugging Face 页面链接。
 
-- 页面链接示例：`https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/blob/main/817-food-biochem/817-food-biochem-materials.zip`
-- 文件直链示例：`https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip`
+- 页面链接示例：`https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/blob/main/scov2.fa`
+- 文件直链示例：`https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa`
 
 GalibierHub 现在会自动把常见的 Hugging Face `blob` 链接规范化成 `resolve` 链接，但数据库和环境变量里仍建议保存真正的直链 URL。
 
@@ -339,9 +327,9 @@ GalibierHub 现在会自动把常见的 Hugging Face `blob` 链接规范化成 `
 配置特色归档环境变量：
 
 ```bash
-NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download 817 Food Biochem Materials
+NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download scov2 Reference Genome
 NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION=Public Hugging Face dataset package for large-file download, browser delivery, and resume-capable CLI retrieval.
-NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip
+NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa
 NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 ```
@@ -364,7 +352,7 @@ NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 
 ```sql
 update genome_samples
-set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip'
+set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa'
 where sample_id = 'CNhs10881';
 ```
 
@@ -387,10 +375,10 @@ insert into download_metadata (
   sha256_checksum
 )
 values (
-  'https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data/resolve/main/817-food-biochem/817-food-biochem-materials.zip',
-  '817 Food Biochem Materials',
+  'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa',
+  'scov2 Reference Genome',
   'Public Hugging Face dataset package exposed through the GalibierHub unified download modal.',
-  'Archive (zip)',
+  'FASTA (.fa)',
   734003200,
   'public_url',
   false,
@@ -418,7 +406,7 @@ on conflict (download_key) do update set
 
 ### 如何上传数据到 Hugging Face
 
-GalibierHub 的大体量文件，例如发布归档、参考序列包和样本级文件，默认托管在 Hugging Face dataset 仓库 `https://huggingface.co/datasets/Helloxiaolaodi/galibierhub-data`。
+GalibierHub 的大体量文件，例如发布归档、参考序列包和样本级文件，默认托管在 Hugging Face dataset 仓库 `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`。
 
 #### 1. 安装 CLI
 
@@ -450,7 +438,7 @@ hf upload <用户名/数据集名> <本地路径> <仓库内目标路径> --repo
 示例：
 
 ```bash
-hf upload Helloxiaolaodi/galibierhub-data "E:\data\817-food-biochem-materials.zip" "817-food-biochem/817-food-biochem-materials.zip" --repo-type dataset
+hf upload Helloxiaolaodi/seqedge-data "E:\data\scov2.fa" "scov2.fa" --repo-type dataset
 ```
 
 #### 4. 断点续传
@@ -492,7 +480,7 @@ curl -I https://huggingface.co
 
 ```bash
 pip install -q "huggingface_hub"
-hf download Helloxiaolaodi/galibierhub-data 817-food-biochem/817-food-biochem-materials.zip --repo-type dataset --local-dir .
+hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
 ```
 
 传统命令也支持断点续传：
@@ -535,7 +523,10 @@ GalibierHub 内置了轻量研究交流区：
 - 支持排序，包括 `Most liked` 视图。
 - 左侧统计区已压缩为紧凑徽标样式，把更多横向空间让给讨论标题和较长的技术日志内容。
 - 每一条讨论留言和每一个后续评论都会在站内同一条 discussion 视图下显示出来。
-- 管理员回复会直接显示在站内，并以内联方式出现在对应 discussion 中。
+- - **World Clock**: 全球时区命令面板 (Ctrl+K)，默认展示主要科研枢纽城市时间，支持全文搜索城市/时区，并在讨论详情页侧边栏提供小组件。
+- **Auth System**: 双通道认证系统，同时支持 GitHub OAuth 和邮箱/密码登录，集成 Turnstile 人机验证，拆分 Log In / Sign Up 独立入口，讨论回复草稿自动保存至 localStorage。
+
+管理员回复会直接显示在站内，并以内联方式出现在对应 discussion 中。
 - 访客后续评论会写入 `feedback_comments`，并在展开 discussion 后显示在页面中。
 - 管理员登录后可以在 `In progress` 和 `Completed` 两个区域中置顶或取消置顶 discussion，也可以隐藏、显示或永久删除 discussion。
 - 管理员还可以对单条后续回复执行隐藏、显示和删除操作。

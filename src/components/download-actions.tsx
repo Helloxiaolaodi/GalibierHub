@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   buildDownloadResolvedInfo,
   DEFAULT_DOWNLOAD_METADATA,
@@ -95,7 +96,9 @@ export default function DownloadActions({
   const [hfMeta, setHfMeta] = useState<FileMeta>({ size: null, sha256: null, loading: false });
   const [dbMeta, setDbMeta] = useState<DownloadMetadataPayload>(DEFAULT_DOWNLOAD_METADATA);
   const [resolvedInfo, setResolvedInfo] = useState<DownloadResolvedInfo | null>(null);
-  const [unlocked, setUnlocked] = useState(false);
+    const [activeTab, setActiveTab] = useState<'download'|'preview'|'checksum'|'cite'|'tutorial'|'script'>('download');
+  const [filePreview, setFilePreview] = useState<{loading:boolean;content:string|null;error:string|null}>({loading:false,content:null,error:null});
+const [unlocked, setUnlocked] = useState(false);
   const [pwInput, setPwInput] = useState('');
   const [pwError, setPwError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -338,7 +341,7 @@ export default function DownloadActions({
               type="button"
               onClick={() => void handleBrowserDownload()}
               disabled={downloading || (hidden && !isAdmin)}
-              className={`inline-flex items-center justify-center rounded-lg bg-blue-600 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 ${compact ? 'min-w-[7.25rem] px-3 py-2' : 'min-w-[9rem] px-4 py-2'}`}
+              className={`inline-flex items-center justify-center rounded-lg bg-slate-800 text-sm font-medium text-white transition-colors hover:bg-slate-900 disabled:opacity-50 ${compact ? 'min-w-[7.25rem] px-3 py-2' : 'min-w-[9rem] px-4 py-2'}`}
             >
               {downloading ? 'Preparing...' : label}
             </button>
@@ -357,7 +360,7 @@ export default function DownloadActions({
           <button
             type="button"
             onClick={() => void toggleHiddenQuickly()}
-            className="inline-flex min-w-[8rem] items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
+            className="inline-flex min-w-[8rem] items-center justify-center rounded-lg border border-slate-200 bg-teal-50 px-4 py-2 text-sm font-medium text-teal-700 transition-colors hover:bg-teal-100"
           >
             {hidden ? 'Show to visitors' : 'Hide from visitors'}
           </button>
@@ -383,7 +386,7 @@ export default function DownloadActions({
               <div className="space-y-3 rounded border border-gray-100 bg-gray-50 p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold text-gray-900 break-all">{effectiveInfo.file_name}</span>
-                  <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">{effectiveInfo.file_type}</span>
+                  <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">{effectiveInfo.file_type}</span>
                   {displaySize && <span className="rounded bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700">{displaySize}</span>}
                   <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{dbMeta.download_count} downloads</span>
                   <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{effectiveInfo.access_mode === 'supabase_private' ? 'Private URL' : 'Public URL'}</span>
@@ -400,10 +403,19 @@ export default function DownloadActions({
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">SHA-256:</span>
                     <code className="block max-w-full truncate font-mono text-xs text-gray-700">{effectiveInfo.sha256_checksum || 'Unavailable'}</code>
-                    {effectiveInfo.sha256_checksum && <button type="button" onClick={() => handleCopy('sha256', effectiveInfo.sha256_checksum)} className="text-xs text-blue-600 hover:underline">{copied === 'sha256' ? 'Copied' : 'Copy SHA-256'}</button>}
+                    {effectiveInfo.sha256_checksum && <button type="button" onClick={() => handleCopy('sha256', effectiveInfo.sha256_checksum)} className="text-xs text-teal-600 hover:underline">{copied === 'sha256' ? 'Copied' : 'Copy SHA-256'}</button>}
                   </div>
                 </div>
-              </div>
+              
+              {/* Tab Navigation */}
+              <div className="flex border-b border-gray-200 -mx-5 px-5">
+                {(['download','preview','checksum','cite','tutorial','script'] as const).map(tab => (
+                  <button key={tab} onClick={() => setActiveTab(tab)}
+                    className={"px-4 py-2 text-xs font-medium border-b-2 transition-colors " + (activeTab === tab ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")}>
+                    {tab === 'download' ? 'Download & CLI' : tab === 'preview' ? 'File Preview' : tab === 'checksum' ? 'Checksum' : tab === 'cite' ? 'Cite' : tab === 'tutorial' ? 'Tutorials' : 'Batch Script'}
+                  </button>
+                ))}
+              </div></div>
 
               {hidden && !isAdmin && (
                 <p className="text-sm text-gray-500">This file is not publicly available.</p>
@@ -414,13 +426,13 @@ export default function DownloadActions({
                   <label className="block text-sm font-medium text-gray-700">Password required</label>
                   <input type="password" value={pwInput} onChange={(event) => setPwInput(event.target.value)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" placeholder="Enter password" />
                   {pwError && <p className="text-xs text-red-600">{pwError}</p>}
-                  <button type="button" onClick={verifyPassword} className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Unlock</button>
+                  <button type="button" onClick={verifyPassword} className="rounded bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Unlock</button>
                 </div>
               )}
 
-              {(linksVisible || isAdmin) && (
+              {activeTab === "download" && (linksVisible || isAdmin) && (
                 <>
-                  <button type="button" onClick={handleBrowserDownload} disabled={downloading || directUrlInvalid} className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50">{downloading ? 'Preparing...' : 'Download'}</button>
+                  <button type="button" onClick={handleBrowserDownload} disabled={downloading || directUrlInvalid} className="inline-flex w-full items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-900 disabled:opacity-50">{downloading ? 'Preparing...' : 'Download'}</button>
 
                   {directUrlInvalid && (
                     <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
@@ -436,19 +448,19 @@ export default function DownloadActions({
                     ) : publicRouteAvailable ? (
                       <div className="space-y-3">
                         {(effectiveInfo.public_url || effectiveInfo.mirror_public_url) && (
-                          <div className="space-y-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-3">
+                          <div className="space-y-3 rounded-md border border-slate-200 bg-teal-50 px-3 py-3">
                             <div className="flex flex-wrap items-center justify-between gap-3">
                               <div>
                                 <div className="text-sm font-medium text-blue-900">Regional download routing</div>
-                                <div className="text-xs text-blue-800">
+                                <div className="text-xs text-slate-800">
                                   Pick the endpoint that matches the downloader network location.
                                 </div>
                               </div>
-                              <div className="inline-flex rounded-lg border border-blue-200 bg-white p-1">
+                              <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
                                 <button
                                   type="button"
                                   onClick={() => setDownloadRegion('global')}
-                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-700 hover:bg-blue-50'}`}
+                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-slate-800 text-white shadow-sm' : 'text-teal-700 hover:bg-teal-50'}`}
                                 >
                                   Global (Official)
                                 </button>
@@ -461,19 +473,19 @@ export default function DownloadActions({
                                 </button>
                               </div>
                             </div>
-                            <div className={`rounded-md border px-3 py-3 ${downloadRegion === 'apac' ? 'border-emerald-200 bg-emerald-100' : 'border-blue-200 bg-white'}`}>
+                            <div className={`rounded-md border px-3 py-3 ${downloadRegion === 'apac' ? 'border-emerald-200 bg-emerald-100' : 'border-slate-200 bg-white'}`}>
                               <div className="flex items-center justify-between gap-3">
                                 <span className={`text-sm font-medium ${downloadRegion === 'apac' ? 'text-emerald-900' : 'text-blue-900'}`}>
                                   {downloadRegion === 'apac' ? 'Mirror direct URL for Free Download Manager and similar tools' : 'Official direct URL for Free Download Manager and similar tools'}
                                 </span>
-                                <button type="button" onClick={() => handleCopy('public-url', activePublicUrl)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-700' : 'text-blue-700'}`}>{copied === 'public-url' ? 'Copied' : 'Copy direct URL'}</button>
+                                <button type="button" onClick={() => handleCopy('public-url', activePublicUrl)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-700' : 'text-teal-700'}`}>{copied === 'public-url' ? 'Copied' : 'Copy direct URL'}</button>
                               </div>
-                              <p className={`mt-2 text-xs leading-5 ${downloadRegion === 'apac' ? 'text-emerald-800' : 'text-blue-800'}`}>
+                              <p className={`mt-2 text-xs leading-5 ${downloadRegion === 'apac' ? 'text-emerald-800' : 'text-slate-800'}`}>
                                 {downloadRegion === 'apac'
                                   ? 'Optimized routing via community mirrors for faster and more reliable downloads in China and the Asia-Pacific region. Paste this link into Free Download Manager, Motrix, IDM, or another resumable download client.'
                                   : 'Direct downloads from official servers. Paste this public direct link into Free Download Manager, Motrix, IDM, or another resumable download client.'}
                               </p>
-                              <code className={`mt-2 block break-all rounded px-3 py-2 font-mono text-[11px] ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-100 text-emerald-950 ring-emerald-200' : 'bg-blue-50 text-blue-950 ring-blue-100'}`}>{activePublicUrl}</code>
+                              <code className={`mt-2 block break-all rounded px-3 py-2 font-mono text-[11px] ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-100 text-emerald-950 ring-emerald-200' : 'bg-teal-50 text-blue-950 ring-blue-100'}`}>{activePublicUrl}</code>
                             </div>
                           </div>
                         )}
@@ -481,27 +493,27 @@ export default function DownloadActions({
                           <div>
                             <div className="mb-1 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">Linux/macOS: wget (resume)</span>
-                              <button type="button" onClick={() => handleCopy('wget', activeWgetCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-blue-600'}`}>{copied === 'wget' ? 'Copied' : 'Copy'}</button>
+                              <button type="button" onClick={() => handleCopy('wget', activeWgetCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-teal-600'}`}>{copied === 'wget' ? 'Copied' : 'Copy'}</button>
                             </div>
-                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-blue-50 text-blue-950 ring-blue-100'}`}>{activeWgetCommand}</code>
+                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-teal-50 text-blue-950 ring-blue-100'}`}>{activeWgetCommand}</code>
                           </div>
                         )}
                         {cliOptionsVisible && activeCurlCommand && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">Windows/Linux/macOS: curl (resume)</span>
-                              <button type="button" onClick={() => handleCopy('curl', activeCurlCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-blue-600'}`}>{copied === 'curl' ? 'Copied' : 'Copy'}</button>
+                              <button type="button" onClick={() => handleCopy('curl', activeCurlCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-teal-600'}`}>{copied === 'curl' ? 'Copied' : 'Copy'}</button>
                             </div>
-                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-blue-50 text-blue-950 ring-blue-100'}`}>{activeCurlCommand}</code>
+                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-teal-50 text-blue-950 ring-blue-100'}`}>{activeCurlCommand}</code>
                           </div>
                         )}
                         {cliOptionsVisible && activeHfCliCommand && (
                           <div>
                             <div className="mb-1 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">{downloadRegion === 'apac' ? 'CLI (mirror endpoint)' : 'CLI (recommended)'}</span>
-                              <button type="button" onClick={() => handleCopy('hf', activeHfCliCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-blue-600'}`}>{copied === 'hf' ? 'Copied' : 'Copy'}</button>
+                              <button type="button" onClick={() => handleCopy('hf', activeHfCliCommand)} className={`text-xs hover:underline ${downloadRegion === 'apac' ? 'text-emerald-600' : 'text-teal-600'}`}>{copied === 'hf' ? 'Copied' : 'Copy'}</button>
                             </div>
-                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-blue-50 text-blue-950 ring-blue-100'}`}>{activeHfCliCommand}</code>
+                            <code className={`block rounded px-3 py-2 font-mono text-xs ring-1 ${downloadRegion === 'apac' ? 'bg-emerald-50 text-emerald-950 ring-emerald-100' : 'bg-teal-50 text-blue-950 ring-blue-100'}`}>{activeHfCliCommand}</code>
                           </div>
                         )}
                         {activeRegionHint && <p className="text-xs text-gray-500">{activeRegionHint}</p>}
@@ -513,16 +525,180 @@ export default function DownloadActions({
                 </>
               )}
 
-              {isAdmin && (
+              
+              {/* File Preview Tab */}
+              {activeTab === "preview" && (linksVisible || isAdmin) && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600">Preview the first ~2KB of this file (text-based formats only).</p>
+                  <button type="button" onClick={async () => {
+                    setFilePreview({loading:true,content:null,error:null});
+                    try {
+                      const resp = await fetch(effectiveInfo.public_url || effectiveInfo.mirror_public_url || url, { headers: { Range: "bytes=0-2047" } });
+                      if (!resp.ok) throw new Error("Preview not available");
+                      const text = await resp.text();
+                      setFilePreview({loading:false,content:text.slice(0,2048),error:null});
+                    } catch (e) {
+                      setFilePreview({loading:false,content:null,error: e instanceof Error ? e.message : "Preview failed"});
+                    }
+                  }} disabled={filePreview.loading} className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50">
+                    {filePreview.loading ? "Loading..." : "Fetch Preview"}
+                  </button>
+                  {filePreview.error && <p className="text-xs text-red-600">{filePreview.error}</p>}
+                  {filePreview.content && (
+                    <pre className="max-h-64 overflow-auto rounded-lg border border-gray-200 bg-slate-50 p-3 text-xs font-mono text-gray-700 whitespace-pre-wrap">{filePreview.content}</pre>
+                  )}
+                  <p className="text-xs text-gray-400">Transfers only the first 2KB via HTTP Range request. Large binary files (.bam, .h5ad, .zip) will not preview correctly.</p>
+                </div>
+              )}
+
+              {/* Checksum Tab */}
+              {activeTab === "checksum" && (linksVisible || isAdmin) && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-gray-800">File Integrity Verification</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-xs font-medium text-gray-600">SHA-256:</span>
+                      <code className="ml-2 block max-w-full break-all rounded px-2 py-1 font-mono text-xs bg-slate-50 text-slate-800 ring-1 ring-slate-200">{effectiveInfo.sha256_checksum || "Unavailable"}</code>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-gray-600">MD5:</span>
+                      <code className="ml-2 block max-w-full break-all rounded px-2 py-1 font-mono text-xs bg-slate-50 text-slate-800 ring-1 ring-slate-200">{dbMeta.md5_checksum || "Unavailable"}</code>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400">Use the verification commands in the Download tab to confirm file integrity after transfer.</p>
+                </div>
+              )}
+
+              {/* Citation Tab */}
+              {activeTab === "cite" && (linksVisible || isAdmin) && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-gray-800">Cite this Dataset</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-600">BibTeX</span>
+                        <button type="button" onClick={() => handleCopy('cite-bibtex', `@dataset{${effectiveInfo.file_name.replace(/[^a-zA-Z0-9]/g,'_')},\n  author = {GalibierHub},\n  title = {${effectiveInfo.file_name}},\n  year = {${new Date().getFullYear()}},\n  publisher = {GalibierHub},\n  url = {${url}}\n}`)} className="text-xs text-teal-600 hover:underline">{copied === 'cite-bibtex' ? 'Copied' : 'Copy'}</button>
+                      </div>
+                      <pre className="rounded bg-slate-50 p-2 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap">@dataset{"{"}{effectiveInfo.file_name.replace(/[^a-zA-Z0-9]/g,"_")},{"\n"}  author = {"{"}GalibierHub{"}"},{"\n"}  title = {"{"}{effectiveInfo.file_name}{"}"},{"\n"}  year = {"{"}{new Date().getFullYear()}{"}"},{"\n"}  publisher = {"{"}GalibierHub{"}"},{"\n"}  url = {"{"}{url}{"}"},{"\n"}{"}"}</pre>
+                    </div>
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-600">APA</span>
+                        <button type="button" onClick={() => handleCopy('cite-apa', `GalibierHub. (${new Date().getFullYear()}). ${effectiveInfo.file_name} [Data set]. ${url}`)} className="text-xs text-teal-600 hover:underline">{copied === 'cite-apa' ? 'Copied' : 'Copy'}</button>
+                      </div>
+                      <pre className="rounded bg-slate-50 p-2 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap">GalibierHub. ({new Date().getFullYear()}). {effectiveInfo.file_name} [Data set]. {url}</pre>
+                    </div>
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-600">Plain Text</span>
+                        <button type="button" onClick={() => handleCopy('cite-plain', `${effectiveInfo.file_name} - GalibierHub (${new Date().getFullYear()}). Available at: ${url}`)} className="text-xs text-teal-600 hover:underline">{copied === 'cite-plain' ? 'Copied' : 'Copy'}</button>
+                      </div>
+                      <pre className="rounded bg-slate-50 p-2 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap">{effectiveInfo.file_name} - GalibierHub ({new Date().getFullYear()}). Available at: {url}</pre>
+                    </div>
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-600">RIS</span>
+                        <button type="button" onClick={() => handleCopy('cite-ris', `TY  - DATA\nTI  - ${effectiveInfo.file_name}\nAU  - GalibierHub\nPY  - ${new Date().getFullYear()}\nPB  - GalibierHub\nUR  - ${url}\nER  - `)} className="text-xs text-teal-600 hover:underline">{copied === 'cite-ris' ? 'Copied' : 'Copy'}</button>
+                      </div>
+                      <pre className="rounded bg-slate-50 p-2 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap">{`TY  - DATA\nTI  - ${effectiveInfo.file_name}\nAU  - GalibierHub\nPY  - ${new Date().getFullYear()}\nPB  - GalibierHub\nUR  - ${url}\nER  - `}</pre>
+                    </div>
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-600">DataCite</span>
+                        <button type="button" onClick={() => handleCopy('cite-datacite', `<?xml version="1.0" encoding="UTF-8"?>\n<resource xmlns="http://datacite.org/schema/kernel-4">\n  <identifier identifierType="URL">${url}</identifier>\n  <titles><title>${effectiveInfo.file_name}</title></titles>\n  <publisher>GalibierHub</publisher>\n  <publicationYear>${new Date().getFullYear()}</publicationYear>\n</resource>`)} className="text-xs text-teal-600 hover:underline">{copied === 'cite-datacite' ? 'Copied' : 'Copy'}</button>
+                      </div>
+                      <pre className="rounded bg-slate-50 p-2 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap">{`<?xml version="1.0" encoding="UTF-8"?>\n<resource xmlns="http://datacite.org/schema/kernel-4">\n  <identifier identifierType="URL">${url}</identifier>\n  <titles><title>${effectiveInfo.file_name}</title></titles>\n  <publisher>GalibierHub</publisher>\n  <publicationYear>${new Date().getFullYear()}</publicationYear>\n</resource>`}</pre>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Linked Tutorials Tab */}
+              {activeTab === "tutorial" && (linksVisible || isAdmin) && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-gray-800">Related Discussions & Tutorials</h4>
+                  <p className="text-sm text-gray-600">Find community tutorials and official guides for using this dataset in your analysis pipeline.</p>
+                  <div className="grid gap-2">
+                    <a href={"/discussions?tag=tutorial&topic=" + encodeURIComponent(effectiveInfo.file_name)} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 hover:border-slate-300 hover:shadow-sm transition-all">
+                      <svg className="h-5 w-5 text-teal-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">View all Tutorials</div>
+                        <div className="text-xs text-gray-500">Browse community guides and official documentation</div>
+                      </div>
+                    </a>
+                    <a href={"/discussions?tag=tutorial&topic=download&category=data"} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 hover:border-slate-300 hover:shadow-sm transition-all">
+                      <svg className="h-5 w-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Download & CLI Usage Guide</div>
+                        <div className="text-xs text-gray-500">How to use wget/curl/aria2c for batch downloads</div>
+                      </div>
+                    </a>
+                    <a href={"/discussions?tag=tutorial&topic=pipeline&category=data"} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 hover:border-slate-300 hover:shadow-sm transition-all">
+                      <svg className="h-5 w-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Pipeline Integration Guide</div>
+                        <div className="text-xs text-gray-500">Load datasets into QIIME 2, MaAsLin3, and HPC clusters</div>
+                      </div>
+                    </a>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-teal-50 p-3">
+                    <p className="text-xs text-slate-700">Have questions about this directory? <Link href="/discussions?category=data" className="font-medium text-teal-700 underline hover:no-underline">Ask in Discussions</Link></p>
+                  </div>
+                </div>
+              )}
+
+              {/* Batch Script Tab */}
+              {activeTab === "script" && (linksVisible || isAdmin) && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-gray-800">Batch Download Script Generator</h4>
+                  <p className="text-sm text-gray-600">Generate optimized download scripts for high-performance computing and cluster environments.</p>
+                  <div className="space-y-4">
+                    {/* aria2c */}
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-gray-700">aria2c (multi-threaded)</span>
+                        <button type="button" onClick={() => handleCopy('script-aria2c', `aria2c -x 16 -s 16 -c "${activePublicUrl}" -o "${effectiveInfo.file_name}"\n# -x 16: max 16 connections per server\n# -s 16: split file into 16 chunks\n# -c : continue/resume partial download`)} className="text-xs text-teal-600 hover:underline">{copied === 'script-aria2c' ? 'Copied!' : 'Copy'}</button>
+                      </div>
+                      <pre className="rounded bg-slate-50 p-3 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap overflow-x-auto">{`aria2c -x 16 -s 16 -c "${activePublicUrl}" -o "${effectiveInfo.file_name}"\n# -x 16: max 16 connections per server\n# -s 16: split file into 16 chunks\n# -c : continue/resume partial download`}</pre>
+                    </div>
+                    {/* wget batch */}
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-gray-700">wget -i batch list</span>
+                        <button type="button" onClick={() => handleCopy('script-wget', `# Save URL list to urls.txt:\necho "${activePublicUrl}" > urls.txt\n# Download all files in list:\nwget -c -i urls.txt`)} className="text-xs text-teal-600 hover:underline">{copied === 'script-wget' ? 'Copied!' : 'Copy'}</button>
+                      </div>
+                      <pre className="rounded bg-slate-50 p-3 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap overflow-x-auto">{`# Save URL list to urls.txt:\necho "${activePublicUrl}" > urls.txt\n# Download all files in list:\nwget -c -i urls.txt`}</pre>
+                    </div>
+                    {/* Python requests */}
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-gray-700">Python (requests)</span>
+                        <button type="button" onClick={() => handleCopy('script-python', `import requests\n\nurl = "${activePublicUrl}"\noutput = "${effectiveInfo.file_name}"\n\nwith requests.get(url, stream=True) as r:\n    r.raise_for_status()\n    with open(output, 'wb') as f:\n        for chunk in r.iter_content(chunk_size=8192):\n            f.write(chunk)\n\nprint(f"Downloaded: {output}")`)} className="text-xs text-teal-600 hover:underline">{copied === 'script-python' ? 'Copied!' : 'Copy'}</button>
+                      </div>
+                      <pre className="rounded bg-slate-50 p-3 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap overflow-x-auto">{`import requests\n\nurl = "${activePublicUrl}"\noutput = "${effectiveInfo.file_name}"\n\nwith requests.get(url, stream=True) as r:\n    r.raise_for_status()\n    with open(output, 'wb') as f:\n        for chunk in r.iter_content(chunk_size=8192):\n            f.write(chunk)\n\nprint(f"Downloaded: {output}")`}</pre>
+                    </div>
+                    {/* R download.file */}
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-gray-700">R (download.file)</span>
+                        <button type="button" onClick={() => handleCopy('script-r', `url <- "${activePublicUrl}"\noutput <- "${effectiveInfo.file_name}"\n\ndownload.file(url, destfile = output, method = "auto", mode = "wb")\ncat("Downloaded:", output, "\\n")`)} className="text-xs text-teal-600 hover:underline">{copied === 'script-r' ? 'Copied!' : 'Copy'}</button>
+                      </div>
+                      <pre className="rounded bg-slate-50 p-3 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap overflow-x-auto">{`url <- "${activePublicUrl}"\noutput <- "${effectiveInfo.file_name}"\n\ndownload.file(url, destfile = output, method = "auto", mode = "wb")\ncat("Downloaded:", output, "\\n")`}</pre>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400">These scripts are generated from the current URL. For batch downloading multiple files, copy the pipeline template from the Tutorials tab.</p>
+                </div>
+              )}
+{isAdmin && (
                 <div className="space-y-3 rounded border border-amber-200 bg-amber-50/40 p-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-amber-800">Administrator controls</span>
                     {!editing ? (
-                      <button type="button" onClick={startEdit} className="text-xs text-blue-600 hover:underline">Edit metadata</button>
+                      <button type="button" onClick={startEdit} className="text-xs text-teal-600 hover:underline">Edit metadata</button>
                     ) : (
                       <div className="flex gap-2">
                         <button type="button" onClick={saveEdit} className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700">Save</button>
-                        <button type="button" onClick={() => setEditing(false)} className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-700 hover:bg-blue-100">Cancel</button>
+                        <button type="button" onClick={() => setEditing(false)} className="rounded border border-slate-200 bg-teal-50 px-3 py-1 text-xs text-teal-700 hover:bg-teal-100">Cancel</button>
                       </div>
                     )}
                   </div>

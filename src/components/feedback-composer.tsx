@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import TurnstileWidget from '@/components/turnstile-widget';
 import { renderMarkdown } from '@/lib/markdown';
 
@@ -367,7 +367,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                <input
                  value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400"
               />
                {validationErrors.title && <span className="text-xs text-red-600">{validationErrors.title}</span>}
               </label>
@@ -376,7 +376,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                <input
                  value={form.displayName}
                 onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400"
               />
                {validationErrors.displayName && <span className="text-xs text-red-600">{validationErrors.displayName}</span>}
               </label>
@@ -385,7 +385,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <input
                 value={form.visitorEmail}
                 onChange={(event) => setForm((current) => ({ ...current, visitorEmail: event.target.value }))}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400"
               />
               </label>
               <label className="space-y-1 text-sm text-gray-700">
@@ -393,7 +393,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 <input
                   value={form.affiliation}
                onChange={(event) => setForm((current) => ({ ...current, affiliation: event.target.value }))}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400"
               />
              </label>
             </div>
@@ -403,7 +403,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <select
                 value={form.visibility}
                 onChange={(event) => setForm((current) => ({ ...current, visibility: event.target.value as VisibilityMode }))}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500"
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400"
               >
                 <option value="public">Public</option>
                 <option value="private">Administrator only</option>
@@ -414,8 +414,8 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <div className="flex items-center justify-between mb-1">
                 <span>Message (required)</span>
                 <div className="flex gap-1">
-                  <button type="button" onClick={() => setPreviewMode(false)} className={!previewMode ? "rounded px-2 py-1 text-xs font-medium text-white bg-blue-600 shadow-sm" : "rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"}>Edit</button>
-                  <button type="button" onClick={() => setPreviewMode(true)} className={previewMode ? "rounded px-2 py-1 text-xs font-medium text-white bg-blue-600 shadow-sm" : "rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"}>Preview</button>
+                  <button type="button" onClick={() => setPreviewMode(false)} className={!previewMode ? "rounded px-2 py-1 text-xs font-medium text-white bg-slate-800 shadow-sm" : "rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"}>Edit</button>
+                  <button type="button" onClick={() => setPreviewMode(true)} className={previewMode ? "rounded px-2 py-1 text-xs font-medium text-white bg-slate-800 shadow-sm" : "rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"}>Preview</button>
                 </div>
               </div>
               {/* Rich text toolbar */}
@@ -450,7 +450,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                   value={form.message}
                   onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
                   rows={6}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
+                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-400/20"
                 />
               )}
               {!previewMode && uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
@@ -478,7 +478,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                className="inline-flex items-center justify-center rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:bg-blue-300"
               >
                 {submitting ? 'Submitting...' : 'Submit'}
               </button>

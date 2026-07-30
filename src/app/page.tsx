@@ -21,6 +21,7 @@ import { resolveExpectedAdminGithubLogin } from '@/lib/admin-login';
 import UserMenuPanel from '@/components/user-menu-panel';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
+import AuthModal from '@/components/auth-modal';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
 type ActiveTab = 'overview' | 'promoters' | 'genome-browser' | 'discussion' | 'downloads';
 
@@ -73,8 +74,10 @@ export default function HomePage() {
   const [creatorSession, setCreatorSession] = useState<Session | null>(null);
   const [creatorLogin, setCreatorLogin] = useState<string | null>(null);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const expectedAdminLogin = useMemo(
     () => resolveExpectedAdminGithubLogin({ fallbackLabel: SiteConfig.adminGithubLoginFallback }),
     [],
@@ -145,6 +148,8 @@ export default function HomePage() {
         setDataError('Unable to load dashboard metrics from the current data source.');
       });
   }, []);
+
+
 
   const fetchPromoters = useCallback((filters: FiltersType, nextPageIndex: number, nextPageSize: number) => {
     setLoading(true);
@@ -264,6 +269,15 @@ export default function HomePage() {
     expectedAdminLogin &&
     creatorLogin.toLowerCase() === expectedAdminLogin,
   );
+
+  // Fetch total registered users for admin dashboard
+  useEffect(() => {
+    if (!isCreatorAdmin) return;
+    fetch('/api/admin/users')
+      .then((r) => r.json())
+      .then((d) => { if (d?.total_users) setTotalUsers(d.total_users); })
+      .catch(() => {});
+  }, [isCreatorAdmin]);
   const handleCreatorSignIn = useCallback(async () => {
     const supabase = getBrowserSupabase();
     if (!supabase || typeof window === 'undefined') {
@@ -330,7 +344,7 @@ export default function HomePage() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === tab
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? 'bg-slate-800 text-white shadow-sm'
                     : 'text-gray-600 hover:bg-gray-200/60'
                 }`}
               >
@@ -351,11 +365,12 @@ export default function HomePage() {
             ) : creatorSession ? (
               <UserMenuPanel session={creatorSession} githubUser={creatorLogin} isAdmin={isCreatorAdmin} onSignOut={() => void handleCreatorSignOut()} avatarUrl={creatorSession?.user?.user_metadata?.avatar_url as string | undefined} />
             ) : (
-              <button type="button" onClick={() => void handleCreatorSignIn()}
-                className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
+              <button type="button" onClick={() => setAuthModalOpen(true)}
+                className="rounded-lg border border-slate-200 bg-slate-800 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-slate-700"
               >
-                Log in with GitHub
+                Sign in
               </button>
+
             )}
             <NotificationBell session={creatorSession} />
             <button type="button" onClick={() => setGuideOpen((v) => !v)}
@@ -402,11 +417,26 @@ export default function HomePage() {
         {activeTab === 'overview' && (
           <>
             <StatsChart stats={stats} />
+            {isCreatorAdmin && totalUsers !== null && (
+              <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="rounded-lg bg-slate-100 p-3">
+                    <svg className="h-6 w-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Total Registered Users</p>
+                    <p className="text-2xl font-bold text-slate-800">{totalUsers.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            )}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <FlipCard
                 front={
                   <>
-                   <svg className="mb-3 h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <svg className="mb-3 h-10 w-10 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                    </svg>
                    <h3 className="text-lg font-semibold text-gray-900">Search &amp; Discovery</h3>
@@ -426,7 +456,7 @@ export default function HomePage() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setActiveTab('promoters'); }}
-                      className="mt-6 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                      className="mt-6 rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 transition-colors"
                     >
                       Explore Records
                     </button>
@@ -550,13 +580,26 @@ export default function HomePage() {
           </div>
         )}
 {activeTab === 'discussion' && (
+          <>
           <SiteFeedback isAdminHint={isCreatorAdmin} accessToken={creatorAccessToken} creatorLogin={creatorLogin} refreshSignal={feedbackRefreshSignal} onFeedbackSubmitted={() => setFeedbackRefreshSignal((current) => current + 1)} />
+          </>
         )}
         {activeTab === 'downloads' && (
+          <>
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Data Downloads</h2>
+              <Link href="/discussions?tag=tutorial" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-100 transition-colors">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                Tutorials
+              </Link>
+            </div>
+          </div>
           <DownloadCatalogPanel
             isAdmin={isCreatorAdmin}
             accessToken={creatorAccessToken}
           />
+          </>
         )}
       </main>
       {selectedPromoter && (
@@ -572,6 +615,9 @@ export default function HomePage() {
        />
       )}
       <SiteUptime startAt={SiteConfig.uptime.startAt} />
+          <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} onSignInError={(msg) => setCreatorSignInError(msg)} />
     </div>
   );
 }
+
+

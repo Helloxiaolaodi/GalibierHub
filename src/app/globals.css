@@ -1,107 +1,80 @@
-@import url("tailwindcss");
+﻿@import "tailwindcss";
 
 :root {
-  --color-bg-base: #F5F5F7;
-  --color-bg-surface: #ffffff;
-  --color-bg-elevated: #f3f4f6;
-  --color-bg-header: #ffffff;
-  --color-border: #e5e7eb;
-  --color-border-light: #f3f4f6;
-  --color-text-primary: #111827;
-  --color-text-secondary: #4b5563;
-  --color-text-muted: #9ca3af;
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
-  --color-background: #F5F5F7;
-  --color-foreground: #111827;
+  --color-primary: #1E293B;
+  --color-primary-light: #334155;
+  --color-primary-dark: #0F172A;
+  --color-accent: #0D9488;
+  --color-accent-light: #14B8A6;
+  --color-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-text: #1E293B;
+  --color-text-muted: #64748B;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+  --color-info: #0284C7;
 }
 
-/* === macOS-inspired global refinements === */
+@theme inline {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text);
+}
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.01em;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
-code, pre, .font-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+/* Alpine Geek Theme Overrides */
+.btn-primary {
+  background-color: var(--color-primary) !important;
+  color: white !important;
+}
+.btn-primary:hover {
+  background-color: var(--color-primary-dark) !important;
 }
 
-/* Mac-style slim translucent scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* KaTeX overrides */
+.katex { font-size: 1.1em !important; }
+.katex-display { overflow-x: auto; padding: 0.5rem 0; }
+.katex-display > .katex { white-space: normal; }
+
+/* Markdown content styles */
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+.markdown-content th, .markdown-content td {
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
 }
-::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.4);
-  border-radius: 20px;
+.markdown-content th {
+  background: #F1F5F9;
+  font-weight: 600;
 }
-::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(107, 114, 128, 0.5);
+.markdown-content tr:nth-child(even) {
+  background: #F8FAFC;
 }
 
-/* Glass-morphism utility */
-.glass {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-}
-
-/* Soft card shadow */
-.card-mac {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 18px;
-}
-
-/* Subtle button polish */
-.btn-mac {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: all 0.15s ease;
-}
-.btn-mac:active {
-  transform: scale(0.98);
-}
-
-/* Smooth focus ring for inputs */
-input:focus, textarea:focus, select:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-
-/* Table row hover effect */
-.promoter-row-hover:hover {
-  background-color: #eff6ff;
-  cursor: pointer;
-}
+/* Scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
 /* Skeleton loading */
-@keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
 .skeleton {
-  background: linear-gradient(90deg, var(--color-bg-elevated) 25%, var(--color-border-light) 50%, var(--color-bg-elevated) 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.5s infinite linear;
+  background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
-
-/* Disable transitions utility */
-*, *::before, *::after {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 200ms;
-  transition-timing-function: ease-in-out;
-}
-button, input, select, textarea, a, svg, img, canvas, video {
-  transition-duration: 150ms;
-}
-.no-transitions *, .no-transitions *::before, .no-transitions *::after {
-  transition: none !important;
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

@@ -1,4 +1,4 @@
-// Genome sample metadata
+﻿// Genome sample metadata
 export interface GenomeSample {
   id: string;
   sample_id: string;
@@ -94,6 +94,8 @@ export interface SiteFeedbackEntry {
   created_at: string;
   pinned?: boolean;
   hidden?: boolean;
+  locked?: boolean;
+  sunk?: boolean;
   user_id?: string | null;
 }
 
