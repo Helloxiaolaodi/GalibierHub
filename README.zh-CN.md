@@ -97,12 +97,19 @@ GalibierHub 当前主要包含五个核心界面：
 *   **入驻引导** -- 首次登录后的 `/onboarding` 页面引导填写研究方向、常用工具和所属机构。
 *   **用户个人主页** -- `/user/[username]` 公开页面，展示徽章、动态、关注/取消关注。
 *   **徽章系统** -- 游戏化积分体系，青铜/白银/黄金/铂金四个等级，通过社区贡献自动获得。
-*   **世界时钟** -- 讨论区侧边栏时区面板和命令面板式全球时间搜索，支持跨国协作。
+*   **世界时钟** -- 讨论区侧边栏时区面板和命令面板式全球时间搜索（已移除不需要的时区条目，改为点击外部关闭，搜索框使用 `Clear` 按钮）。
 *   **实时通知** -- 通过 Supabase Realtime WebSocket 推送回复、@提及和徽章解锁提醒。
 *   **密码重置** -- `/update-password` 全自助流程，配合 Resend 精美 HTML 邮件模板。
-*   **管理员看板** -- 总注册用户数、讨论数、下载量、访客数和最近注册列表。
+*   **管理员看板** -- 总注册用户数、本周新增趋势、GitHub 与邮箱注册占比、最近加入列表、讨论/下载/访客统计，以及徽章分析标签页。
 *   **浏览计数** -- 每篇讨论的浏览数同步至服务端。
 *   **跨设备资料同步** -- 个人资料保存至 Supabase，换设备登录后自动恢复。
+*   **密码可见性** -- 登录与注册密码栏提供显示/隐藏切换。
+*   **统一用户名** -- 所有页面显示同一用户名；邮箱注册默认使用邮箱 `@` 前的部分。
+*   **评论爱心** -- 每条单独回复的爱心按钮会实时更新数量。
+*   **讨论浏览数与个人资料** -- 每篇讨论显示真实浏览量；头像悬浮卡片显示在线状态、支持关注/取消关注；`/user/[username]` 个人主页与动态页可正常打开。
+*   **通知事件** -- 关注、取消关注、评论点赞和 @提及会写入目标用户的站内通知中心。
+*   **时间线交互** -- 时间线滑条可拖动滚动整篇留言，与浏览器滚动同步，并显示主帖与每条回复的发布日期。
+*   **徽章管理看板** -- 管理员端 Badges 标签包含 KPI 卡片、稀有度分布、持有者列表和手动授予 PI/Founder。
 
 - 在 `Discussion` 标签页通过悬浮式富文本 Markdown 编辑器提交讨论主题（支持加粗、斜体、代码块、引用、链接、列表、图片上传）。
 - 发布前可在编辑与预览模式间切换，发布后支持完整 Markdown 渲染（含语法高亮代码块）。
@@ -110,6 +117,9 @@ GalibierHub 当前主要包含五个核心界面：
 - 使用被授权的 GitHub 管理员账号登录并发布官方回复、隐藏/删除帖子、置顶讨论。
 - 在讨论区上传图片，并通过可放大的灯箱查看已发布图片。
 - 点赞与取消点赞（心形切换），通过模态框分享讨论（支持 Twitter/X、Facebook、Email、LinkedIn、复制链接）。
+- 每条单独回复也支持爱心点赞，且所有计数实时更新。
+- 富文本框的 ordered-list 按钮会依次插入 `1.`、`2.`、`3.` 阿拉伯编号。
+- 分类筛选提供 `General`、`Issue`、`Tutorials`，Downloads 的教程入口会跳转到 Discussions 的 Tutorials 分类。
 - 按状态筛选讨论（全部、进行中、已解决），按最新、最旧或点赞数排序。
 - 通过社区参与获得徽章：Ice Breaker（首次发言）、Nice Reply（10 赞）、Markdown Master（使用代码块）等 16+ 种类别。
 - 页脚统计展示浏览量、链接数、参与者，以及实时站点运行时长和累计独立访客数。
@@ -287,6 +297,8 @@ Cloudflare Pages：
 - 信息密度更高的卡片视图，在保留视觉浏览体验的同时补充大小与更新时间。
 - 单文件操作入口拆分为浏览器下载与 CLI/详情两类按钮，避免一个按钮承载过多动作。
 - 可导出机器可读的 Manifest，字段固定为 `Directory_Path`、`File_Name`、`File_Type`、`Size_Bytes`、`Direct_URL`、`SHA-256`。
+- Manifest CSV 与 CLI/校验和弹窗会从目录元数据解析真实 SHA-256，不再导出 `NA` 或显示 `N/A`。
+- Downloads 顶部不再显示 `All Discussions` 按钮；统一 `Tutorials` 菜单提供 `View all Tutorials` 与 `Download & CLI Usage Guide`，教程内容跳转到 Discussions 的 Tutorials 分类。
 - 分页显示，每页 20 个文件，大目录也能保持可浏览性。
 - 批量选择与下载，支持勾选文件后统一生成浏览器下载、`wget` 和 `curl` 命令。
 - README 按钮动态生成当前目录的文件结构与基本信息。
@@ -682,7 +694,7 @@ npm run build
 
 ### 反爬虫防御层级
 
-- **Turnstile**：Cloudflare Turnstile（Managed 模式，每月 100 万次免费验证）部署在写入类端点 —— 留言提交、下载触发、图片上传。前端组件 src/components/turnstile-widget.tsx 渲染无感挑战；令牌由 src/lib/anti-bot.ts 调用 Cloudflare siteverify 进行服务端校验。本地开发环境自动使用回退令牌。
+- **Turnstile**：Cloudflare Turnstile（Managed 模式，每月 100 万次免费验证）部署在登录、注册、留言提交、下载触发和图片上传。前端组件 src/components/turnstile-widget.tsx 渲染始终可见的 Managed 勾选框（Verify you are human）；令牌由 src/lib/anti-bot.ts 调用 Cloudflare siteverify 进行服务端校验。本地开发环境自动使用回退令牌。
 - **速率限制**：主层：Cloudflare WAF 速率限制规则（在 Cloudflare Dashboard 中配置），针对 /api/search、/api/export 等高成本路径。辅层：Next.js 中间件 src/middleware.ts 中的内存级速率限制器，提供边缘层兜底保护，窗口可配置。
 - **蜜罐字段**：留言表单中注入了一个视觉隐藏的 company 字段。自动填表爬虫会填充该字段，中间件在请求到达数据库之前将其拦截丢弃。
 - **时间陷阱**：每次表单 POST 携带 _rendered_at 时间戳。中间件会拒绝页面加载后 2 秒内到达的提交，阻止从未渲染浏览器 UI 的自动化 POST。

@@ -20,6 +20,7 @@ type ProfileData = {
 
 type BadgeItem = { badge_id: string; awarded_at: string; name?: string; icon?: string; description?: string; tier?: string };
 type ActivityItem = { id: string; title: string; type: "post" | "reply"; created_at: string; feedback_id?: string };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function getInitials(n: string): string {
   if (!n) return "?";
@@ -56,6 +57,12 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
 
   useEffect(() => { setMounted(true); }, []);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("tab=activity")) {
+      setActiveTab("activity");
+    }
+  }, []);
+
   // Load profile by username
   useEffect(() => {
     if (!username) return;
@@ -66,11 +73,11 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
         const sb = getBrowserSupabase();
         if (!sb) throw new Error("Supabase client not initialized.");
 
-        const { data, error: queryError } = await sb
-          .from("profiles")
-          .select("*")
-          .eq("username", username)
-          .single();
+        let profileQuery = sb.from("profiles").select("*");
+        profileQuery = UUID_RE.test(username)
+          ? profileQuery.eq("id", username)
+          : profileQuery.eq("username", username);
+        const { data, error: queryError } = await profileQuery.single();
 
         if (queryError || !data) {
           throw new Error("User not found.");
@@ -89,14 +96,14 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
         const { count: pCount } = await sb
           .from("site_feedback")
           .select("*", { count: "exact", head: true })
-          .eq("author_id", data.id);
+          .eq("user_id", data.id);
         setPostCount(pCount || 0);
 
         // Fetch reply count
         const { count: rCount } = await sb
           .from("feedback_comments")
           .select("*", { count: "exact", head: true })
-          .eq("author_id", data.id);
+          .eq("user_id", data.id);
         setReplyCount(rCount || 0);
 
         // Check if current user is following
@@ -131,14 +138,14 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
         const { data: posts } = await sb
           .from("site_feedback")
           .select("id, title, created_at")
-          .eq("author_id", profile.id)
+          .eq("user_id", profile.id)
           .order("created_at", { ascending: false })
           .limit(20);
 
         const { data: replies } = await sb
           .from("feedback_comments")
           .select("id, message, created_at, feedback_id")
-          .eq("author_id", profile.id)
+          .eq("user_id", profile.id)
           .order("created_at", { ascending: false })
           .limit(20);
 
@@ -175,6 +182,29 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
         setIsFollowing(false);
       } else {
         await sb.from("follows").insert({ follower_id: currentUserId, following_id: profile.id });
+        try {
+          const { data: { session } } = await sb.auth.getSession();
+          const actorName = session?.user?.user_metadata?.name
+            || session?.user?.user_metadata?.full_name
+            || session?.user?.user_metadata?.user_name
+            || session?.user?.user_metadata?.preferred_username
+            || session?.user?.user_metadata?.login
+            || (session?.user?.email ? session.user.email.split("@")[0] : null)
+            || "User";
+          await fetch("/api/notifications", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(session?.access_token ? { Authorization: "Bearer " + session.access_token } : {}),
+            },
+            body: JSON.stringify({
+              recipient_id: profile.id,
+              discussion_id: null,
+              actor_name: actorName,
+              preview_text: "started following you",
+            }),
+          });
+        } catch {}
         setIsFollowing(true);
       }
     } catch {} finally {

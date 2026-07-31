@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import type { Promoter, DashboardStats } from '@/types/genome';
 import { SiteConfig } from '@/site-config';
@@ -9,21 +9,26 @@ import SearchFilters, { type SearchFilters as FiltersType } from '@/components/s
 import StatsChart from '@/components/stats-chart';
 import FlipCard from '@/components/flip-card';
 import PromoterTable from '@/components/promoter-table';
-import PromoterDetail from '@/components/promoter-detail';
-import GenomeBrowser from '@/components/genome-browser';
 import UserGuide from '@/components/user-guide';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import NotificationBell from '@/components/notification-bell';
-import DownloadCatalogPanel from '@/components/download-catalog-panel';
-import SiteFeedback from '@/components/site-feedback';
 import SiteUptime from '@/components/site-uptime';
 import { resolveExpectedAdminGithubLogin } from '@/lib/admin-login';
 import UserMenuPanel from '@/components/user-menu-panel';
+import Logo from '@/components/logo';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 import AuthModal from '@/components/auth-modal';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
-type ActiveTab = 'overview' | 'promoters' | 'genome-browser' | 'discussion' | 'downloads';
+type ActiveTab = 'overview' | 'promoters' | 'genome-browser' | 'discussion' | 'downloads' | 'admin' | 'badges';
+
+const GenomeBrowser = dynamic(() => import('@/components/genome-browser'), { ssr: false });
+const PromoterDetail = dynamic(() => import('@/components/promoter-detail'), { ssr: false });
+const DownloadCatalogPanel = dynamic(() => import('@/components/download-catalog-panel'), { ssr: false });
+const SiteFeedback = dynamic(() => import('@/components/site-feedback'), { ssr: false });
+const AdminUserStats = dynamic(() => import('@/components/admin-user-stats'), { ssr: false });
+const AdminBadgeStats = dynamic(() => import('@/components/admin-badge-stats'), { ssr: false });
 
 function buildPromoterLocus(promoter: Promoter) {
   return `${promoter.chrom}:${Math.max(1, promoter.start - 2000)}-${Math.max(promoter.end_pos + 2000, promoter.start + 1)}`;
@@ -76,8 +81,20 @@ export default function HomePage() {
   const [dataError, setDataError] = useState<string | null>(null);
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [tutorialMenuOpen, setTutorialMenuOpen] = useState(false);
+  const tutorialMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!tutorialMenuOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!tutorialMenuRef.current || tutorialMenuRef.current.contains(event.target as Node)) return;
+      setTutorialMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [tutorialMenuOpen]);
   const expectedAdminLogin = useMemo(
     () => resolveExpectedAdminGithubLogin({ fallbackLabel: SiteConfig.adminGithubLoginFallback }),
     [],
@@ -114,8 +131,16 @@ export default function HomePage() {
           ? metadata.preferred_username
           : typeof metadata.login === 'string'
             ? metadata.login
-            : null;
+            : session?.user?.email
+              ? session.user.email.split('@')[0]
+              : null;
       setCreatorLogin(login);
+      if (login) {
+        localStorage.setItem('galibierhub-github-user', login);
+        if (session?.user?.id) {
+          localStorage.setItem('galibierhub-user-id', session.user.id);
+        }
+      }
     };
 
     void supabase.auth.getSession().then(({ data }) => {
@@ -312,32 +337,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#F5F5F7]">
       <header className="bg-white/70 backdrop-blur-xl saturate-150 border-b border-white/20 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-              GH
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900 leading-tight">
-                {SiteConfig.title}
-              </h1>
-              {SiteConfig.subtitle && (
-                <p className="text-xs text-gray-500">
-                  {SiteConfig.subtitle}
-                </p>
-              )}
-              <p className="text-xs text-gray-400">
-                {SiteConfig.creatorCreditPrefix}{' '}
-                <a
-                  href={SiteConfig.creatorCreditUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-gray-500 hover:text-gray-700 underline underline-offset-2"
-                >
-                  [{SiteConfig.creatorCreditLabel}]
-                </a>
-              </p>
-            </div>
-          </div>
+          <Logo />
           <nav className="flex flex-wrap items-center gap-1">
             {(['overview', 'promoters', 'genome-browser', 'downloads'] as const).map((tab) => (
               <button type="button" key={tab}
@@ -358,6 +358,34 @@ export default function HomePage() {
                         : 'Downloads'}
               </button>
             ))}
+            {isCreatorAdmin && (
+              <button type="button" onClick={() => setActiveTab('admin')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  activeTab === 'admin'
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-200/60'
+                }`}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                User Stats
+              </button>
+            )}
+            {isCreatorAdmin && (
+              <button type="button" onClick={() => setActiveTab('badges')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  activeTab === 'badges'
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-200/60'
+                }`}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                Badges
+              </button>
+            )}
             <Link href="/discussions" className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200/60 transition-colors">Discussions</Link>
             <div className="w-px h-5 bg-gray-200 mx-1" />
             {!mounted ? (
@@ -589,10 +617,33 @@ export default function HomePage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Data Downloads</h2>
-              <Link href="/discussions?tag=tutorial" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-100 transition-colors">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                Tutorials
-              </Link>
+              <div className="relative" ref={tutorialMenuRef}>
+                <button type="button" onClick={() => setTutorialMenuOpen(open => !open)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-100 transition-colors">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                  Tutorials
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                {tutorialMenuOpen && (
+                  <div className="absolute right-0 mt-2 z-30 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                    <Link href="/discussions?category=tutorials" className="flex items-center gap-3 rounded-lg p-3 hover:bg-slate-50 transition-colors">
+                      <svg className="h-5 w-5 text-teal-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                      <div><div className="text-sm font-medium text-gray-900">View all Tutorials</div><div className="text-xs text-gray-500">Browse community guides and official documentation</div></div>
+                    </Link>
+                    <Link href="/discussions?category=tutorials&topic=download" className="flex items-center gap-3 rounded-lg p-3 hover:bg-slate-50 transition-colors">
+                      <svg className="h-5 w-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                      <div><div className="text-sm font-medium text-gray-900">Download &amp; CLI Usage Guide</div><div className="text-xs text-gray-500">How to use wget/curl/aria2c for batch downloads</div></div>
+                    </Link>
+                    <Link href="/discussions?category=tutorials&topic=pipeline" className="flex items-center gap-3 rounded-lg p-3 hover:bg-slate-50 transition-colors">
+                      <svg className="h-5 w-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                      <div><div className="text-sm font-medium text-gray-900">Pipeline Integration Guide</div><div className="text-xs text-gray-500">Load datasets into QIIME 2, MaAsLin3, and HPC clusters</div></div>
+                    </Link>
+                    <Link href="/discussions?category=tutorials" className="flex items-center gap-3 rounded-lg p-3 hover:bg-slate-50 transition-colors">
+                      <svg className="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                      <div><div className="text-sm font-medium text-gray-900">Ask in Discussions</div><div className="text-xs text-gray-500">Post questions about the data downloads</div></div>
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <DownloadCatalogPanel
@@ -600,6 +651,12 @@ export default function HomePage() {
             accessToken={creatorAccessToken}
           />
           </>
+        )}
+        {activeTab === 'admin' && isCreatorAdmin && (
+          <AdminUserStats />
+        )}
+        {activeTab === 'badges' && isCreatorAdmin && (
+          <AdminBadgeStats accessToken={creatorAccessToken} />
         )}
       </main>
       {selectedPromoter && (

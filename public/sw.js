@@ -6,6 +6,7 @@ const CACHE_NAME = 'seqedge-v1';
 const STATIC_ASSETS = [
   '/',
   '/seqedge-banner.svg',
+  '/galibierhub-logo.svg',
 ];
 
 self.addEventListener('install', (event) => {

@@ -35,6 +35,8 @@ type MutableCatalogItem = DownloadCatalogItem & {
 
 const SAMPLE_FIELDS = 'sample_id, vcf_download_url, fasta_download_url, gb_download_url, bed_download_url, gff3_download_url, vcf_download_mode, fasta_download_mode';
 const PAGE_SIZE = 1000;
+const CATALOG_CACHE_MS = 5 * 60 * 1000;
+const catalogCache = new Map<string, { expiresAt: number; payload: unknown }>();
 
 function inferProviderLabel(url: string): string {
   try {
@@ -110,6 +112,30 @@ function upsertItem(
   });
 }
 
+async function resolveHuggingFaceChecksum(url: string): Promise<string | null> {
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    const datasetsIndex = parts.indexOf('datasets');
+    const resolveIndex = parts.indexOf('resolve');
+    if (datasetsIndex === -1 || resolveIndex === -1 || resolveIndex <= datasetsIndex + 2) return null;
+    const repo = `${parts[datasetsIndex + 1]}/${parts[datasetsIndex + 2]}`;
+    const dirPath = parts.slice(resolveIndex + 2, -1).join('/');
+    const fileName = parts[parts.length - 1];
+    const api = `https://huggingface.co/api/datasets/${repo}/tree/main${dirPath ? `/${dirPath}` : ''}?recursive=false`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(api, { signal: controller.signal, cache: 'force-cache' });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = (await res.json()) as Array<{ path: string; lfs?: { oid?: string } }>;
+    const hit = data.find((item) => item.path.split('/').pop() === fileName);
+    return hit?.lfs?.oid ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchAllSampleRows() {
   if (!isSupabaseConfigured) return [] as Array<Record<string, unknown>>;
 
@@ -139,6 +165,14 @@ async function fetchAllSampleRows() {
 }
 
 export async function GET(request: NextRequest) {
+  const cacheKey = getBearerToken(request) ? "admin" : "public";
+  const cached = catalogCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return NextResponse.json(cached.payload, {
+      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+    });
+  }
+
   const items = new Map<string, MutableCatalogItem>();
 
   for (const featured of SiteConfig.downloads.featured) {
@@ -272,5 +306,19 @@ export async function GET(request: NextRequest) {
     await Promise.allSettled(sizePromises);
   }
 
-  return NextResponse.json({ items: result, warning: metadataWarning, isAdmin });
+  // Resolve missing SHA-256 checksums from Hugging Face for items without DB metadata
+  const missingChecksums = result.filter((item) => !item.sha256Checksum && item.url.includes('huggingface.co/datasets'));
+  if (missingChecksums.length > 0) {
+    const checksumPromises = missingChecksums.map(async (item) => {
+      const checksum = await resolveHuggingFaceChecksum(item.url);
+      if (checksum) item.sha256Checksum = checksum;
+    });
+    await Promise.allSettled(checksumPromises);
+  }
+
+  const payload = { items: result, warning: metadataWarning, isAdmin };
+  catalogCache.set(cacheKey, { expiresAt: Date.now() + CATALOG_CACHE_MS, payload });
+  return NextResponse.json(payload, {
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+  });
 }

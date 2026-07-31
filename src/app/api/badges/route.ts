@@ -1,5 +1,7 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
+import { getBearerToken, requireCreatorGithubAuth } from '@/lib/feedback-admin';
+import { getServiceSupabase, hasSupabaseServiceRole } from '@/utils/supabase';
 
 export async function GET(request: NextRequest) {
   if (!isSupabaseConfigured) {
@@ -46,6 +48,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
   }
 
+  const adminAuth = await requireCreatorGithubAuth(getBearerToken(request));
+  if (!adminAuth.ok) {
+    return NextResponse.json({ error: adminAuth.error }, { status: 401 });
+  }
+
+  if (!hasSupabaseServiceRole) {
+    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY is required for manual badge awards.' }, { status: 503 });
+  }
+
   let body: { user_id?: string; badge_id?: string; discussion_id?: string };
   try {
     body = await request.json();
@@ -57,7 +68,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'user_id and badge_id required' }, { status: 400 });
   }
 
-  const sb = getSupabase();
+  const sb = getServiceSupabase();
+
+  // Only manual badges may be awarded through this API. Every other badge is
+  // awarded by database triggers so the award logic cannot be tampered with.
+  const { data: badgeDef } = await sb
+    .from('badge_definitions')
+    .select('id, name, icon, manual_only')
+    .eq('id', body.badge_id)
+    .single();
+
+  if (!badgeDef) {
+    return NextResponse.json({ error: 'Badge definition not found.' }, { status: 404 });
+  }
+
+  if (!badgeDef.manual_only) {
+    return NextResponse.json({ error: 'This badge is awarded automatically by the server.' }, { status: 403 });
+  }
 
   // Check if already awarded
   const { data: existing } = await sb
@@ -90,21 +117,13 @@ export async function POST(request: NextRequest) {
 
   // Also insert a notification
   try {
-    const { data: badgeDef } = await sb
-      .from('badge_definitions')
-      .select('name, icon')
-      .eq('id', body.badge_id)
-      .single();
-
-    if (badgeDef) {
-      await sb.from('site_notifications').insert({
-        recipient_id: body.user_id,
-        discussion_id: body.discussion_id || 'badges',
-        actor_name: 'GalibierHub',
-        preview_text: badgeDef.icon + ' You earned the "' + badgeDef.name + '" badge!',
-        is_read: false,
-      });
-    }
+    await sb.from('site_notifications').insert({
+      recipient_id: body.user_id,
+      discussion_id: body.discussion_id || 'badges',
+      actor_name: 'GalibierHub',
+      preview_text: badgeDef.icon + ' You earned the "' + badgeDef.name + '" badge!',
+      is_read: false,
+    });
   } catch { /* best-effort */ }
 
   return NextResponse.json({ awarded: data }, { status: 201 });

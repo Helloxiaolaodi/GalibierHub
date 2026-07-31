@@ -93,12 +93,18 @@ The current default schema and UI are still genomics-oriented. Template users ca
 *   **Onboarding** -- Guided profile setup after first login with research field, preferred tools, and affiliation.
 *   **User profiles** -- Public `/user/[username]` pages with badges, activity feeds, and follow/unfollow.
 *   **Badge system** -- Gamified reputation with bronze/silver/gold/platinum tiers earned through community contributions.
-*   **World clock** -- Timezone companion panel and command-palette global time search for international collaboration.
+*   **World clock** -- Timezone companion panel and command-palette global time search (unwanted timezone entry removed, click-outside close, `Clear` search button).
 *   **Real-time notifications** -- Instant alerts for replies, @mentions, and badge unlocks via Supabase Realtime WebSockets.
 *   **Password reset** -- Full self-service flow at `/update-password` with styled email templates via Resend.
-*   **Admin dashboard** -- Total registered users, discussion counts, download stats, visitors, and recent sign-ups.
+*   **Admin dashboard** -- Total registered users, weekly sign-up trend, GitHub vs email origin chart, recent joiners, discussion/download/visitor stats, and a Badges analytics tab.
 *   **View tracking** -- Per-discussion view counts synchronized to the server.
 *   **Profile sync** -- Profile data persisted to Supabase and restored across devices and sessions.
+*   **Password visibility** -- Show/hide toggles for the sign-in and create-account password fields.
+*   **Consistent usernames** -- The same profile username appears across every page; email sign-ups default to the part of the email before `@`.
+*   **Comment reactions** -- Heart like buttons on individual discussion replies update counts in real time.
+*   **Discussion views & profiles** -- Real per-post view counts, hover profile cards with online status and follow/unfollow, plus working `/user/[username]` profile and activity pages.
+*   **Notification events** -- Follows, unfollows, comment likes, and @mentions notify the target user through the in-app notification center.
+*   **Timeline interactions** -- The timeline rail is draggable, stays synchronized with browser scrolling, and shows the dates of the post and every reply.
 
 - Submit public or Administrator-only discussions from the `Discussion` tab with a floating rich-text Markdown composer (bold, italic, code blocks, quotes, links, lists, image upload).
 - Toggle between Edit and Preview modes before posting, with full Markdown rendering including syntax-highlighted code blocks.
@@ -106,6 +112,9 @@ The current default schema and UI are still genomics-oriented. Template users ca
 - Sign in with the allowed GitHub Administrator account to publish official replies, hide/delete posts, and pin discussions.
 - Upload images in discussions and open posted images in a zoomable lightbox.
 - Like and unlike posts with toggle heart interaction, and share discussions via a modal with Twitter/X, Facebook, Email, LinkedIn, and copy-link options.
+- Like and unlike individual replies with heart buttons; every message count updates in real time.
+- Use the ordered-list toolbar button to insert `1.` and cycle to `2.`, `3.` as you add list items.
+- Filter by `General`, `Issue`, or `Tutorials` categories; Downloads tutorial links route to the Discussions `Tutorials` category.
 - Filter discussions by status (All, In Progress, Resolved) and sort by Newest, Oldest, or Most Liked.
 - Earn badges through community participation: Ice Breaker (first post), Nice Reply (10 likes), Markdown Master (code blocks), and 13+ more.
 - See a footer counter that shows live site uptime, cumulative unique visitors, views, links, and participants.
@@ -277,6 +286,8 @@ Cloudflare Pages:
 - A denser grid view that still shows size and updated time so card browsing does not hide basic metadata.
 - Split single-file actions so browser download and CLI or details entry points are visibly separated instead of competing inside one oversized button.
 - Manifest export with stable machine-readable columns: `Directory_Path`, `File_Name`, `File_Type`, `Size_Bytes`, `Direct_URL`, and `SHA-256`.
+- Manifest CSV and CLI/checksum dialogs resolve real SHA-256 values from catalog metadata instead of exporting `NA` or showing `N/A`.
+- The top-level `All Discussions` shortcut is removed; one consolidated `Tutorials` menu exposes `View all Tutorials` and `Download & CLI Usage Guide`, and tutorial links route to the Discussions `Tutorials` category.
 - Pagination with 20 files per page, so large directories stay scannable.
 - Batch selection with checkboxes and a `Download Selected` button that shows browser download, `wget`, and `curl` commands for the selected files.
 - A README button that dynamically generates a directory overview listing all files with sizes and dates.
@@ -669,7 +680,7 @@ In short: public HF URL plus hide/password only discourages casual on-site downl
 
 ### Anti-Bot Defense Layers
 
-- **Turnstile**: Cloudflare Turnstile (Managed mode, 1M verifications/month free) is deployed on write-heavy endpoints - feedback submission, download triggers, image upload. The client widget (src/components/turnstile-widget.tsx) renders an invisible challenge; tokens are verified server-side via src/lib/anti-bot.ts calling the Cloudflare siteverify endpoint. A dev fallback token is used in local development without a real site key.
+- **Turnstile**: Cloudflare Turnstile (Managed mode, 1M verifications/month free) is deployed on login, sign-up, feedback submission, download triggers, and image upload. The client widget (src/components/turnstile-widget.tsx) renders an always-visible managed checkbox ("Verify you are human"); tokens are verified server-side via src/lib/anti-bot.ts calling the Cloudflare siteverify endpoint. A dev fallback token is used in local development without a real site key.
 - **Rate Limiting**: Primary: Cloudflare WAF Rate Limiting Rules on /api/search, /api/export, and other heavyweight paths (configured in the Cloudflare Dashboard). Secondary: an in-memory rate limiter in Next.js middleware (src/middleware.ts) provides edge-level fallback with configurable windows.
 - **Honeypot Field**: A visually hidden company form field detects auto-fill bots. If filled, the submission is silently accepted by the route handler but discarded by middleware before reaching Supabase.
 - **Time-Trap**: Each form POST carries a _rendered_at timestamp. Middleware rejects submissions arriving less than 2 seconds after page load, blocking automated POST requests that never rendered the browser UI.

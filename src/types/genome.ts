@@ -77,7 +77,7 @@ export interface DashboardStats {
   score_distribution: { range: string; count: number }[];
 }
 
-export type FeedbackCategory = 'general' | 'issue' | 'idea' | 'data' | 'collaboration';
+export type FeedbackCategory = 'general' | 'issue' | 'tutorials' | 'idea' | 'data' | 'collaboration';
 
 export interface SiteFeedbackEntry {
   id: string;

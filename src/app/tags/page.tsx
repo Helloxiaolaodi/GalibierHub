@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { SiteConfig } from "@/site-config";
 import WorldClock from "@/components/world-clock";
+import Logo from "@/components/logo";
 import type { SiteFeedbackEntry } from "@/types/genome";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
 
@@ -83,7 +83,7 @@ export default function TagsCloudPage() {
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/70 backdrop-blur-xl saturate-150 shadow-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-lg font-bold text-teal-700 hover:text-slate-800">{SiteConfig.title}</Link>
+            <Logo compact />
             <span className="text-gray-500">/</span>
             <h1 className="text-base font-semibold text-gray-900">Tags Cloud</h1>
           </div>

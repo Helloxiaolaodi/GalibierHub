@@ -5,8 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import Link from "next/link";
-
-import { SiteConfig } from "@/site-config";
+import { useRouter } from "next/navigation";
 
 import WorldClock from "@/components/world-clock";
 
@@ -15,6 +14,7 @@ import BadgeDisplay from "@/components/badge-display";
 import UserMenuPanel from "@/components/user-menu-panel";
 
 import UserProfileCard from "@/components/user-profile-card";
+import Logo from "@/components/logo";
 
 import AuthModal from "@/components/auth-modal";
 
@@ -30,7 +30,7 @@ import { renderInlineText, renderMarkdown } from "@/lib/markdown";
 
 function getCategoryColor(c: string): string {
 
-  const m: Record<string,string>={general:"bg-teal-100 text-slate-800",issue:"bg-red-100 text-red-800",idea:"bg-amber-100 text-amber-800",data:"bg-emerald-100 text-emerald-800",collaboration:"bg-purple-100 text-purple-800"};
+  const m: Record<string,string>={general:"bg-teal-100 text-slate-800",issue:"bg-red-100 text-red-800",tutorials:"bg-sky-100 text-sky-800",idea:"bg-sky-100 text-sky-800",data:"bg-sky-100 text-sky-800",collaboration:"bg-sky-100 text-sky-800"};
 
   return m[c]||"bg-gray-100 text-gray-800";
 
@@ -38,7 +38,7 @@ function getCategoryColor(c: string): string {
 
 function getCategoryLabel(c: string): string {
 
-  const m: Record<string,string>={general:"General",issue:"Issue",idea:"Idea",data:"Data",collaboration:"Collaboration"};
+  const m: Record<string,string>={general:"General",issue:"Issue",tutorials:"Tutorials",idea:"Tutorials",data:"Tutorials",collaboration:"Tutorials"};
 
   return m[c]||c;
 
@@ -82,7 +82,17 @@ function hasCreatorReply(entry: SiteFeedbackEntry): boolean {
 
 }
 
-
+function buildVisitorFingerprint(): string {
+  if (typeof window === "undefined") return "server";
+  const parts = [
+    navigator.userAgent,
+    navigator.language,
+    window.screen?.width || 0,
+    window.screen?.height || 0,
+    Intl.DateTimeFormat().resolvedOptions().timeZone || "unknown",
+  ];
+  return parts.join("|");
+}
 
 type SortMode = "newest"|"oldest"|"most_liked";
 
@@ -91,7 +101,7 @@ type StatusFilter = "all"|"in_progress"|"resolved";
 
 
 export default function DiscussionsPage() {
-
+  const router = useRouter();
   const [entries, setEntries] = useState<SiteFeedbackEntry[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -103,6 +113,7 @@ export default function DiscussionsPage() {
   const [lastActivity, setLastActivity] = useState<Record<string,string>>({});
 
   const [likeCounts, setLikeCounts] = useState<Record<string,number>>({});
+  const [likeBusy, setLikeBusy] = useState<Record<string,boolean>>({});
   const [viewCounts, setViewCounts] = useState<Record<string,number>>({});
 
   const [sortMode, setSortMode] = useState<SortMode>("newest");
@@ -136,7 +147,7 @@ export default function DiscussionsPage() {
 
   const [showComposer, setShowComposer] = useState(false);
 
-  const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public",category:"general"});
+  const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public",category:"tutorials"});
 
   type MarkdownAction = "bold"|"italic"|"code"|"quote"|"link"|"image"|"list"|"ordered-list";
 
@@ -190,7 +201,11 @@ export default function DiscussionsPage() {
 
       case "list": result = before + "\n- " + (selected || "list item") + after; break;
 
-      case "ordered-list": result = before + "\n1. " + (selected || "First item") + after; break;
+      case "ordered-list": {
+        const olistMatch = before.match(/(\d+)\.\s[^\n]*$/m);
+        const nxtNum = olistMatch ? parseInt(olistMatch[1], 10) + 1 : 1;
+        result = before + "\n" + nxtNum + ". " + (selected || "item") + after;
+      } break;
     }
 
     setComposerForm(p => ({...p, message: result}));
@@ -206,6 +221,13 @@ export default function DiscussionsPage() {
   useEffect(() => {
 
     setMounted(true);
+
+    const params = new URLSearchParams(window.location.search);
+    const categoryParam = params.get("category")?.toLowerCase();
+    const tagParam = params.get("tag")?.toLowerCase();
+    if (categoryParam === "tutorials" || tagParam === "tutorial") {
+      setCategoryFilter("tutorials");
+    }
 
     const stored = localStorage.getItem("galibierhub-github-user");
 
@@ -223,7 +245,7 @@ export default function DiscussionsPage() {
 
         if (user) {
 
-          const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login || user.email;
+          const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login || (user.email ? user.email.split('@')[0] : null);
 
           if (login) {
 
@@ -259,7 +281,7 @@ export default function DiscussionsPage() {
 
           const user = session.user;
 
-          const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login || user.email;
+          const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login || (user.email ? user.email.split('@')[0] : null);
 
           if (login) {
 
@@ -472,14 +494,84 @@ export default function DiscussionsPage() {
   }, []);
 
   useEffect(()=>{fetchData();},[fetchData]);
+  useEffect(() => {
+    const sb = getBrowserSupabase();
+    if (!sb) return;
+    const channel = sb.channel("discussions-like-counts")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "site_reactions" }, (payload) => {
+        const row = payload.new as { entry_id?: string | null; reaction_type?: string };
+        if (row.entry_id && row.reaction_type === "like") {
+          setLikeCounts((current) => ({ ...current, [row.entry_id as string]: (current[row.entry_id as string] || 0) + 1 }));
+        }
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "site_reactions" }, (payload) => {
+        const oldRow = payload.old as { entry_id?: string | null; reaction_type?: string };
+        if (oldRow.entry_id && oldRow.reaction_type === "like") {
+          setLikeCounts((current) => ({ ...current, [oldRow.entry_id as string]: Math.max(0, (current[oldRow.entry_id as string] || 0) - 1) }));
+        }
+      })
+      .subscribe();
+    return () => { void sb.removeChannel(channel); };
+  }, []);
+
+  const handleToggleLike = useCallback(async (entryId: string) => {
+    if (likeBusy[entryId]) return;
+    setLikeBusy((current) => ({ ...current, [entryId]: true }));
+    const fingerprint = buildVisitorFingerprint();
+    let userId: string | null = null;
+    let actorName = githubUser || "User";
+    const sb = getBrowserSupabase();
+    if (sb) {
+      try {
+        const { data: sessionData } = await sb.auth.getSession();
+        const user = sessionData.session?.user;
+        if (user) {
+          userId = user.id;
+          actorName = String(
+            user.user_metadata?.user_name ||
+            user.user_metadata?.preferred_username ||
+            user.user_metadata?.login ||
+            (user.email ? user.email.split('@')[0] : null) ||
+            actorName
+          );
+        }
+      } catch {
+        // Like still works without session identity.
+      }
+    }
+    try {
+      const response = await fetch("/api/reactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reactionType: "like", fingerprint, entryId, userId, actorName }),
+      });
+      const data = await response.json() as { active?: boolean; error?: string };
+      if (!response.ok) throw new Error(data.error || "Failed to update like");
+      setLikeCounts((current) => ({ ...current, [entryId]: Math.max(0, (current[entryId] || 0) + (data.active ? 1 : -1)) }));
+    } catch (err) {
+      console.error("Like failed:", err);
+    } finally {
+      setLikeBusy((current) => {
+        const next = { ...current };
+        delete next[entryId];
+        return next;
+      });
+    }
+  }, [likeBusy, githubUser]);
+
   // Load per-discussion view counts from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("galibierhub-views");
-      if (stored) {
-        const views = JSON.parse(stored) as Record<string,number>;
-        setViewCounts(views);
+      const localViews: Record<string,number> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("galibierhub-view-")) {
+          const entryId = key.slice("galibierhub-view-".length);
+          const value = parseInt(localStorage.getItem(key) || "0", 10);
+          if (entryId && Number.isFinite(value)) localViews[entryId] = Math.max(localViews[entryId] || 0, value);
+        }
       }
+      if (Object.keys(localViews).length) setViewCounts(prev => ({...localViews, ...prev}));
       // Also fetch from discussion views API
       fetch("/api/discussions/views").then(r=>r.json()).then(d=>{
         if (d.viewCounts) setViewCounts(prev=>({...prev,...(d.viewCounts as Record<string,number>)}));
@@ -519,7 +611,7 @@ export default function DiscussionsPage() {
 
     if (!composerForm.message.trim() || composerForm.message.trim().length < 3) { setComposerError("Message must be at least 3 characters."); return; }
 
-    const displayName = composerForm.displayName.trim() || (githubUser || "Visitor");
+    const displayName = composerForm.displayName.trim() || (githubUser || "User");
 
     setComposerSubmitting(true); setComposerError(null);
 
@@ -533,7 +625,7 @@ export default function DiscussionsPage() {
 
       localStorage.removeItem("galibierhub-draft-new-post");
 
-     setComposerForm({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public",category:"general"});
+     setComposerForm({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public",category:"tutorials"});
 
       await fetchData();
 
@@ -559,7 +651,9 @@ export default function DiscussionsPage() {
 
 
 
-     if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
+     if (categoryFilter === "tutorials") {
+       if (e.category !== "tutorials" && e.category !== "idea" && e.category !== "data" && e.category !== "collaboration") return false;
+     } else if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
 
     return true;
 
@@ -605,7 +699,7 @@ export default function DiscussionsPage() {
 
           <div className="flex items-center gap-4">
 
-            <Link href="/" className="text-lg font-bold text-teal-700 hover:text-slate-800">{SiteConfig.title}</Link>
+            <Logo compact />
 
             <span className="text-gray-500">/</span>
 
@@ -711,16 +805,9 @@ export default function DiscussionsPage() {
               className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 outline-none focus:border-slate-400 cursor-pointer">
 
               <option value="all">All Categories</option>
-
               <option value="general">General</option>
-
               <option value="issue">Issue</option>
-
-              <option value="idea">Idea</option>
-
-              <option value="data">Data</option>
-
-              <option value="collaboration">Collaboration</option>
+              <option value="tutorials">Tutorials</option>
 
             </select>
 
@@ -815,9 +902,8 @@ export default function DiscussionsPage() {
 
               return (
 
-                <Link key={entry.id} href={"/discussions/"+entry.id}
-
-                  className="block rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-gray-200 transition-all">
+                <div key={entry.id} role="link" tabIndex={0} onClick={()=>router.push("/discussions/"+entry.id)} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); router.push("/discussions/"+entry.id);}}}
+                  className="block rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-gray-200 transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-teal-500">
 
                   <div className="flex items-start gap-4">
 
@@ -866,11 +952,11 @@ export default function DiscussionsPage() {
                    {/* Votes */}
 
                    <div className="flex flex-col items-center min-w-[48px]">
-
-                     <span className="text-lg font-bold text-gray-900">{likeCounts[entry.id]||0}</span>
-
-                      <span className="text-[10px] text-gray-400 uppercase tracking-wide">Likes</span>
-
+                     <button type="button" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); void handleToggleLike(entry.id);}} disabled={likeBusy[entry.id]} aria-label="Like discussion" className="group inline-flex flex-col items-center rounded-lg p-1.5 hover:bg-rose-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors">
+                       <svg className={"h-5 w-5 transition-colors "+(likeCounts[entry.id]>0?"text-red-500":"text-gray-400 group-hover:text-red-500")} fill={likeCounts[entry.id]>0?"currentColor":"none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                       <span className="text-lg font-bold text-gray-900">{likeCounts[entry.id]||0}</span>
+                     </button>
+                     <span className="text-[10px] text-gray-400 uppercase tracking-wide">Likes</span>
                    </div>
 
                     {/* Replies */}
@@ -887,7 +973,7 @@ export default function DiscussionsPage() {
 
                     <div className="flex flex-col items-center min-w-[48px]">
 
-                      <span className="text-lg font-bold text-gray-900">{viewCounts[entry.id] || '-'}</span>
+                      <span className="text-lg font-bold text-gray-900">{viewCounts[entry.id] ?? 0}</span>
 
                       <span className="text-[10px] text-gray-400 uppercase tracking-wide">Views</span>
 
@@ -911,7 +997,7 @@ export default function DiscussionsPage() {
 
                   </div>
 
-                </Link>
+                </div>
 
               );
 
@@ -1043,13 +1129,9 @@ export default function DiscussionsPage() {
 
                     <option value="general">General</option>
 
-                    <option value="issue">Issue / Bug Report</option>
+                    <option value="issue">Issue</option>
 
-                    <option value="idea">Feature Request</option>
-
-                    <option value="data">Dataset / Data</option>
-
-                    <option value="collaboration">Collaboration</option>
+                    <option value="tutorials">Tutorials</option>
 
                   </select>
 

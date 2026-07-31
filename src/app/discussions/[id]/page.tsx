@@ -5,27 +5,32 @@ import Link from "next/link";
 import BadgeDisplay from "@/components/badge-display";
 import UserMenuPanel from "@/components/user-menu-panel";
 import UserProfileCard from "@/components/user-profile-card";
-import { SiteConfig } from "@/site-config";
 import type { FeedbackCommentEntry, SiteFeedbackEntry } from "@/types/genome";
 import type { Session } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
 import { renderMarkdown } from "@/lib/markdown";
 import AuthModal from "@/components/auth-modal";
 import WorldClock from "@/components/world-clock";
+import Logo from "@/components/logo";
 
 // ---- helpers ----
 function getCategoryColor(c: string): string {
-  const m: Record<string,string>={general:"bg-teal-100 text-slate-800",issue:"bg-red-100 text-red-800",idea:"bg-amber-100 text-amber-800",data:"bg-emerald-100 text-emerald-800",collaboration:"bg-purple-100 text-purple-800"};
+  const m: Record<string,string>={general:"bg-teal-100 text-slate-800",issue:"bg-red-100 text-red-800",tutorials:"bg-sky-100 text-sky-800",idea:"bg-sky-100 text-sky-800",data:"bg-sky-100 text-sky-800",collaboration:"bg-sky-100 text-sky-800"};
   return m[c]||"bg-gray-100 text-gray-800";
 }
 function getCategoryLabel(c: string): string {
-  const m: Record<string,string>={general:"General",issue:"Issue",idea:"Idea",data:"Data",collaboration:"Collaboration"};
+  const m: Record<string,string>={general:"General",issue:"Issue",tutorials:"Tutorials",idea:"Tutorials",data:"Tutorials",collaboration:"Tutorials"};
   return m[c]||c;
 }
 function getInitials(n: string): string {
   if(!n) return "?";
   const p=n.trim().split(/\s+/);
   return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.substring(0,2).toUpperCase();
+}
+function mergeLikeCounts(current: Record<string, number>, entries?: Record<string, { like: number; bookmark?: number }>): Record<string, number> {
+  const next={...current};
+  for(const [key,value] of Object.entries(entries||{})) next[key]=value.like||0;
+  return next;
 }
 function formatTimeAgo(d: string): string {
   const diff=Math.floor((Date.now()-new Date(d).getTime())/1000);
@@ -48,26 +53,64 @@ function timeGapLabel(prev: string|null, curr: string): string|null {
 function hasCreatorReply(entry: SiteFeedbackEntry): boolean {
   return Boolean(entry.creator_reply);
 }
-// ---- TimelineSidebar: positioned relative to main content, not viewport ----
-function TimelineSidebar({ total, currentIndex, firstDate, lastDate, onNavigate }: {
-  total: number; currentIndex: number; firstDate: string|null; lastDate: string|null;
+// ---- TimelineSidebar: draggable vertical timeline with one date marker per post/reply ----
+function TimelineSidebar({ items, currentIndex, onNavigate, onReply }: {
+  items: {date:string;type:string}[];
+  currentIndex: number;
   onNavigate: (i: number) => void;
+  onReply: () => void;
 }) {
+  const trackRef = useRef<HTMLDivElement|null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  function scrollToIndex(index: number) {
+    onNavigate(Math.max(0, Math.min(items.length - 1, index)));
+  }
+
+  function handlePointer(clientY: number) {
+    const track = trackRef.current;
+    if (!track || items.length < 2) return;
+    const rect = track.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    scrollToIndex(Math.round(pct * (items.length - 1)));
+  }
+
   return (
-    <div className="absolute -right-16 top-0 bottom-0 hidden xl:flex items-center" style={{ width: 48 }}>
-      <div className="sticky top-32 flex flex-col items-center gap-1 rounded-full border border-gray-200 bg-white/90 py-3 px-2 shadow-sm backdrop-blur">
-        <div className="text-xs font-mono font-semibold text-gray-500 text-center leading-tight">
-          {currentIndex+1}<br/><span className="text-[10px] text-gray-400">/ {total}</span>
-        </div>
-        <div className="w-1 flex-1 min-h-[48px] bg-gray-200 rounded-full overflow-hidden my-1">
-          <div className="w-full bg-slate-700 rounded-full transition-all duration-300"
-            style={{height:((currentIndex+1)/Math.max(total,1))*100+"%"}} />
-        </div>
-        {firstDate&&<div className="text-[10px] text-gray-400 text-center leading-tight">{new Date(firstDate).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>}
-        {lastDate&&lastDate!==firstDate&&<><div className="text-[10px] text-gray-300">|</div><div className="text-[10px] text-slate-500 text-center leading-tight font-medium">{formatTimeAgo(lastDate)}</div></>}
-        <button onClick={()=>onNavigate(Math.max(0,currentIndex-1))} disabled={currentIndex<=0} className="mt-1 rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg></button>
-        <button onClick={()=>onNavigate(Math.min(total-1,currentIndex+1))} disabled={currentIndex>=total-1} className="rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg></button>
+    <div className="sticky top-24 flex w-44 flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-white/90 py-3 px-3 shadow-sm backdrop-blur">
+      <div className="text-xs font-mono font-semibold text-gray-500 text-center leading-tight">
+        {currentIndex+1}<br/><span className="text-[10px] text-gray-400">/ {items.length}</span>
       </div>
+      <div
+        ref={trackRef}
+        className={"relative h-32 w-4 cursor-grab touch-none select-none rounded-full bg-gray-100 my-1 transition-shadow "+(dragging?"ring-2 ring-slate-300":"")}
+        onPointerDown={(e)=>{e.currentTarget.setPointerCapture(e.pointerId);setDragging(true);handlePointer(e.clientY);}}
+        onPointerMove={(e)=>{if(e.currentTarget.hasPointerCapture(e.pointerId))handlePointer(e.clientY);}}
+        onPointerUp={(e)=>{setDragging(false);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}}
+        onPointerCancel={(e)=>{setDragging(false);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}}
+      >
+        <div className="absolute bottom-0 left-0 right-0 rounded-full bg-slate-700 transition-all duration-150" style={{height:((currentIndex+1)/Math.max(items.length,1))*100+"%"}}/>
+        <div className="absolute left-1/2 w-3.5 h-3.5 -translate-x-1/2 rounded-full border-2 border-slate-600 bg-white shadow-sm transition-transform" style={{top:`calc(${((currentIndex+1)/Math.max(items.length,1))*100}% - 7px)`}}/>
+      </div>
+      <div className="w-full max-h-60 space-y-1 overflow-y-auto pr-1">
+        {items.map((item,index)=>(
+          <button key={`${item.type}-${item.date}-${index}`} onClick={()=>scrollToIndex(index)}
+            className={"flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left transition-colors "+(index===currentIndex?"bg-slate-800 text-white":"text-gray-600 hover:bg-gray-100")}>
+            <span className={"h-1.5 w-1.5 flex-shrink-0 rounded-full "+(index===currentIndex?"bg-teal-300":"bg-gray-300")} />
+            <span className="min-w-0 flex-1 leading-tight">
+              <span className="block text-[9px] font-semibold uppercase tracking-normal">{item.type==="entry"?"Post":"Reply"}</span>
+              <span className="block text-[10px]">{formatDate(item.date)}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-1">
+        <button onClick={()=>scrollToIndex(currentIndex-1)} disabled={currentIndex<=0} className="rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg></button>
+        <button onClick={()=>scrollToIndex(currentIndex+1)} disabled={currentIndex>=items.length-1} className="rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg></button>
+      </div>
+      <button onClick={onReply} className="mt-1 rounded-lg bg-slate-800 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm hover:bg-slate-900 transition-colors whitespace-nowrap">
+        <svg className="h-3.5 w-3.5 inline-block mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        Reply
+      </button>
     </div>
   );
 }
@@ -147,7 +190,7 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
       case "link": result = before + "[" + (selected || "link text") + "](url)" + after; break;
       case "image": { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = async (e) => { const file = (e.target as HTMLInputElement).files?.[0]; if (!file) return; setError(null); const formData = new FormData(); formData.append("file", file); try { const resp = await fetch("/api/upload-image", { method: "POST", body: formData }); const data = await resp.json() as { url?: string; error?: string }; if (!resp.ok) throw new Error(data.error || "Upload failed"); if (data.url) { const r = before + "![" + (selected || file.name) + "](" + data.url + ")" + after; setText(r); } } catch (err) { setError(err instanceof Error ? err.message : "Upload failed"); } }; input.click(); break; }
       case "list": result = before + "\n- " + (selected || "list item") + after; break;
-      case "ordered-list": result = before + "\n1. " + (selected || "First item") + after; break;
+      case "ordered-list": { const omatch = before.match(/(\d+)\.\s[^\n]*$/); const onum = omatch ? parseInt(omatch[1], 10) + 1 : 1; result = before + "\n" + onum + ". " + (selected || "item") + after; } break;
     }
     setText(result);
   };
@@ -313,7 +356,7 @@ function DiscussionFooter({ comments, entry, totalViews, onSignUp, onMaybeLater,
         <div className="flex items-center gap-2">
           <span className="text-gray-500">Participants:</span>
           <div className="flex -space-x-2">
-            {participants.slice(0,6).map(p=>(<div key={p.name} className="relative" onMouseEnter={()=>setHovered(p.name)} onMouseLeave={()=>setHovered(null)}><div className="h-7 w-7 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-[10px] font-semibold text-white ring-2 ring-white cursor-default">{getInitials(p.name)}</div>{hovered===p.name&&(<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50"><div className="rounded-lg border border-gray-200 bg-white shadow-lg px-4 py-3 text-center min-w-[140px]"><div className="mx-auto mb-2 h-12 w-12 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-lg font-semibold text-white">{getInitials(p.name)}</div><div className="text-sm font-semibold text-gray-900">{p.name}</div><div className="text-xs text-gray-500 mt-0.5">{p.email?"Public profile":"Visitor"}</div></div><div className="mx-auto h-2 w-2 rotate-45 border-r border-b border-gray-200 bg-white -mt-1"/></div>)}</div>))}
+            {participants.slice(0,6).map(p=>(<div key={p.name} className="relative" onMouseEnter={()=>setHovered(p.name)} onMouseLeave={()=>setHovered(null)}><div className="h-7 w-7 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-[10px] font-semibold text-white ring-2 ring-white cursor-default">{getInitials(p.name)}</div>{hovered===p.name&&(<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50"><div className="rounded-lg border border-gray-200 bg-white shadow-lg px-4 py-3 text-center min-w-[140px]"><div className="mx-auto mb-2 h-12 w-12 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-lg font-semibold text-white">{getInitials(p.name)}</div><div className="text-sm font-semibold text-gray-900">{p.name}</div><div className="text-xs text-gray-500 mt-0.5">{p.email?"Public profile":"User"}</div></div><div className="mx-auto h-2 w-2 rotate-45 border-r border-b border-gray-200 bg-white -mt-1"/></div>)}</div>))}
             {participants.length>6&&<div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-medium text-gray-600 ring-2 ring-white">+{participants.length-6}</div>}
           </div>
         </div>
@@ -421,7 +464,7 @@ export default function DiscussionDetailPage() {
         const user = data.session?.user;
         if (data.session) { setSession(data.session); }
        if (user) {
-          const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login || user.email;
+          const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login || (user.email ? user.email.split('@')[0] : null);
           if (login) {
             setGithubUser(String(login));
             localStorage.setItem("galibierhub-github-user", String(login));
@@ -448,7 +491,7 @@ export default function DiscussionDetailPage() {
           if (session) {
             setSession(session);
             const user = session.user;
-            const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login || user.email;
+            const login = user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.login || (user.email ? user.email.split('@')[0] : null);
             if (login) {
               setGithubUser(String(login));
               localStorage.setItem("galibierhub-github-user", String(login));
@@ -484,11 +527,13 @@ export default function DiscussionDetailPage() {
         const rr = await fetch("/api/reactions");
         if (rr.ok) {
           const rd = await rr.json() as {entries?:Record<string,{like:number}>};
-          if (rd.entries?.[id]) setLikeCounts({[id]:rd.entries[id].like});
+          setLikeCounts(prev => mergeLikeCounts(prev, rd.entries));
           // Also pre-mark liked if previously liked (via local storage fingerprint)
+          // Check if current user has liked (via stored fingerprint)
+          const userFp = session?.user?.id ? "user-" + session.user.id : localStorage.getItem("galibierhub-fingerprint");
           const stored = localStorage.getItem("galibierhub-likes-"+id);
           if (stored) {
-            try { const liked = JSON.parse(stored) as string[]; liked.forEach(lid=>setLikes(p=>({...p,[lid]:true}))); } catch {}
+            try { const liked = JSON.parse(stored) as string[]; liked.forEach(fid=>setLikes(p=>({...p,[fid]:true}))); } catch {}
           }
         }
       } catch {}
@@ -530,11 +575,11 @@ export default function DiscussionDetailPage() {
     if (!sb || !id) return;
     
     const reactionsChannel = sb.channel('reactions-'+id)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_reactions', filter: 'entry_id=eq.'+id }, async () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_reactions' }, async () => {
         try {
           const rr = await fetch('/api/reactions');
           const rd = await rr.json() as { entries?: Record<string, { like: number }> };
-          if (rd.entries?.[id]) setLikeCounts({ [id]: rd.entries[id].like });
+          setLikeCounts(prev => mergeLikeCounts(prev, rd.entries));
         } catch {}
       })
       .subscribe();
@@ -552,17 +597,38 @@ export default function DiscussionDetailPage() {
   }, [id]);
 
 
-  // Fixed like handler - supports toggle (like/unlike)
+  // Generate a persistent user fingerprint for like tracking
+  const getUserFingerprint = useCallback(() => {
+    // Use session user ID when logged in
+    if (session?.user?.id) return "user-" + session.user.id;
+    // Fallback: use a stored browser fingerprint
+    let fp = localStorage.getItem("galibierhub-fingerprint");
+    if (!fp) {
+      fp = "fp-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem("galibierhub-fingerprint", fp);
+    }
+    return fp;
+  }, [session]);
+
+  // Fixed like handler - supports toggle (like/unlike) with real per-user fingerprints
   const handleLike = useCallback(async (entryId: string) => {
     const currentlyLiked = likes[entryId];
+    const userFp = getUserFingerprint();
+    const isComment = entryId !== id;
+    const actorName = session?.user?.user_metadata?.name
+      || session?.user?.user_metadata?.full_name
+      || session?.user?.user_metadata?.user_name
+      || session?.user?.user_metadata?.preferred_username
+      || session?.user?.user_metadata?.login
+      || (session?.user?.email ? session.user.email.split("@")[0] : null)
+      || "User";
     setLikeLoading(p=>({...p,[entryId]:true}));
     
+    // Optimistic update
     if (currentlyLiked) {
-      // Unlike
       setLikes(p=>({...p,[entryId]:false}));
       setLikeCounts(p=>({...p,[entryId]:Math.max(0,(p[entryId]||1)-1)}));
     } else {
-      // Like
       setLikes(p=>({...p,[entryId]:true}));
       setLikeCounts(p=>({...p,[entryId]:(p[entryId]||0)+1}));
     }
@@ -571,8 +637,20 @@ export default function DiscussionDetailPage() {
       await fetch("/api/reactions", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({reactionType:"like", fingerprint:"detail-"+entryId, entryId})
+        body: JSON.stringify({
+          reactionType:"like",
+          fingerprint: userFp,
+          ...(isComment ? { commentId: entryId } : { entryId }),
+          userId: session?.user?.id || null,
+          actorName,
+        })
       });
+      // Re-fetch actual count from server
+      const rr = await fetch("/api/reactions");
+      if (rr.ok) {
+        const rd = await rr.json() as {entries?:Record<string,{like:number}>};
+        setLikeCounts(prev => mergeLikeCounts(prev, rd.entries));
+      }
       // Persist liked state locally
       const stored = localStorage.getItem("galibierhub-likes-"+id);
       let likedList: string[] = stored ? JSON.parse(stored) : [];
@@ -584,7 +662,7 @@ export default function DiscussionDetailPage() {
       localStorage.setItem("galibierhub-likes-"+(id||""), JSON.stringify(likedList));
     } catch {}
     finally { setLikeLoading(p=>({...p,[entryId]:false})); }
-  }, [likes, id]);
+  }, [likes, id, getUserFingerprint, session]);
 
   // Open share modal
   const handleShare = useCallback((entryId: string) => {
@@ -599,7 +677,7 @@ export default function DiscussionDetailPage() {
   }, []);
 
   const handleSubmitComment = useCallback(async (text: string) => {
-    const authorName = isAdmin ? "GalibierHub Team" : (githubUser || "Visitor");
+    const authorName = isAdmin ? "GalibierHub Team" : (githubUser || (session?.user?.email ? session.user.email.split("@")[0] : null) || "User");
     const res = await fetch("/api/feedback", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
@@ -609,13 +687,6 @@ export default function DiscussionDetailPage() {
     if (!res.ok) throw new Error(d.error||"Failed to post");
     setFloatingReplyOpen(false);
     await fetchData();
-    // Auto-award Ice Breaker badge on first post
-    if (currentUserId || (typeof window !== "undefined" && localStorage.getItem("galibierhub-user-id"))) {
-      const uid = currentUserId || (typeof window !== "undefined" ? localStorage.getItem("galibierhub-user-id") : null);
-      if (uid) {
-        try { await fetch("/api/badges", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: uid, badgeId: "ice_breaker" }) }); } catch {}
-      }
-    }
   }, [id, fetchData, githubUser]);
 
   const timelineItems = useMemo(() => {
@@ -627,18 +698,46 @@ export default function DiscussionDetailPage() {
     return items;
   }, [entry, comments]);
 
-  const firstDate = timelineItems[0]?.date||null;
-  const lastDate = timelineItems[timelineItems.length-1]?.date||null;
   const filteredTimeline = commentSearch.trim() ? timelineItems.filter(item => {
     const q = commentSearch.toLowerCase();
     const text = item.type === 'entry' ? ((item.data as SiteFeedbackEntry).title||'')+((item.data as SiteFeedbackEntry).message||'')+((item.data as SiteFeedbackEntry).display_name||'') : ((item.data as FeedbackCommentEntry).message||'')+((item.data as FeedbackCommentEntry).author_name||'');
     return text.toLowerCase().includes(q);
   }) : timelineItems;
+  const displayTimeline = filteredTimeline;
 
   function handleTimelineNav(i: number) {
-    setCurrentTimelineIndex(i);
-    contentRefs.current[i]?.scrollIntoView({behavior:"smooth",block:"center"});
+    const clamped = Math.max(0, Math.min(displayTimeline.length - 1, i));
+    setCurrentTimelineIndex(clamped);
+    const ref = contentRefs.current[clamped];
+    if (ref) {
+      const top = ref.getBoundingClientRect().top + window.scrollY - Math.max(88, window.innerHeight * 0.18);
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }
   }
+
+  useEffect(() => {
+    function syncTimelineFromScroll() {
+      const midpoint = window.innerHeight * 0.42;
+      let next = 0;
+      for (let i = 0; i < contentRefs.current.length; i++) {
+        const el = contentRefs.current[i];
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= midpoint) next = i;
+      }
+      setCurrentTimelineIndex(prev => prev === next ? prev : next);
+    }
+    window.addEventListener("scroll", syncTimelineFromScroll, { passive: true });
+    window.addEventListener("resize", syncTimelineFromScroll);
+    syncTimelineFromScroll();
+    return () => {
+      window.removeEventListener("scroll", syncTimelineFromScroll);
+      window.removeEventListener("resize", syncTimelineFromScroll);
+    };
+  }, [displayTimeline.length]);
+
+  useEffect(() => {
+    setCurrentTimelineIndex(0);
+  }, [displayTimeline.length, commentSearch.trim()]);
 
   // Sign-up prompt callbacks
   const handleSignUp = useCallback(() => { setAuthModalOpen(true); }, []);
@@ -741,7 +840,7 @@ const isLoggedIn = !!(session || githubUser);
       <header className="sticky top-0 z-40 border-b border-white/20 bg-white/70 backdrop-blur-xl saturate-150 shadow-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 min-w-0">
-            <Link href="/" className="text-lg font-bold text-teal-700 hover:text-slate-800 flex-shrink-0">{SiteConfig.title}</Link>
+            <Logo compact />
             <span className="text-gray-300">/</span>
             <Link href="/discussions" className="text-sm text-gray-500 hover:text-gray-700 flex-shrink-0">Discussions</Link>
             {entry&&<><span className="text-gray-300">/</span><span className="text-sm font-medium text-gray-900 truncate">{entry.title||"Discussion"}</span></>}
@@ -771,26 +870,10 @@ const isLoggedIn = !!(session || githubUser);
 
       {/* Main content area with relative positioning for sidebar */}
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 relative">
-        {/* Timeline sidebar - draggable */}
-        {timelineItems.length>1&&(
-          <div className="absolute right-0 top-0 bottom-0 hidden xl:block" style={{transform:"translateX(100%)",paddingLeft:"12px"}}>
-            <div className="sticky top-32 flex flex-col items-center gap-1 rounded-2xl border border-gray-200 bg-white/90 py-3 px-2 shadow-sm backdrop-blur">
-              <div className="text-xs font-mono font-semibold text-gray-500 text-center leading-tight">{currentTimelineIndex+1}<br/><span className="text-[10px] text-gray-400">/ {timelineItems.length}</span></div>
-              {/* Draggable timeline track */}
-              <div className="relative w-3 h-24 bg-gray-200 rounded-full cursor-pointer my-1 group" onPointerDown={(e)=>{e.currentTarget.setPointerCapture(e.pointerId);const rect=e.currentTarget.getBoundingClientRect();const pct=Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height));const idx=Math.round(pct*(timelineItems.length-1));setCurrentTimelineIndex(idx);contentRefs.current[idx]?.scrollIntoView({behavior:"smooth",block:"center"});}} onPointerMove={(e)=>{if(!e.currentTarget.hasPointerCapture(e.pointerId))return;const rect=e.currentTarget.getBoundingClientRect();const pct=Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height));const idx=Math.round(pct*(timelineItems.length-1));setCurrentTimelineIndex(idx);contentRefs.current[idx]?.scrollIntoView({behavior:"instant",block:"center"});}}>
-                <div className="absolute bottom-0 left-0 right-0 bg-slate-700 rounded-full transition-all duration-200" style={{height:((currentTimelineIndex+1)/Math.max(timelineItems.length,1))*100+"%"}}/>
-                <div className="absolute left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white border-2 border-slate-500 rounded-full shadow-sm transition-all duration-200 group-hover:scale-110" style={{bottom:`calc(${((currentTimelineIndex+1)/Math.max(timelineItems.length,1))*100}% - 7px)`}}/>
-              </div>
-              {firstDate&&<div className="text-[10px] text-gray-400 text-center leading-tight">{new Date(firstDate).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>}
-              {lastDate&&lastDate!==firstDate&&<><div className="text-[10px] text-gray-300">|</div><div className="text-[10px] text-slate-500 text-center leading-tight font-medium">{formatTimeAgo(lastDate)}</div></>}
-              <button onClick={()=>handleTimelineNav(Math.max(0,currentTimelineIndex-1))} disabled={currentTimelineIndex<=0} className="mt-1 rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg></button>
-              <button onClick={()=>handleTimelineNav(Math.min(timelineItems.length-1,currentTimelineIndex+1))} disabled={currentTimelineIndex>=timelineItems.length-1} className="rounded-full p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg></button>
-              {/* Post a Reply button in timeline */}
-              <button onClick={()=>{setReplyTarget(null);setFloatingReplyOpen(true);}} className="mt-2 rounded-lg bg-slate-800 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm hover:bg-slate-900 transition-colors whitespace-nowrap">
-                <svg className="h-3.5 w-3.5 inline-block mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                Reply
-              </button>
-            </div>
+        {/* Timeline sidebar - draggable and synced with page scroll */}
+        {displayTimeline.length>1&&(
+          <div className="absolute right-0 top-0 bottom-0 hidden xl:block" style={{transform:"translateX(100%)",paddingLeft:"16px"}}>
+            <TimelineSidebar items={displayTimeline} currentIndex={currentTimelineIndex} onNavigate={handleTimelineNav} onReply={()=>{setReplyTarget(null);setFloatingReplyOpen(true);}} />
           </div>
         )}
 

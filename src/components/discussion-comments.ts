@@ -36,7 +36,7 @@ export function useDiscussionComments(accessToken?: string | null) {
         body: JSON.stringify({
           feedbackId: entryId,
           message: draft,
-          authorName: 'Visitor',
+          authorName: 'User',
         }),
       });
       const data = await response.json() as { error?: string };

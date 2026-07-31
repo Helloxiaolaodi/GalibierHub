@@ -219,7 +219,7 @@ function buildManifestRows(folderItems: FileRow[], rootLabel: string): Array<Rec
     File_Type: item.fileType,
     Size_Bytes: item.sizeBytes != null ? String(item.sizeBytes) : '',
     Direct_URL: item.url,
-    'SHA-256': item.sha256_checksum || item.sha256Checksum || item.sha256 || item.oid || 'NA',
+    'SHA-256': item.sha256_checksum || item.sha256Checksum || item.sha256 || item.oid || item.cksum || '',
   }));
 }
 

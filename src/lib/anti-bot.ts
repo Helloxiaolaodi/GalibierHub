@@ -37,6 +37,7 @@ export const RATE_LIMITED_PATHS = [
   "/api/reactions",
   "/api/feedback",
   "/api/stats",
+  "/api/auth-verify",
 ];
 
 // ---- In-Memory Rate Limiter ----

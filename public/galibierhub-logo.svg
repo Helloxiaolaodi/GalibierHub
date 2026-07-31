@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64" role="img" aria-labelledby="galibierhub-logo-title">
+  <title id="galibierhub-logo-title">GalibierHub Switchback Monogram</title>
+  <rect width="64" height="64" rx="10" fill="#FFFFFF"/>
+  <path d="M16 52V12h32v18H26v8h14v14H16z" fill="#1E293B"/>
+  <path d="M30 46 40 34 34 28 46 18" stroke="#2563EB" stroke-width="5" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

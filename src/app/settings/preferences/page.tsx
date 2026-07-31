@@ -88,6 +88,7 @@ export default function PreferencesPage() {
       localStorage.setItem("galibierhub-research-field", researchField);
       localStorage.setItem("galibierhub-role", role);
       localStorage.setItem("galibierhub-bio", bio);
+      localStorage.setItem("galibierhub-display-name", displayName);
       localStorage.setItem("galibierhub-theme", theme);
       localStorage.setItem("galibierhub-email-reply", String(emailReply));
       localStorage.setItem("galibierhub-email-mention", String(emailMention));
@@ -115,6 +116,8 @@ export default function PreferencesPage() {
       }
 
       setSaved(true);
+      // Dispatch event so other components refresh from localStorage
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("galibierhub-settings-updated"));
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");
@@ -134,7 +137,7 @@ export default function PreferencesPage() {
       const data = await resp.json() as { url?: string; error?: string };
       if (data.url) {
         setAvatarUrl(data.url);
-        localStorage.setItem("galibierhub-avatar-url", data.url);
+        localStorage.setItem("galibierhub-custom-avatar", data.url);
       } else if (data.error) {
         setError(data.error);
       }
@@ -221,26 +224,6 @@ export default function PreferencesPage() {
               <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} placeholder="Tell others about yourself..."
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-colors resize-y" />
             </div>
-          </div>
-        </div>
-
-        {/* Interface Theme */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm mb-4">
-          <h2 className="text-sm font-semibold text-slate-700 mb-3">Interface</h2>
-          <div className="flex gap-2">
-            {(["light", "dark", "system"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTheme(t)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-                  theme === t
-                    ? "bg-slate-800 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
           </div>
         </div>
 
