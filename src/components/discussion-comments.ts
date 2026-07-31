@@ -5,7 +5,7 @@ import type { FeedbackCommentEntry } from '@/types/genome';
 
 type CommentEntry = FeedbackCommentEntry;
 
-export function useDiscussionComments(accessToken?: string | null) {
+export function useDiscussionComments(accessToken?: string | null, isAdmin = false) {
   const [entryComments, setEntryComments] = useState<Record<string, CommentEntry[]>>({});
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [commentSubmitting, setCommentSubmitting] = useState<Record<string, boolean>>({});
@@ -26,6 +26,8 @@ export function useDiscussionComments(accessToken?: string | null) {
   const handleSubmitComment = useCallback(async (entryId: string) => {
     const draft = (commentDrafts[entryId] || '').trim();
     if (!draft || draft.length < 1) return;
+    const storedGithubUser = typeof window === 'undefined' ? null : window.localStorage.getItem('galibierhub-github-user');
+    const authorName = isAdmin ? 'GalibierHub Team' : (storedGithubUser || 'User');
     setCommentSubmitting((s) => ({ ...s, [entryId]: true }));
     setCommentError((e) => ({ ...e, [entryId]: null }));
     setCommentSuccess((e) => ({ ...e, [entryId]: null }));
@@ -36,7 +38,7 @@ export function useDiscussionComments(accessToken?: string | null) {
         body: JSON.stringify({
           feedbackId: entryId,
           message: draft,
-          authorName: 'User',
+          authorName,
         }),
       });
       const data = await response.json() as { error?: string };
@@ -49,7 +51,7 @@ export function useDiscussionComments(accessToken?: string | null) {
     } finally {
       setCommentSubmitting((s) => ({ ...s, [entryId]: false }));
     }
-  }, [commentDrafts, fetchEntryComments]);
+  }, [commentDrafts, fetchEntryComments, isAdmin]);
 
   return {
     entryComments,
@@ -66,8 +68,8 @@ export function useDiscussionComments(accessToken?: string | null) {
   };
 }
 
-export function useDiscussionThreads(accessToken?: string | null) {
-  const comments = useDiscussionComments(accessToken);
+export function useDiscussionThreads(accessToken?: string | null, isAdmin = false) {
+  const comments = useDiscussionComments(accessToken, isAdmin);
   return {
     ...comments,
     entryThreads: comments.entryComments,

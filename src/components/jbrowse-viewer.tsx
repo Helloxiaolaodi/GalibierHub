@@ -67,7 +67,12 @@ function formatDisplayedRegionLocus(view: {
 
 export default function JBrowseViewer({ locus, onLocusChange, highlightRegion, dataBase, assemblyName, assemblyData, tracks }: JBrowseViewerProps) {
   const buildUrl = useMemo(
-    () => (path: string) => getStorageUrl(path, dataBase, { preferProxy: false }),
+    () => (path: string) => {
+      if (path.startsWith('/api/')) {
+        return path;
+      }
+      return getStorageUrl(path, dataBase, { preferProxy: false });
+    },
     [dataBase],
   );
   const lastNavLocus = useRef<string | null>(null);
@@ -133,8 +138,11 @@ export default function JBrowseViewer({ locus, onLocusChange, highlightRegion, d
           if (adapterConfig.bigBedLocation) {
             adapter.bigBedLocation = { uri: buildUrl(adapterConfig.bigBedLocation) };
           }
-          if (adapterConfig.bedLocation) {
-            adapter.bedLocation = { uri: buildUrl(adapterConfig.bedLocation) };
+          const bedLocation = track.trackId === 'annotations-bed'
+            ? '/api/reference-annotations/bed'
+            : adapterConfig.bedLocation;
+          if (bedLocation) {
+            adapter.bedLocation = { uri: buildUrl(bedLocation) };
           }
           if (adapterConfig.gffLocation) {
             adapter.gffLocation = { uri: buildUrl(adapterConfig.gffLocation) };

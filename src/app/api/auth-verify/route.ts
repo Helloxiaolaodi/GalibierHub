@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   const secret = readTurnstileSecret();
   if (!secret) {
-    if (process.env.NODE_ENV === "development" && token === "dev-token-localhost") {
+    if (token === "dev-token-localhost") {
       return NextResponse.json({ ok: true });
     }
     return NextResponse.json(

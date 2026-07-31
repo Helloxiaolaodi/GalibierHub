@@ -915,12 +915,12 @@ const isLoggedIn = !!(session || githubUser);
                         <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words">{renderMarkdown(ed.message, (src, alt) => setLightbox({src, alt}))}</div>
                         {ed.creator_reply&&(
                           <div className="mt-4 rounded-xl border border-slate-200 bg-teal-50 p-4">
-                              <div className="flex items-center gap-2 mb-2"><div className="h-6 w-6 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-semibold text-white">S</div><span className="text-xs font-semibold text-slate-800">GalibierHub Team</span><span className="text-xs text-slate-500">· Official Response</span></div>
+                              <div className="flex items-center gap-2 mb-2"><img src="/galibierhub-logo.svg" alt="GalibierHub Team" className="h-6 w-6 rounded-full bg-white object-cover" /><span className="text-xs font-semibold text-slate-800">GalibierHub Team</span><span className="text-xs text-slate-500">&middot; Official Response</span></div>
                             <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap break-words">{ed.creator_reply}</div>
                           </div>)}
                       </>):(<>
                         <div className="flex items-start gap-3 mb-3">
-                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(cd.author_name); setProfileCardUserId(cd.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0 hover:ring-2 hover:ring-emerald-300 transition-all cursor-pointer">{getInitials(cd.author_name)}</button>
+                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(cd.author_name); setProfileCardUserId(cd.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0 hover:ring-2 hover:ring-emerald-300 transition-all cursor-pointer overflow-hidden">{cd.author_name === "GalibierHub Team" ? <img src="/galibierhub-logo.svg" alt="GalibierHub Team" className="h-8 w-8 rounded-full object-cover" /> : getInitials(cd.author_name)}</button>
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="text-sm font-semibold text-gray-900">{cd.author_name}</span>
