@@ -47,7 +47,6 @@ const ALL_CITIES: { city: string; country: string; tz: string }[] = [
   { city: "Bangkok", country: "Thailand", tz: "Asia/Bangkok" },
   { city: "Jakarta", country: "Indonesia", tz: "Asia/Jakarta" },
   { city: "Hong Kong", country: "China", tz: "Asia/Hong_Kong" },
-  { city: "Taipei", country: "Taiwan", tz: "Asia/Taipei" },
 ];
 
 function getTimeParts(tz: string) {
@@ -109,10 +108,6 @@ export default function WorldClock() {
     );
   }, [query]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Escape") { setOpen(false); }
-  }, []);
-
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
@@ -142,7 +137,7 @@ export default function WorldClock() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm pt-[15vh] p-4" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden" onClick={(e) => e.stopPropagation()} onKeyDown={handleKeyDown}>
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
               <svg className="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -156,8 +151,8 @@ export default function WorldClock() {
                 className="flex-1 border-0 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
               />
               {query && (
-                <button onClick={() => setQuery("")} className="rounded p-0.5 text-gray-400 hover:text-gray-600">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                <button onClick={() => setQuery("")} className="rounded px-2 py-0.5 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+                  Clear
                 </button>
               )}
               <button onClick={() => setOpen(false)} className="rounded p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100">
@@ -195,7 +190,7 @@ export default function WorldClock() {
               )}
             </div>
             <div className="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between text-[10px] text-gray-400">
-              <span>Press <kbd className="rounded border border-gray-300 bg-gray-100 px-1 py-0 text-[10px] font-mono">Esc</kbd> to close</span>
+              <span>Click outside to close</span>
               <span className="flex items-center gap-1">{new Date(now).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })} your time</span>
             </div>
           </div>

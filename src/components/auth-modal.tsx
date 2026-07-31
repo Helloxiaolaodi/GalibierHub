@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
+import TurnstileWidget from "@/components/turnstile-widget";
 
 type AuthMode = "github" | "google" | "email-login" | "email-signup" | "forgot-password";
 
@@ -23,9 +24,36 @@ export default function AuthModal({
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   // Reset mode when modal opens with new initialMode
   useEffect(() => { if (open) { setMode(initialMode); setAuthError(null); setSignupSuccess(false); } }, [open, initialMode]);
+
+  useEffect(() => {
+    if (open) setTurnstileToken(null);
+  }, [open, mode]);
+
+  const verifyAuthChallenge = useCallback(async (action: string): Promise<string | null> => {
+    if (!turnstileToken) {
+      return "Please complete the human verification checkbox before continuing.";
+    }
+    try {
+      const response = await fetch("/api/auth-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: turnstileToken, action }),
+      });
+      const data = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok || !data.ok) {
+        return data.error || "Human verification failed. Please try again.";
+      }
+      return null;
+    } catch {
+      return "Human verification failed. Please try again.";
+    }
+  }, [turnstileToken]);
 
   const handleGithubSignIn = useCallback(async () => {
     setLoading(true);
@@ -34,6 +62,11 @@ export default function AuthModal({
       const sb = getBrowserSupabase();
       if (!sb) {
         setAuthError("Supabase client not initialized. Check environment variables.");
+        return;
+      }
+      const verifyError = await verifyAuthChallenge("auth-github");
+      if (verifyError) {
+        setAuthError(verifyError);
         return;
       }
       const { error } = await sb.auth.signInWithOAuth({
@@ -55,7 +88,7 @@ export default function AuthModal({
     } finally {
       setLoading(false);
     }
-  }, [onSignInError]);
+  }, [onSignInError, verifyAuthChallenge]);
 
   const handleGoogleSignIn = useCallback(async () => {
     setLoading(true);
@@ -64,6 +97,11 @@ export default function AuthModal({
       const sb = getBrowserSupabase();
       if (!sb) {
         setAuthError("Supabase client not initialized.");
+        return;
+      }
+      const verifyError = await verifyAuthChallenge("auth-google");
+      if (verifyError) {
+        setAuthError(verifyError);
         return;
       }
       const { error } = await sb.auth.signInWithOAuth({
@@ -85,7 +123,7 @@ export default function AuthModal({
     } finally {
       setLoading(false);
     }
-  }, [onSignInError]);
+  }, [onSignInError, verifyAuthChallenge]);
 
   const handleEmailSignIn = useCallback(async () => {
     if (!email || !password) {
@@ -100,10 +138,35 @@ export default function AuthModal({
         setAuthError("Supabase client not initialized.");
         return;
       }
-      const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
+      const verifyError = await verifyAuthChallenge("auth-email-login");
+      if (verifyError) {
+        setAuthError(verifyError);
+        return;
+      }
+      const { data: signInData, error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
       if (error) {
         setAuthError(error.message);
       } else {
+        const userId = signInData.session?.user?.id;
+        const username = email.trim().split("@")[0] || "user";
+        if (userId) {
+          try {
+            const { data: existingProfile } = await sb
+              .from("profiles")
+              .select("id")
+              .eq("id", userId)
+              .maybeSingle();
+            if (!existingProfile) {
+              await sb.from("profiles").insert({
+                id: userId,
+                username,
+                display_name: username,
+                full_name: username,
+                email: email.trim(),
+              });
+            }
+          } catch {}
+        }
         onClose();
         setTimeout(() => window.location.reload(), 500);
       }
@@ -112,7 +175,7 @@ export default function AuthModal({
     } finally {
       setLoading(false);
     }
-  }, [email, password, onClose]);
+  }, [email, password, onClose, verifyAuthChallenge]);
 
   const handleEmailSignUp = useCallback(async () => {
     if (!email || !password) {
@@ -135,10 +198,24 @@ export default function AuthModal({
         setAuthError("Supabase client not initialized.");
         return;
       }
+      const verifyError = await verifyAuthChallenge("auth-email-signup");
+      if (verifyError) {
+        setAuthError(verifyError);
+        return;
+      }
+      const username = email.trim().split("@")[0] || "user";
       const { error } = await sb.auth.signUp({
         email: email.trim(),
         password,
-        options: { emailRedirectTo: window.location.origin },
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: {
+            username,
+            display_name: username,
+            full_name: username,
+            name: username,
+          },
+        },
       });
       if (error) {
         setAuthError(error.message);
@@ -151,7 +228,7 @@ export default function AuthModal({
     } finally {
       setLoading(false);
     }
-  }, [email, password, confirmPassword]);
+  }, [email, password, confirmPassword, verifyAuthChallenge]);
 
   const handleForgotPassword = useCallback(async () => {
     if (!email || !email.includes("@")) {
@@ -164,6 +241,11 @@ export default function AuthModal({
       const sb = getBrowserSupabase();
       if (!sb) {
         setAuthError("Supabase client not initialized.");
+        return;
+      }
+      const verifyError = await verifyAuthChallenge("auth-forgot-password");
+      if (verifyError) {
+        setAuthError(verifyError);
         return;
       }
       const { error } = await sb.auth.resetPasswordForEmail(email.trim(), {
@@ -180,7 +262,7 @@ export default function AuthModal({
     } finally {
       setLoading(false);
     }
-  }, [email]);
+  }, [email, verifyAuthChallenge]);
 
   if (!open) return null;
 
@@ -227,10 +309,17 @@ export default function AuthModal({
               {authError && (
                 <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">{authError}</div>
               )}
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                <p className="mb-2 text-xs font-medium text-gray-600">Please verify you are human before continuing.</p>
+                <TurnstileWidget
+                  onToken={setTurnstileToken}
+                  action={mode === "google" ? "auth-google" : "auth-github"}
+                />
+              </div>
               {/* GitHub button */}
               <button
                 onClick={handleGithubSignIn}
-                disabled={loading}
+                disabled={loading || !turnstileToken}
                 className="w-full rounded-xl bg-[#24292e] px-4 py-3 text-sm font-medium text-white hover:bg-[#1b1f23] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? (
@@ -243,7 +332,7 @@ export default function AuthModal({
               {/* Google button */}
               <button
                 onClick={handleGoogleSignIn}
-                disabled={loading}
+                disabled={loading || !turnstileToken}
                 className="w-full rounded-xl bg-white border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? (
@@ -282,7 +371,14 @@ export default function AuthModal({
                   {authError && (
                     <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">{authError}</div>
                   )}
-                  <button onClick={handleForgotPassword} disabled={loading}
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                    <p className="mb-2 text-xs font-medium text-gray-600">Please verify you are human before continuing.</p>
+                    <TurnstileWidget
+                      onToken={setTurnstileToken}
+                      action="auth-forgot-password"
+                    />
+                  </div>
+                  <button onClick={handleForgotPassword} disabled={loading || !turnstileToken}
                     className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                   >
                     {loading && <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
@@ -302,18 +398,32 @@ export default function AuthModal({
                         className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-colors"
                         autoComplete="email" />
                     </div>
-                    <div>
+                    <div className="relative">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
-                      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 6 characters"
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-colors"
+                      <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 6 characters"
+                        className="w-full rounded-lg border border-gray-200 bg-white pl-3 pr-10 py-2.5 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-colors"
                         autoComplete={mode === "email-signup" ? "new-password" : "current-password"} />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-[34px] text-gray-400 hover:text-gray-600 focus:outline-none">
+                        {showPassword ? (
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243 3 3 0 01-4.243-4.243zM9.878 9.878l4.242 4.242"/></svg>
+                        ) : (
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        )}
+                      </button>
                     </div>
                     {mode === "email-signup" && (
-                      <div>
+                      <div className="relative">
                         <label className="block text-xs font-medium text-gray-600 mb-1">Confirm password</label>
-                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-colors"
+                        <input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 bg-white pl-3 pr-10 py-2.5 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-colors"
                           autoComplete="new-password" />
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-[34px] text-gray-400 hover:text-gray-600 focus:outline-none">
+                          {showConfirmPassword ? (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243 3 3 0 01-4.243-4.243zM9.878 9.878l4.242 4.242"/></svg>
+                          ) : (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          )}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -322,9 +432,17 @@ export default function AuthModal({
                     <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">{authError}</div>
                   )}
 
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                    <p className="mb-2 text-xs font-medium text-gray-600">Please verify you are human before continuing.</p>
+                    <TurnstileWidget
+                      onToken={setTurnstileToken}
+                      action={mode === "email-signup" ? "auth-email-signup" : "auth-email-login"}
+                    />
+                  </div>
+
                   <button
                     onClick={mode === "email-login" ? handleEmailSignIn : handleEmailSignUp}
-                    disabled={loading}
+                    disabled={loading || !turnstileToken}
                     className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                   >
                     {loading && <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}

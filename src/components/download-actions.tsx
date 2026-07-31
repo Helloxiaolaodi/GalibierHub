@@ -1,7 +1,6 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import {
   buildDownloadResolvedInfo,
   DEFAULT_DOWNLOAD_METADATA,
@@ -53,11 +52,14 @@ async function readFileMeta(url: string): Promise<{ size: number | null; sha256:
     if (datasetsIndex === -1 || resolveIndex === -1 || resolveIndex <= datasetsIndex + 2) {
       return { size: null, sha256: null };
     }
-    const repo = `${parts[datasetsIndex + 1]}/${parts[datasetsIndex + 2]}`;
+    // Support both datasets/org/repo and datasets/repo forms.
+    const repoCandidate = parts.slice(datasetsIndex + 1, resolveIndex).join('/');
+    if (!repoCandidate) return { size: null, sha256: null };
+    const repo = repoCandidate;
     const dirPath = parts.slice(resolveIndex + 2, -1).join('/');
     const fileName = parts[parts.length - 1];
     const api = `https://huggingface.co/api/datasets/${repo}/tree/main${dirPath ? `/${dirPath}` : ''}?recursive=false`;
-    const res = await fetch(api);
+    const res = await fetch(api, { cache: 'force-cache' });
     if (!res.ok) return { size: null, sha256: null };
     const data = (await res.json()) as Array<{ path: string; size?: number; lfs?: { oid?: string } }>;
     const hit = data.find((item) => item.path.split('/').pop() === fileName);
@@ -96,7 +98,7 @@ export default function DownloadActions({
   const [hfMeta, setHfMeta] = useState<FileMeta>({ size: null, sha256: null, loading: false });
   const [dbMeta, setDbMeta] = useState<DownloadMetadataPayload>(DEFAULT_DOWNLOAD_METADATA);
   const [resolvedInfo, setResolvedInfo] = useState<DownloadResolvedInfo | null>(null);
-    const [activeTab, setActiveTab] = useState<'download'|'preview'|'checksum'|'cite'|'tutorial'|'script'>('download');
+    const [activeTab, setActiveTab] = useState<'download'|'preview'|'checksum'|'cite'|'script'>('download');
   const [filePreview, setFilePreview] = useState<{loading:boolean;content:string|null;error:string|null}>({loading:false,content:null,error:null});
 const [unlocked, setUnlocked] = useState(false);
   const [pwInput, setPwInput] = useState('');
@@ -396,8 +398,8 @@ const [unlocked, setUnlocked] = useState(false);
                 </div>
                 {effectiveInfo.description && <p className="text-sm text-gray-700">{effectiveInfo.description}</p>}
                 <div className="grid gap-2 text-xs text-gray-600 sm:grid-cols-2">
-                  <div>Created: {effectiveInfo.created_at ? new Date(effectiveInfo.created_at).toLocaleString() : 'N/A'}</div>
-                  <div>Updated: {effectiveInfo.updated_at ? new Date(effectiveInfo.updated_at).toLocaleString() : 'N/A'}</div>
+                  <div>Created: {effectiveInfo.created_at ? new Date(effectiveInfo.created_at).toLocaleString() : 'Unknown'}</div>
+                  <div>Updated: {effectiveInfo.updated_at ? new Date(effectiveInfo.updated_at).toLocaleString() : 'Unknown'}</div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -407,12 +409,14 @@ const [unlocked, setUnlocked] = useState(false);
                         <code className="block max-w-full truncate font-mono text-xs text-gray-700">{effectiveInfo.sha256_checksum}</code>
                         <button type="button" onClick={() => handleCopy('sha256', effectiveInfo.sha256_checksum)} className="text-xs text-teal-600 hover:underline">{copied === 'sha256' ? 'Copied' : 'Copy SHA-256'}</button>
                       </>
+                    ) : hfMeta.loading ? (
+                      <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200 text-gray-500">Loading...</span>
                     ) : (
                       <div className="flex items-center gap-1 group relative">
-                        <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200 text-gray-400">N/A</span>
+                        <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200 text-gray-400">Not available yet</span>
                         <svg className="h-3.5 w-3.5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 hidden w-56 bg-slate-800 text-white text-xs rounded-lg p-2 text-center leading-relaxed group-hover:block z-20 shadow-lg">
-                          Hash not pre-computed for this file.
+                          SHA-256 metadata has not been published for this file yet.
                           <br />Verify locally: <code className="text-emerald-300">sha256sum &lt;file&gt;</code>
                           <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-slate-800"></div>
                         </div>
@@ -423,10 +427,10 @@ const [unlocked, setUnlocked] = useState(false);
               
               {/* Tab Navigation */}
               <div className="flex border-b border-gray-200 -mx-5 px-5">
-                {(['download','preview','checksum','cite','tutorial','script'] as const).map(tab => (
+                {(['download','preview','checksum','cite','script'] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
                     className={"px-4 py-2 text-xs font-medium border-b-2 transition-colors " + (activeTab === tab ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")}>
-                    {tab === 'download' ? 'Download & CLI' : tab === 'preview' ? 'File Preview' : tab === 'checksum' ? 'Checksum' : tab === 'cite' ? 'Cite' : tab === 'tutorial' ? 'Tutorials' : 'Batch Script'}
+                    {tab === 'download' ? 'Download & CLI' : tab === 'preview' ? 'File Preview' : tab === 'checksum' ? 'Checksum' : tab === 'cite' ? 'Cite' : 'Batch Script'}
                   </button>
                 ))}
               </div></div>
@@ -572,11 +576,11 @@ const [unlocked, setUnlocked] = useState(false);
                   <div className="space-y-3">
                     <div>
                       <span className="text-xs font-medium text-gray-600">SHA-256:</span>
-                      <code className="ml-2 block max-w-full break-all rounded px-2 py-1 font-mono text-xs bg-slate-50 text-slate-800 ring-1 ring-slate-200">{effectiveInfo.sha256_checksum || "Unavailable"}</code>
+                      <code className="ml-2 block max-w-full break-all rounded px-2 py-1 font-mono text-xs bg-slate-50 text-slate-800 ring-1 ring-slate-200">{hfMeta.loading ? "Loading..." : (effectiveInfo.sha256_checksum || "Not available yet")}</code>
                     </div>
                     <div>
                       <span className="text-xs font-medium text-gray-600">MD5:</span>
-                      <code className="ml-2 block max-w-full break-all rounded px-2 py-1 font-mono text-xs bg-slate-50 text-slate-800 ring-1 ring-slate-200">{dbMeta.md5_checksum || "Unavailable"}</code>
+                      <code className="ml-2 block max-w-full break-all rounded px-2 py-1 font-mono text-xs bg-slate-50 text-slate-800 ring-1 ring-slate-200">{dbMeta.md5_checksum || "Not available yet"}</code>
                     </div>
                   </div>
                   <p className="text-xs text-gray-400">Use the verification commands in the Download tab to confirm file integrity after transfer.</p>
@@ -627,40 +631,6 @@ const [unlocked, setUnlocked] = useState(false);
                 </div>
               )}
 
-              {/* Linked Tutorials Tab */}
-              {activeTab === "tutorial" && (linksVisible || isAdmin) && (
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-gray-800">Related Discussions & Tutorials</h4>
-                  <p className="text-sm text-gray-600">Find community tutorials and official guides for using this dataset in your analysis pipeline.</p>
-                  <div className="grid gap-2">
-                    <a href={"/discussions?tag=tutorial&topic=" + encodeURIComponent(effectiveInfo.file_name)} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 hover:border-slate-300 hover:shadow-sm transition-all">
-                      <svg className="h-5 w-5 text-teal-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">View all Tutorials</div>
-                        <div className="text-xs text-gray-500">Browse community guides and official documentation</div>
-                      </div>
-                    </a>
-                    <a href={"/discussions?tag=tutorial&topic=download&category=data"} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 hover:border-slate-300 hover:shadow-sm transition-all">
-                      <svg className="h-5 w-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">Download & CLI Usage Guide</div>
-                        <div className="text-xs text-gray-500">How to use wget/curl/aria2c for batch downloads</div>
-                      </div>
-                    </a>
-                    <a href={"/discussions?tag=tutorial&topic=pipeline&category=data"} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 hover:border-slate-300 hover:shadow-sm transition-all">
-                      <svg className="h-5 w-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">Pipeline Integration Guide</div>
-                        <div className="text-xs text-gray-500">Load datasets into QIIME 2, MaAsLin3, and HPC clusters</div>
-                      </div>
-                    </a>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 bg-teal-50 p-3">
-                    <p className="text-xs text-slate-700">Have questions about this directory? <Link href="/discussions?category=data" className="font-medium text-teal-700 underline hover:no-underline">Ask in Discussions</Link></p>
-                  </div>
-                </div>
-              )}
-
               {/* Batch Script Tab */}
               {activeTab === "script" && (linksVisible || isAdmin) && (
                 <div className="space-y-4">
@@ -700,7 +670,7 @@ const [unlocked, setUnlocked] = useState(false);
                       <pre className="rounded bg-slate-50 p-3 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap overflow-x-auto">{`url <- "${activePublicUrl}"\noutput <- "${effectiveInfo.file_name}"\n\ndownload.file(url, destfile = output, method = "auto", mode = "wb")\ncat("Downloaded:", output, "\\n")`}</pre>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400">These scripts are generated from the current URL. For batch downloading multiple files, copy the pipeline template from the Tutorials tab.</p>
+                  <p className="text-xs text-gray-400">These scripts are generated from the current URL. For batch downloading multiple files, use the pipeline template from the Downloads Tutorials menu.</p>
                 </div>
               )}
 {isAdmin && (

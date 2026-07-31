@@ -51,9 +51,20 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       // Fallback: try direct upsert
+      let nextCount = 1;
+      try {
+        const { data: existing } = await sb
+          .from('discussion_views')
+          .select('view_count')
+          .eq('entry_id', entryId)
+          .maybeSingle();
+        if (existing?.view_count != null) nextCount = Number(existing.view_count) + 1;
+      } catch {
+        // Keep the default count if the row cannot be read.
+      }
       const { error: upsertErr } = await sb
         .from('discussion_views')
-        .upsert({ entry_id: entryId, view_count: 1, last_viewed_at: new Date().toISOString() }, { onConflict: 'entry_id', ignoreDuplicates: false });
+        .upsert({ entry_id: entryId, view_count: nextCount, last_viewed_at: new Date().toISOString() }, { onConflict: 'entry_id', ignoreDuplicates: false });
 
       if (upsertErr) {
         return NextResponse.json({ ok: false, reason: 'table not available', note: 'Run the schema SQL to create discussion_views table' });

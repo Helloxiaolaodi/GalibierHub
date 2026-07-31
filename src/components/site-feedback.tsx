@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { SiteConfig } from '@/site-config';
 import { useDiscussionThreads } from './discussion-comments';
+import { getBrowserSupabase } from '@/utils/supabase-browser';
 import type { FeedbackCommentEntry, FeedbackSummary, ReactionCounts, SiteFeedbackEntry } from '@/types/genome';
 
 type ReactionType = 'like' | 'bookmark';
@@ -581,6 +582,39 @@ const [uploadingImage, setUploadingImage] = useState(false);
   }, [fetchReactions]);
 
   useEffect(() => {
+    const sb = getBrowserSupabase();
+    if (!sb) return;
+    const updateCount = (reactionType: 'like' | 'bookmark', entryId: string, delta: number) => {
+      setEntryReactionCounts((current) => ({
+        ...current,
+        [entryId]: {
+          like: Math.max(0, (current[entryId]?.like || 0) + (reactionType === 'like' ? delta : 0)),
+          bookmark: Math.max(0, (current[entryId]?.bookmark || 0) + (reactionType === 'bookmark' ? delta : 0)),
+        },
+      }));
+      setReactionCounts((current) => ({
+        like: Math.max(0, current.like + (reactionType === 'like' ? delta : 0)),
+        bookmark: Math.max(0, current.bookmark + (reactionType === 'bookmark' ? delta : 0)),
+      }));
+    };
+    const channel = sb.channel('site-feedback-reactions')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'site_reactions' }, (payload) => {
+        const row = payload.new as { entry_id?: string | null; reaction_type?: string };
+        if (row.entry_id && (row.reaction_type === 'like' || row.reaction_type === 'bookmark')) {
+          updateCount(row.reaction_type, row.entry_id, 1);
+        }
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'site_reactions' }, (payload) => {
+        const oldRow = payload.old as { entry_id?: string | null; reaction_type?: string };
+        if (oldRow.entry_id && (oldRow.reaction_type === 'like' || oldRow.reaction_type === 'bookmark')) {
+          updateCount(oldRow.reaction_type, oldRow.entry_id, -1);
+        }
+      })
+      .subscribe();
+    return () => { void sb.removeChannel(channel); };
+  }, []);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     const saved: Record<string, Record<string, boolean>> = {};
     for (let i = 0; i < window.localStorage.length; i++) {
@@ -648,11 +682,32 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
   const handleReaction = useCallback(async (reactionType: ReactionType, entryId: string) => {
     const fingerprint = buildVisitorFingerprint();
+    let userId: string | null = null;
+    let actorName = 'Someone';
+    const sb = getBrowserSupabase();
+    if (sb) {
+      try {
+        const { data: sessionData } = await sb.auth.getSession();
+        const user = sessionData.session?.user;
+        if (user) {
+          userId = user.id;
+          actorName = String(
+            user.user_metadata?.user_name ||
+            user.user_metadata?.preferred_username ||
+            user.user_metadata?.login ||
+            (user.email ? user.email.split('@')[0] : null) ||
+            'Someone'
+          );
+        }
+      } catch {
+        // Reaction still works without session identity.
+      }
+    }
     try {
       const response = await fetch('/api/reactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reactionType, fingerprint, entryId }),
+        body: JSON.stringify({ reactionType, fingerprint, entryId, userId, actorName }),
       });
       const data = (await response.json()) as { active?: boolean; error?: string };
       if (!response.ok) {

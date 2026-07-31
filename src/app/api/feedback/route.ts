@@ -2,7 +2,14 @@
 import { getServiceSupabase, getSupabase, hasSupabaseServiceRole, isSupabaseConfigured } from "@/utils/supabase";
 import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
 
-const VALID_CATEGORIES = new Set(["general", "issue", "idea", "data", "collaboration"]);
+const VALID_CATEGORIES = new Set(["general", "issue", "tutorials", "idea", "data", "collaboration"]);
+
+function normalizeCategory(value: string): string {
+  if (value === "idea" || value === "data" || value === "collaboration") {
+    return "tutorials";
+  }
+  return value;
+}
 
 function normalizeVisibility(value: unknown): "public" | "private" | null {
   if (typeof value !== "string") {
@@ -339,7 +346,7 @@ export async function POST(request: Request) {
     const commentMessage = typeof (body as { message?: unknown }).message === 'string'
       ? (body as { message: string }).message.trim() : '';
     const commentAuthor = typeof (body as { authorName?: unknown }).authorName === 'string'
-      ? (body as { authorName: string }).authorName.trim() : 'Visitor';
+      ? (body as { authorName: string }).authorName.trim() : 'User';
     if (!commentMessage || commentMessage.length < 1 || commentMessage.length > 2000) {
       return NextResponse.json({ error: "Comment message must be between 1 and 2000 characters." }, { status: 400 });
     }
@@ -368,7 +375,7 @@ export async function POST(request: Request) {
     await trySendEmail("sendCommentEmail", () => sendCommentEmail({
       feedbackId,
       threadTitle: feedbackEntry.title || "Untitled discussion",
-      threadAuthor: feedbackEntry.display_name || "Visitor",
+      threadAuthor: feedbackEntry.display_name || "User",
       commentAuthor,
       commentMessage,
       threadCreatedAt: feedbackEntry.created_at,
@@ -484,6 +491,7 @@ export async function POST(request: Request) {
  if (!VALID_CATEGORIES.has(category)) {
     category = "general";
  }
+ category = normalizeCategory(category);
 
   if (!visibility) {
     return NextResponse.json({ error: "Visibility must be public or private." }, { status: 400 });

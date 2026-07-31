@@ -20,7 +20,7 @@ export const feedbackPostSchema = z.object({
   displayName: z.string().min(1).max(80),
   visitorEmail: z.string().email().max(160).optional().or(z.literal("")),
   affiliation: z.string().max(160).optional().or(z.literal("")),
-  category: z.enum(["general", "issue", "idea", "data", "collaboration"]),
+  category: z.enum(["general", "issue", "tutorials", "idea", "data", "collaboration"]),
   rating: z.number().int().min(1).max(5),
   visibility: z.enum(["public", "private"]),
   message: z.string().min(3).max(2000),

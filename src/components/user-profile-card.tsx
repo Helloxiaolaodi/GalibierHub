@@ -14,6 +14,8 @@ type ProfileData = {
   userId: string | null;
 };
 
+type PresenceMap = Record<string, { status: "online" | "away" | "busy"; updatedAt: number }>;
+
 function getInitials(n: string): string {
   if (!n) return "?";
   const p = n.trim().split(/\s+/);
@@ -48,38 +50,73 @@ export default function UserProfileCard({
   const [followLoading, setFollowLoading] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
-  const ownUserId = typeof window !== 'undefined' ? localStorage.getItem('galibierhub-user-id') : null;
-  const isOwnCard = !!(userId && ownUserId && userId === ownUserId);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try { return localStorage.getItem("galibierhub-user-id"); } catch { return null; }
+  });
+  const [presence, setPresence] = useState<PresenceMap>(() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(localStorage.getItem("galibierhub-user-presence") || "{}") as PresenceMap; } catch { return {}; }
+  });
+  const isOwnCard = !!(userId && currentUserId && userId === currentUserId);
 
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
     const loadProfile = async () => {
+      let actorId = currentUserId;
+      let savedProfileData: { display_name?: string; affiliation?: string | null; research_field?: string | null; role?: string | null; bio?: string | null; avatar_url?: string | null } | null = null;
       try {
         const sb = getBrowserSupabase();
         if (sb && userId) {
-          const { data } = await sb.from("profiles").select("affiliation, research_field, role, bio, avatar_url").eq("id", userId).single();
-          if (data) {
-            setProfile({
-              displayName,
-              affiliation: data.affiliation || "",
-              researchField: data.research_field || "",
-              role: data.role || "",
-              bio: data.bio || "",
-              avatarUrl: data.avatar_url || null,
-              userId: userId || null,
-            });
-            return;
+          const sessionRes = await sb.auth.getSession();
+          const sessionId = sessionRes.data.session?.user?.id;
+          if (sessionId) actorId = sessionId;
+          if (sessionId && sessionId !== currentUserId) setCurrentUserId(sessionId);
+          try {
+            const { data } = await sb.from("profiles").select("display_name, affiliation, research_field, role, bio, avatar_url").eq("id", userId).single();
+            if (data) savedProfileData = data;
+          } catch {}
+          if (actorId) {
+            try {
+              const { data: followData } = await sb.from("follows").select("id").eq("follower_id", actorId).eq("following_id", userId).maybeSingle();
+              if (!cancelled) setIsFollowing(!!followData);
+            } catch {}
           }
+          try {
+            const { data: presenceRow } = await sb.from("user_presence").select("status, updated_at").eq("user_id", userId).maybeSingle();
+            if (!cancelled && presenceRow?.status) {
+              setPresence(prev => ({
+                ...prev,
+                [userId]: {
+                  status: presenceRow.status as "online" | "away" | "busy",
+                  updatedAt: new Date(presenceRow.updated_at).getTime(),
+                },
+              }));
+            }
+          } catch {}
         }
       } catch {}
+      if (!cancelled && savedProfileData) {
+        setProfile({
+          displayName: savedProfileData.display_name || displayName,
+          affiliation: savedProfileData.affiliation || "",
+          researchField: savedProfileData.research_field || "",
+          role: savedProfileData.role || "",
+          bio: savedProfileData.bio || "",
+          avatarUrl: savedProfileData.avatar_url || null,
+          userId: userId || null,
+        });
+        return;
+      }
       const aff = localStorage.getItem("galibierhub-affiliation") || "";
       const rf = localStorage.getItem("galibierhub-research-field") || "";
       const role = localStorage.getItem("galibierhub-role") || "";
       const bio = localStorage.getItem("galibierhub-bio") || "";
       const avatar = localStorage.getItem("galibierhub-custom-avatar") || "";
-      setProfile({
+      if (!cancelled) setProfile({
         displayName,
         affiliation: aff,
         researchField: rf,
@@ -88,17 +125,77 @@ export default function UserProfileCard({
         avatarUrl: avatar || null,
         userId: userId || null,
       });
+      if (!cancelled && userId) {
+        const following = JSON.parse(localStorage.getItem("galibierhub-following") || "[]");
+        setIsFollowing(following.includes(userId));
+      }
     };
     loadProfile();
-    if (userId) {
-      const following = JSON.parse(localStorage.getItem("galibierhub-following") || "[]");
-      setIsFollowing(following.includes(userId));
-    }
-  }, [open, displayName, userId]);
+    return () => { cancelled = true; };
+  }, [open, displayName, userId, currentUserId]);
+
+  useEffect(() => {
+    if (!open || !userId) return;
+    const sb = getBrowserSupabase();
+    if (!sb) return;
+    const channel = sb.channel("user-presence-" + userId)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "user_presence",
+        filter: "user_id=eq." + userId,
+      }, (payload) => {
+        const row = (payload.new || {}) as { status?: string; updated_at?: string };
+        const status = row.status;
+        if (status === "online" || status === "away" || status === "busy") {
+          setPresence(prev => ({
+            ...prev,
+            [userId]: {
+              status,
+              updatedAt: new Date(row.updated_at || Date.now()).getTime(),
+            },
+          }));
+        }
+      })
+      .subscribe();
+    return () => {
+      sb.removeChannel(channel);
+    };
+  }, [open, userId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncPresence = () => {
+      try { setPresence(JSON.parse(localStorage.getItem("galibierhub-user-presence") || "{}") as PresenceMap); } catch {}
+    };
+    syncPresence();
+    window.addEventListener("storage", syncPresence);
+    window.addEventListener("galibierhub-presence-updated", syncPresence);
+    return () => {
+      window.removeEventListener("storage", syncPresence);
+      window.removeEventListener("galibierhub-presence-updated", syncPresence);
+    };
+  }, []);
 
   const toggleFollow = useCallback(async () => {
     if (!userId || followLoading) return;
     setFollowLoading(true);
+    let actorId = currentUserId;
+    try {
+      const sb = getBrowserSupabase();
+      if (sb && !actorId) {
+        const { data: { session } } = await sb.auth.getSession();
+        actorId = session?.user?.id || null;
+        if (actorId) {
+          setCurrentUserId(actorId);
+          localStorage.setItem("galibierhub-user-id", actorId);
+        }
+      }
+    } catch {}
+    if (!actorId) {
+      setFollowLoading(false);
+      return;
+    }
     const following = JSON.parse(localStorage.getItem("galibierhub-following") || "[]");
     if (isFollowing) {
       const idx = following.indexOf(userId);
@@ -107,22 +204,59 @@ export default function UserProfileCard({
       following.push(userId);
     }
     localStorage.setItem("galibierhub-following", JSON.stringify(following));
-    setIsFollowing(!isFollowing);
-    // Persist to Supabase follows table
-    if (ownUserId) {
-      try {
-        const sb = getBrowserSupabase();
-        if (sb) {
-          if (isFollowing) {
-            await sb.from("follows").delete().eq("follower_id", ownUserId).eq("following_id", userId);
-          } else {
-            await sb.from("follows").insert({ follower_id: ownUserId, following_id: userId });
-          }
+    const nowFollowing = !isFollowing;
+    setIsFollowing(nowFollowing);
+    // Persist to Supabase follows table and notify the target user
+    try {
+      const sb = getBrowserSupabase();
+      if (sb) {
+        const { data: { session } } = await sb.auth.getSession();
+        const actorName = session?.user?.user_metadata?.name
+          || session?.user?.user_metadata?.full_name
+          || session?.user?.user_metadata?.user_name
+          || session?.user?.user_metadata?.preferred_username
+          || session?.user?.user_metadata?.login
+          || (session?.user?.email ? session.user.email.split("@")[0] : null)
+          || "User";
+        const token = session?.access_token || "";
+        if (isFollowing) {
+          await sb.from("follows").delete().eq("follower_id", actorId).eq("following_id", userId);
+          await fetch("/api/notifications", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: "Bearer " + token } : {}),
+            },
+            body: JSON.stringify({
+              recipient_id: userId,
+              discussion_id: null,
+              actor_name: actorName,
+              preview_text: "stopped following you",
+            }),
+          });
+        } else {
+          await sb.from("follows").insert({ follower_id: actorId, following_id: userId });
+          await fetch("/api/notifications", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: "Bearer " + token } : {}),
+            },
+            body: JSON.stringify({
+              recipient_id: userId,
+              discussion_id: null,
+              actor_name: actorName,
+              preview_text: "started following you",
+            }),
+          });
         }
-      } catch {}
+      }
+    } catch {}
+    if (nowFollowing) {
+      window.dispatchEvent(new Event("galibierhub-follows-updated"));
     }
     setFollowLoading(false);
-  }, [userId, isFollowing, followLoading, ownUserId]);
+  }, [userId, isFollowing, followLoading, currentUserId]);
 
   const handleSaveProfile = async () => {
     if (!userId) return;
@@ -164,8 +298,10 @@ export default function UserProfileCard({
 
   if (!open) return null;
 
-  const statusColor = onlineStatus === "online" ? "bg-emerald-500" : onlineStatus === "away" ? "bg-amber-400" : "bg-red-400";
-  const statusText = onlineStatus === "online" ? "Online" : onlineStatus === "away" ? "Away" : "Busy";
+  const targetPresence = userId ? presence[userId] : null;
+  const effectiveStatus = targetPresence?.status || (isOwnCard ? (onlineStatus || "online") : "offline");
+  const statusColor = effectiveStatus === "online" ? "bg-emerald-500" : effectiveStatus === "away" ? "bg-amber-400" : effectiveStatus === "busy" ? "bg-red-400" : "bg-gray-300";
+  const statusText = effectiveStatus === "online" ? "Online" : effectiveStatus === "away" ? "Away" : effectiveStatus === "busy" ? "Busy" : "Offline";
 
   return (
    <div className="fixed inset-0 z-50" onClick={onClose}>
@@ -179,7 +315,7 @@ export default function UserProfileCard({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col items-center">
-          {onlineStatus && (
+          {userId && (
            <div className="flex items-center gap-1.5 mb-2">
               <span className={`h-2 w-2 rounded-full ${statusColor}`} />
              <span className="text-[10px] font-medium text-gray-500">{statusText}</span>

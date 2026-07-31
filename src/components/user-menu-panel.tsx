@@ -70,7 +70,11 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [pauseNotifications, setPauseNotifications] = useState(false);
-  const [onlineStatus, setOnlineStatus] = useState<"online" | "away" | "busy">("online");
+  const [onlineStatus, setOnlineStatus] = useState<"online" | "away" | "busy">(() => {
+    if (typeof window === "undefined") return "online";
+    const saved = localStorage.getItem("galibierhub-online-status");
+    return saved === "away" || saved === "busy" ? saved : "online";
+  });
   const [userBio, setUserBio] = useState<string>('');
   const [bioText, setBioText] = useState('');
 
@@ -93,10 +97,53 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid) return;
+    localStorage.setItem("galibierhub-online-status", onlineStatus);
+    try {
+      const presence = JSON.parse(localStorage.getItem("galibierhub-user-presence") || "{}") as Record<string, { status: string; updatedAt: number }>;
+      presence[uid] = { status: onlineStatus, updatedAt: Date.now() };
+      localStorage.setItem("galibierhub-user-presence", JSON.stringify(presence));
+    } catch {
+      localStorage.setItem("galibierhub-user-presence", JSON.stringify({ [uid]: { status: onlineStatus, updatedAt: Date.now() } }));
+    }
+    window.dispatchEvent(new Event("galibierhub-presence-updated"));
+    const sb = getBrowserSupabase();
+    if (sb) {
+      void (async () => {
+        try {
+          const { error } = await sb.from("user_presence").upsert(
+            { user_id: uid, status: onlineStatus, updated_at: new Date().toISOString() },
+            { onConflict: "user_id" }
+          );
+          if (error) {
+            // The presence table may not be deployed yet; localStorage remains the fallback.
+          }
+        } catch {}
+      })();
+    }
+  }, [onlineStatus, session?.user?.id]);
+
   const resolvedAvatar = customAvatar || avatarUrl;
 
+  // Listen for settings updates from other pages
+  useEffect(() => {
+    const handler = () => {
+      setProfileAffiliation(localStorage.getItem('galibierhub-affiliation') || '');
+      setProfileResearchField(localStorage.getItem('galibierhub-research-field') || '');
+      setProfileRole(localStorage.getItem('galibierhub-role') || '');
+      setProfileBio(localStorage.getItem('galibierhub-bio') || '');
+      setCustomAvatar(localStorage.getItem('galibierhub-custom-avatar') || '');
+      setUserBio(localStorage.getItem('galibierhub-bio') || '');
+    };
+    window.addEventListener('galibierhub-settings-updated', handler);
+    return () => window.removeEventListener('galibierhub-settings-updated', handler);
+  }, []);
+
   const userId = session?.user?.id;
-  const displayName = isAdmin ? "GalibierHub Team" : (githubUser || "Visitor");
+  const emailPrefix = session?.user?.email ? session.user.email.split("@")[0] : null;
+  const displayName = isAdmin ? "GalibierHub Team" : (githubUser || emailPrefix || "User");
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
@@ -223,7 +270,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
       .channel('realtime:notifications')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `receiver_id=eq.${userId}` },
+        { event: 'INSERT', schema: 'public', table: 'site_notifications', filter: `recipient_id=eq.${userId}` },
         (payload: { new: NotificationItem }) => {
           if (payload.new) {
             setNotifications((prev) => [payload.new, ...prev]);
@@ -506,7 +553,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                       <span>Settings</span>
                     </Link>
                     {/* Activity */}
-                    <Link href={userId ? `/user/${userId}` : "/discussions"} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                    <Link href={userId ? `/user/${userId}?tab=activity` : "/discussions"} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
                       <span>Activity</span>
                     </Link>

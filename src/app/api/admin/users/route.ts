@@ -1,44 +1,121 @@
 import { NextResponse } from "next/server";
-import { getSupabase } from "@/utils/supabase";
+import { getServiceSupabase, getSupabase, hasSupabaseServiceRole } from "@/utils/supabase";
+
+type ProfileLike = {
+  id: string;
+  display_name?: string | null;
+  email?: string | null;
+  provider?: string | null;
+  created_at?: string | null;
+};
+
+function providerFor(user: { app_metadata?: Record<string, unknown> | null; email?: string | null }): string {
+  const provider = user.app_metadata?.provider;
+  if (typeof provider === "string") return provider;
+  return user.email ? "email" : "unknown";
+}
 
 export async function GET() {
   try {
     const sb = getSupabase();
 
-    // Try to get registered user count from auth.users via RPC or direct query
-    // This requires the service_role key for admin access
     let totalUsers = 0;
     let githubUsers = 0;
     let emailUsers = 0;
-    let recentSignups: Array<{ id: string; email: string; created_at: string; provider: string }> = [];
+    let usersThisWeek = 0;
+    let recentSignups: ProfileLike[] = [];
+    let note: string | undefined;
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     try {
-      // Try getting user metadata from a profiles table if it exists
-      const { data: profiles, error: profilesError } = await sb
+      const { count: profileCount, error: countError } = await sb
         .from("profiles")
-        .select("id, email, provider, created_at")
-        .order("created_at", { ascending: false })
-        .limit(20);
+        .select("*", { count: "exact", head: true });
+      if (!countError && typeof profileCount === "number") {
+        totalUsers = profileCount;
+      }
 
-      if (!profilesError && profiles) {
-        totalUsers = profiles.length;
-        profiles.forEach((p) => {
-          if (p.provider === "github") githubUsers++;
-          else emailUsers++;
-        });
-        recentSignups = profiles.slice(0, 10) as typeof recentSignups;
+      const { count: weekCount, error: weekError } = await sb
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", weekAgo);
+      if (!weekError && typeof weekCount === "number") {
+        usersThisWeek = weekCount;
+      }
+
+      try {
+        const { count: githubCount, error: githubError } = await sb
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .eq("provider", "github");
+        if (!githubError && typeof githubCount === "number") githubUsers = githubCount;
+      } catch {
+        // provider column may not exist
+      }
+
+      try {
+        const { count: emailCount, error: emailError } = await sb
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .neq("provider", "github");
+        if (!emailError && typeof emailCount === "number") emailUsers = emailCount;
+      } catch {
+        // provider column may not exist
+      }
+
+      try {
+        const { data: profiles, error: profilesError } = await sb
+          .from("profiles")
+          .select("id, display_name, email, provider, created_at")
+          .order("created_at", { ascending: false })
+          .limit(10);
+        if (!profilesError && profiles) {
+          recentSignups = profiles as ProfileLike[];
+        }
+      } catch {
+        try {
+          const { data: profiles, error: profilesError } = await sb
+            .from("profiles")
+            .select("id, display_name, created_at")
+            .order("created_at", { ascending: false })
+            .limit(10);
+          if (!profilesError && profiles) {
+            recentSignups = profiles as ProfileLike[];
+          }
+        } catch {
+          // profiles table may not exist
+        }
       }
     } catch {
-      // profiles table may not exist, fall back gracefully
+      note = "User counts require the profiles table with an auth trigger. Create public.profiles and a trigger on auth.users to populate it.";
     }
 
-    // If we can't get from profiles, try supabase auth admin
-    if (totalUsers === 0) {
+    if (totalUsers === 0 && hasSupabaseServiceRole) {
       try {
-        const { data: authUsers } = await sb.auth.admin.listUsers({ page: 1, perPage: 1 });
-        // This won't work without service role key, so we try the safe approach
+        const serviceSb = getServiceSupabase();
+        const { data: authUsers, error: authError } = await serviceSb.auth.admin.listUsers({ page: 1, perPage: 1000 });
+        if (!authError && authUsers?.users) {
+          totalUsers = authUsers.users.length;
+          authUsers.users.forEach((user) => {
+            const provider = providerFor(user);
+            if (provider === "github") githubUsers++;
+            else if (provider === "email") emailUsers++;
+            if (user.created_at && user.created_at >= weekAgo) usersThisWeek++;
+          });
+          recentSignups = authUsers.users.slice(0, 10).map((user) => {
+            const provider = providerFor(user);
+            return {
+              id: user.id,
+              display_name: (user.user_metadata?.name as string) || (user.user_metadata?.full_name as string) || null,
+              email: user.email || null,
+              provider,
+              created_at: user.created_at || null,
+            };
+          });
+          note = undefined;
+        }
       } catch {
-        // Silent fail - admin access requires service_role key
+        // service role not available
       }
     }
 
@@ -69,13 +146,18 @@ export async function GET() {
     let totalVisitors = 0;
     let recentVisitors: Array<{ id: string; ip: string; path: string; timestamp: string }> = [];
     try {
+      const { count: visitorCount, error: visitorCountError } = await sb
+        .from("site_visitors")
+        .select("*", { count: "exact", head: true });
+      if (!visitorCountError && typeof visitorCount === "number") {
+        totalVisitors = visitorCount;
+      }
       const { data: visitors } = await sb
         .from("site_visitors")
         .select("*")
         .order("timestamp", { ascending: false })
-        .limit(10);
+        .limit(5);
       if (visitors) {
-        totalVisitors = visitors.length;
         recentVisitors = visitors as typeof recentVisitors;
       }
     } catch {
@@ -86,15 +168,14 @@ export async function GET() {
       total_users: totalUsers,
       github_users: githubUsers,
       email_users: emailUsers,
+      users_this_week: usersThisWeek,
       total_discussions: totalDiscussions ?? 0,
       total_comments: totalComments ?? 0,
       total_downloads: totalDownloads,
       total_visitors: totalVisitors,
       recent_signups: recentSignups,
       recent_visitors: recentVisitors,
-      note: totalUsers === 0
-        ? "User counts require the profiles table with an auth trigger. Create public.profiles and a trigger on auth.users to populate it."
-        : undefined,
+      note,
     });
   } catch (err) {
     return NextResponse.json(

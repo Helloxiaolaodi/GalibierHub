@@ -1,7 +1,7 @@
 {
-  "name": "SeqEdge - Genome Research Database",
-  "short_name": "SeqEdge",
-  "description": "Interactive database for predicted promoters, genome annotations, and genomic data.",
+  "name": "GalibierHub - Genome Research Database",
+  "short_name": "GalibierHub",
+  "description": "Interactive community database for predicted promoters, genome annotations, and genomic data.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f9fafb",
@@ -9,7 +9,7 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "/seqedge-banner.svg",
+      "src": "/galibierhub-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

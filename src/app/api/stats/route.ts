@@ -161,12 +161,15 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json({
-    total_samples: totalSamples ?? 0,
-    total_promoters: totalPromoters ?? 0,
-    total_variants: totalVariants ?? 0,
-    total_visitors: totalVisitors,
-    species_distribution: speciesResult.speciesDistribution,
-    score_distribution: scoreResult.scoreDistribution,
-  });
+  return NextResponse.json(
+    {
+      total_samples: totalSamples ?? 0,
+      total_promoters: totalPromoters ?? 0,
+      total_variants: totalVariants ?? 0,
+      total_visitors: totalVisitors,
+      species_distribution: speciesResult.speciesDistribution,
+      score_distribution: scoreResult.scoreDistribution,
+    },
+    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
+  );
 }

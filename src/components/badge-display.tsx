@@ -90,7 +90,7 @@ export default function BadgeDisplay({ userId, maxDisplay = 2, size = 'sm', show
             title={def.name + ': ' + (def.description || '')}
             className={'inline-flex items-center justify-center rounded-full ring-1 ring-inset cursor-help ' + sizeClasses + ' ' + colors}
           >
-            {def.icon || '🏅'}
+            {def.icon || 'B'}
           </span>
         );
       })}

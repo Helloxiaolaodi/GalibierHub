@@ -5,7 +5,7 @@ import { renderMarkdown } from '@/lib/markdown';
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 
 type VisibilityMode = 'public' | 'private';
-type FeedbackCategory = 'general' | 'issue' | 'idea' | 'data' | 'collaboration';
+type FeedbackCategory = 'general' | 'issue' | 'tutorials' | 'idea' | 'data' | 'collaboration';
 
 interface FeedbackComposerProps {
   open: boolean;
@@ -93,7 +93,11 @@ const [uploadingImage, setUploadingImage] = useState(false);
         input.click(); return;
       }
       case 'list': result = before + '\n- ' + (selected || 'list item') + after; break;
-      case 'ordered-list': result = before + '\n1. ' + (selected || 'First item') + after; break;
+      case 'ordered-list': {
+        const lastOListMatch = before.match(/(\d+)\.\s[^\n]*$/m);
+        const nextNum = lastOListMatch ? parseInt(lastOListMatch[1], 10) + 1 : 1;
+        result = before + '\n' + nextNum + '. ' + (selected || 'item') + after;
+      } break;
     }
     setForm((c) => ({ ...c, message: result }));
     setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + result.length - after.length; ta.focus(); }, 0);

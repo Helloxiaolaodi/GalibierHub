@@ -176,11 +176,13 @@ CREATE TABLE IF NOT EXISTS site_reactions (
   reaction_type TEXT NOT NULL CHECK (reaction_type IN ('like', 'bookmark')),
   fingerprint_hash TEXT NOT NULL,
   entry_id UUID REFERENCES site_feedback(id) ON DELETE CASCADE,
+  comment_id UUID REFERENCES feedback_comments(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE (reaction_type, fingerprint_hash, entry_id)
 );
 ALTER TABLE site_reactions DROP CONSTRAINT IF EXISTS site_reactions_reaction_type_fingerprint_hash_key;
 ALTER TABLE site_reactions ADD COLUMN IF NOT EXISTS entry_id UUID REFERENCES site_feedback(id) ON DELETE CASCADE;
+ALTER TABLE site_reactions ADD COLUMN IF NOT EXISTS comment_id UUID REFERENCES feedback_comments(id) ON DELETE CASCADE;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'site_reactions_reaction_type_fingerprint_hash_entry_id_key')
   THEN ALTER TABLE site_reactions ADD CONSTRAINT site_reactions_reaction_type_fingerprint_hash_entry_id_key UNIQUE (reaction_type, fingerprint_hash, entry_id); END IF;
@@ -188,6 +190,10 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_site_reactions_type ON site_reactions (reaction_type);
 CREATE INDEX IF NOT EXISTS idx_site_reactions_entry ON site_reactions (entry_id);
+CREATE INDEX IF NOT EXISTS idx_site_reactions_comment ON site_reactions (comment_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_site_reactions_type_fp_comment
+  ON site_reactions (reaction_type, fingerprint_hash, comment_id)
+  WHERE comment_id IS NOT NULL;
 
 -- 7. Site visitors (browser-level cumulative visitor counter)
 CREATE TABLE IF NOT EXISTS site_visitors (
@@ -386,8 +392,8 @@ CREATE OR REPLACE FUNCTION trg_reaction_badges()
 RETURNS TRIGGER AS $$
 DECLARE
   feedback_author UUID;
-  feedback_id UUID;
   reply_author UUID;
+  feedback_id UUID;
   total_likes INT;
   distinct_posts INT;
   likes_given INT;
@@ -395,18 +401,27 @@ DECLARE
 BEGIN
   IF NEW.reaction_type != 'like' THEN RETURN NEW; END IF;
   PERFORM award_badge(NEW.user_id, 'first_like');
-  feedback_id := NEW.entry_id;
-  BEGIN
-    SELECT user_id, feedback_id INTO reply_author, feedback_id
-    FROM feedback_comments WHERE id = NEW.entry_id;
-    IF reply_author IS NOT NULL THEN
-      SELECT COUNT(*) INTO total_likes FROM site_reactions
-      WHERE reaction_type = 'like' AND entry_id = NEW.entry_id;
-      IF total_likes >= 10 THEN
-        PERFORM award_badge(reply_author, 'nice_reply', feedback_id::text);
+
+  IF NEW.comment_id IS NOT NULL THEN
+    BEGIN
+      SELECT user_id, feedback_id INTO reply_author, feedback_id
+      FROM feedback_comments WHERE id = NEW.comment_id;
+      IF reply_author IS NOT NULL THEN
+        SELECT COUNT(*) INTO total_likes FROM site_reactions
+        WHERE reaction_type = 'like' AND comment_id = NEW.comment_id;
+        IF total_likes >= 5 THEN
+          PERFORM award_badge(reply_author, 'sherpa', feedback_id::text);
+        END IF;
+        IF total_likes >= 10 THEN
+          PERFORM award_badge(reply_author, 'nice_reply', feedback_id::text);
+        END IF;
       END IF;
-    END IF;
-  EXCEPTION WHEN OTHERS THEN
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
+  END IF;
+
+  IF NEW.entry_id IS NOT NULL THEN
     BEGIN
       SELECT user_id INTO feedback_author FROM site_feedback WHERE id = NEW.entry_id;
       IF feedback_author IS NOT NULL THEN
@@ -428,15 +443,22 @@ BEGIN
       END IF;
     EXCEPTION WHEN OTHERS THEN NULL;
     END;
-  END;
+  END IF;
+
   IF NEW.user_id IS NOT NULL THEN
-    SELECT COUNT(*) INTO likes_given FROM site_reactions WHERE reaction_type = 'like' AND user_id = NEW.user_id;
-    SELECT COUNT(*) INTO likes_received FROM site_reactions WHERE reaction_type = 'like' AND entry_id IN (
-      SELECT id FROM site_feedback WHERE user_id = NEW.user_id
-    );
-    IF likes_given >= 10 AND likes_received >= 20 THEN
-      PERFORM award_badge(NEW.user_id, 'thank_you');
-    END IF;
+    BEGIN
+      SELECT COUNT(*) INTO likes_given FROM site_reactions WHERE reaction_type = 'like' AND user_id = NEW.user_id;
+      SELECT COUNT(*) INTO likes_received FROM site_reactions
+      WHERE reaction_type = 'like'
+        AND (
+          (entry_id IS NOT NULL AND entry_id IN (SELECT id FROM site_feedback WHERE user_id = NEW.user_id))
+          OR (comment_id IS NOT NULL AND comment_id IN (SELECT id FROM feedback_comments WHERE user_id = NEW.user_id))
+        );
+      IF likes_given >= 10 AND likes_received >= 20 THEN
+        PERFORM award_badge(NEW.user_id, 'thank_you');
+      END IF;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
   END IF;
   RETURN NEW;
 END;
