@@ -125,7 +125,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     }
   }, [onlineStatus, session?.user?.id]);
 
-  const resolvedAvatar = customAvatar || avatarUrl;
+  const resolvedAvatar = isAdmin ? '/galibierhub-logo.svg' : (customAvatar || avatarUrl);
 
   // Listen for settings updates from other pages
   useEffect(() => {

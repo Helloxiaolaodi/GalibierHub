@@ -537,7 +537,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
     commentError,
     commentSuccess,
     handleSubmitComment,
-  } = useDiscussionThreads(accessToken);
+  } = useDiscussionThreads(accessToken, isAdmin);
 
   const fetchFeedback = useCallback(async () => {
     setLoading(true);
@@ -997,8 +997,12 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
           {entry.creator_reply ? (
              <div className="mt-4 border-l-2 border-slate-500 bg-slate-50 px-4 py-3">
-              <div className="text-sm font-semibold text-slate-900">Administrator response</div>
-              <div className="mt-2 text-sm text-slate-800">{renderMarkdownMessage(entry.creator_reply, (src) => setLightBox({ src, alt: 'Reply image' }))}</div>
+              <div className="mb-2 flex items-center gap-2">
+                <img src="/galibierhub-logo.svg" alt="GalibierHub Team" className="h-6 w-6 rounded-full bg-white object-cover" />
+                <span className="text-sm font-semibold text-slate-900">GalibierHub Team</span>
+                <span className="text-xs text-slate-500">&middot; Official Response</span>
+              </div>
+              <div className="text-sm text-slate-800">{renderMarkdownMessage(entry.creator_reply, (src) => setLightBox({ src, alt: 'Reply image' }))}</div>
               <div className="mt-2 text-xs text-slate-600">{formatDateTime(entry.replied_at)}</div>
            </div>
          ) : isAdmin ? (
@@ -1079,7 +1083,14 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <div className="mt-3 space-y-2">
                 {comments.map((c) => (
                   <div key={c.id} className={`pl-3 border-l-2 ${c.hidden ? 'border-red-200 bg-red-50/50' : 'border-gray-200'}`}>
-                    <div className="text-xs font-medium text-gray-700">{c.author_name}</div>
+                    <div className="flex items-center gap-1.5">
+                      {c.author_name === 'GalibierHub Team' ? (
+                        <img src="/galibierhub-logo.svg" alt="GalibierHub Team" className="h-4 w-4 rounded-full object-cover" />
+                      ) : (
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[9px] font-semibold text-slate-600">{c.author_name.charAt(0).toUpperCase() || 'U'}</span>
+                      )}
+                      <div className="text-xs font-medium text-gray-700">{c.author_name}</div>
+                    </div>
                     {isAdmin && c.hidden && <div className="mt-0.5 text-[11px] font-medium text-red-600">Hidden reply</div>}
                     <div className="mt-1 text-xs text-gray-600">{renderMarkdownMessage(c.message, (src) => setLightBox({ src, alt: 'Comment image' }))}</div>
                     <div className="text-xs text-gray-400 mt-0.5">{formatDateTime(c.created_at)}</div>
