@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SiteConfig } from '@/site-config';
 import { getDirectDownloadUrl, validateDirectFileUrl } from '@/lib/storage';
+import { listHuggingFaceDatasetFiles } from '@/lib/hf-tree';
 import { normalizeDownloadKey } from '@/lib/download-info';
 import { resolveHttpChecksum, resolveHttpFileSize } from '@/lib/http-checksum';
 import { isExcludedSampleId } from '@/lib/sample-exclusions';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 import { getBearerToken, requireCreatorGithubAuth } from '@/lib/feedback-admin';
 
-type CatalogSourceScope = 'featured' | 'sample' | 'mixed';
+type CatalogSourceScope = 'featured' | 'sample' | 'dataset' | 'mixed';
 
 type DownloadCatalogItem = {
   id: string;
@@ -29,9 +30,18 @@ type DownloadCatalogItem = {
 };
 
 type MutableCatalogItem = DownloadCatalogItem & {
-  _scopes: Set<'featured' | 'sample'>;
+  _scopes: Set<'featured' | 'sample' | 'dataset'>;
   _sampleIds: Set<string>;
   _kinds: Set<string>;
+};
+
+type DownloadMetadataRow = {
+  download_key: string;
+  hidden: boolean;
+  custom_size_bytes: number | null;
+  updated_at: string | null;
+  sha256_checksum: string | null;
+  md5_checksum: string | null;
 };
 
 const SAMPLE_FIELDS = 'sample_id, vcf_download_url, fasta_download_url, gb_download_url, bed_download_url, gff3_download_url, vcf_download_mode, fasta_download_mode';
@@ -69,9 +79,11 @@ function upsertItem(
     sizeLabel?: string;
     sizeBytes?: number | null;
     showCli?: boolean;
-    sourceScope: 'featured' | 'sample';
+    sourceScope: 'featured' | 'sample' | 'dataset';
     sampleId?: string;
     kind?: string;
+    sha256Checksum?: string | null;
+    updatedAt?: string | null;
   },
 ) {
   const normalizedUrl = getDirectDownloadUrl(input.url);
@@ -86,6 +98,8 @@ function upsertItem(
     current.showCli = current.showCli || Boolean(input.showCli);
     if (!current.sizeLabel && input.sizeLabel) current.sizeLabel = input.sizeLabel;
     if (current.sizeBytes == null && typeof input.sizeBytes === 'number') current.sizeBytes = input.sizeBytes;
+    if (!current.sha256Checksum && input.sha256Checksum) current.sha256Checksum = input.sha256Checksum;
+    if (!current.updatedAt && input.updatedAt) current.updatedAt = input.updatedAt;
     if (current.label.startsWith('Download ') && !input.label.startsWith('Download ')) current.label = input.label;
     if ((!current.description || current.description.includes('configured storage host') || current.description.includes('configured storage location')) && input.description) current.description = input.description;
     current._scopes.add(input.sourceScope);
@@ -101,6 +115,8 @@ function upsertItem(
     description: input.description,
     sizeLabel: input.sizeLabel || '',
     sizeBytes: typeof input.sizeBytes === 'number' ? input.sizeBytes : null,
+    sha256Checksum: input.sha256Checksum || null,
+    updatedAt: input.updatedAt || null,
     showCli: Boolean(input.showCli),
     providerLabel: inferProviderLabel(validation.normalizedUrl),
     sourceScope: input.sourceScope,
@@ -197,17 +213,43 @@ export async function GET(request: NextRequest) {
     sampleWarning = error instanceof Error ? error.message : 'Failed to load sample-linked downloads.';
   }
 
+  let hfTreeWarning: string | null = null;
+  try {
+    const hfFiles = await listHuggingFaceDatasetFiles();
+    for (const hfFile of hfFiles) {
+      let fileName = hfFile.path.split('/').filter(Boolean).pop() || hfFile.path;
+      try {
+        fileName = decodeURIComponent(fileName);
+      } catch {
+        // Keep the original path segment when Hugging Face returns invalid escaping.
+      }
+      upsertItem(items, {
+        url: hfFile.url,
+        label: fileName,
+        description: `Public file from the Hugging Face dataset (${hfFile.path}).`,
+        sizeBytes: hfFile.size,
+        sizeLabel: '',
+        showCli: true,
+        sourceScope: 'dataset',
+        sha256Checksum: hfFile.sha256Checksum,
+        updatedAt: hfFile.updatedAt,
+      });
+    }
+  } catch (error) {
+    hfTreeWarning = error instanceof Error ? error.message : 'Failed to load Hugging Face dataset files.';
+  }
+
   let result = Array.from(items.values())
     .map(({ _scopes, _sampleIds, _kinds, ...item }) => ({
       ...item,
-      sourceScope: _scopes.size === 2 ? 'mixed' : (_scopes.has('featured') ? 'featured' : 'sample'),
+      sourceScope: _scopes.size > 1 ? 'mixed' : (_scopes.has('featured') ? 'featured' : _scopes.has('sample') ? 'sample' : 'dataset'),
       sampleCount: _sampleIds.size,
       sampleIds: Array.from(_sampleIds).sort(),
       kinds: Array.from(_kinds).sort(),
     }))
     .sort((a, b) => a.url.localeCompare(b.url));
 
-  let metadataWarning: string | null = sampleWarning;
+  let metadataWarning: string | null = sampleWarning || hfTreeWarning;
   let isAdmin = false;
 
   if (result.length > 0 && isSupabaseConfigured) {
@@ -216,26 +258,30 @@ export async function GET(request: NextRequest) {
 
     try {
       const sb = getSupabase();
-      const { data, error } = await sb
-        .from('download_metadata')
-        .select('download_key, hidden, custom_size_bytes, updated_at, sha256_checksum, md5_checksum')
-        .in('download_key', result.map((item) => item.id));
+      const metadataMap = new Map<string, DownloadMetadataRow>();
+      const hiddenKeys = new Set<string>();
+      const catalogKeys = result.map((item) => item.id);
+      const metadataBatchSize = 900;
 
-      if (error) {
-        throw error;
+      for (let i = 0; i < catalogKeys.length; i += metadataBatchSize) {
+        const { data, error } = await sb
+          .from('download_metadata')
+          .select('download_key, hidden, custom_size_bytes, updated_at, sha256_checksum, md5_checksum')
+          .in('download_key', catalogKeys.slice(i, i + metadataBatchSize));
+
+        if (error) {
+          throw error;
+        }
+
+        for (const row of (data ?? []) as DownloadMetadataRow[]) {
+          const key = typeof row.download_key === 'string'
+            ? normalizeDownloadKey(String(row.download_key))
+            : '';
+          if (!key) continue;
+          metadataMap.set(key, row);
+          if (Boolean(row.hidden)) hiddenKeys.add(key);
+        }
       }
-
-      const metadataMap = new Map(
-        (data ?? [])
-          .filter((row) => typeof row.download_key === 'string')
-          .map((row) => [normalizeDownloadKey(String(row.download_key)), row]),
-      );
-
-      const hiddenKeys = new Set(
-        (data ?? [])
-          .filter((row) => Boolean(row.hidden) && typeof row.download_key === 'string')
-          .map((row) => normalizeDownloadKey(String(row.download_key))),
-      );
 
       result = result.map((item) => ({
         ...item,
