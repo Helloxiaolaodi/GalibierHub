@@ -3,6 +3,7 @@ import { randomBytes, scryptSync } from "crypto";
 import { getServiceSupabase, getSupabase, hasSupabaseServiceRole, isSupabaseConfigured } from "@/utils/supabase";
 import { requireCreatorGithubAuth, getBearerToken } from "@/lib/feedback-admin";
 import { DEFAULT_DOWNLOAD_METADATA, normalizeDownloadKey, type DownloadStorageProvider } from "@/lib/download-info";
+import { resolveHttpChecksum } from "@/lib/http-checksum";
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16);
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const key = normalizeDownloadKey(url.searchParams.get("key") || "");
+  const downloadUrl = url.searchParams.get("url") || "";
   if (!key) {
     return NextResponse.json({ error: "Missing download key." }, { status: 400 });
   }
@@ -42,6 +44,10 @@ export async function GET(request: Request) {
   }
 
   const row = meta ?? null;
+  let sha256_checksum = row?.sha256_checksum ?? null;
+  if (!sha256_checksum && downloadUrl && /^https?:\/\//i.test(downloadUrl)) {
+    sha256_checksum = await resolveHttpChecksum(downloadUrl);
+  }
   return NextResponse.json(
     {
       custom_label: row?.custom_label ?? null,
@@ -58,7 +64,7 @@ export async function GET(request: Request) {
       storage_path: row?.storage_path ?? null,
       signed_url_ttl_seconds: typeof row?.signed_url_ttl_seconds === 'number' ? row.signed_url_ttl_seconds : 900,
       md5_checksum: row?.md5_checksum ?? null,
-      sha256_checksum: row?.sha256_checksum ?? null,
+      sha256_checksum,
     },
     { status: 200 },
   );

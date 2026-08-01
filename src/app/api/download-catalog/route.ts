@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SiteConfig } from '@/site-config';
 import { getDirectDownloadUrl, validateDirectFileUrl } from '@/lib/storage';
 import { normalizeDownloadKey } from '@/lib/download-info';
+import { resolveHttpChecksum } from '@/lib/http-checksum';
 import { isExcludedSampleId } from '@/lib/sample-exclusions';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 import { getBearerToken, requireCreatorGithubAuth } from '@/lib/feedback-admin';
@@ -110,30 +111,6 @@ function upsertItem(
     _sampleIds: new Set(input.sampleId ? [input.sampleId] : []),
     _kinds: new Set(input.kind ? [input.kind] : []),
   });
-}
-
-async function resolveHuggingFaceChecksum(url: string): Promise<string | null> {
-  try {
-    const parsed = new URL(url);
-    const parts = parsed.pathname.split('/').filter(Boolean);
-    const datasetsIndex = parts.indexOf('datasets');
-    const resolveIndex = parts.indexOf('resolve');
-    if (datasetsIndex === -1 || resolveIndex === -1 || resolveIndex <= datasetsIndex + 2) return null;
-    const repo = `${parts[datasetsIndex + 1]}/${parts[datasetsIndex + 2]}`;
-    const dirPath = parts.slice(resolveIndex + 2, -1).join('/');
-    const fileName = parts[parts.length - 1];
-    const api = `https://huggingface.co/api/datasets/${repo}/tree/main${dirPath ? `/${dirPath}` : ''}?recursive=false`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(api, { signal: controller.signal, cache: 'force-cache' });
-    clearTimeout(timeout);
-    if (!res.ok) return null;
-    const data = (await res.json()) as Array<{ path: string; lfs?: { oid?: string } }>;
-    const hit = data.find((item) => item.path.split('/').pop() === fileName);
-    return hit?.lfs?.oid ?? null;
-  } catch {
-    return null;
-  }
 }
 
 async function fetchAllSampleRows() {
@@ -307,10 +284,12 @@ export async function GET(request: NextRequest) {
   }
 
   // Resolve missing SHA-256 checksums from Hugging Face for items without DB metadata
-  const missingChecksums = result.filter((item) => !item.sha256Checksum && item.url.includes('huggingface.co/datasets'));
+  const missingChecksums = result.filter(
+    (item) => !item.sha256Checksum && item.providerLabel !== 'Supabase' && /^https?:\/\//i.test(item.url),
+  );
   if (missingChecksums.length > 0) {
     const checksumPromises = missingChecksums.map(async (item) => {
-      const checksum = await resolveHuggingFaceChecksum(item.url);
+      const checksum = await resolveHttpChecksum(item.url);
       if (checksum) item.sha256Checksum = checksum;
     });
     await Promise.allSettled(checksumPromises);

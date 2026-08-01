@@ -1012,7 +1012,10 @@ export default function DiscussionsPage() {
                     </div>
 
                     <div className="flex-shrink-0 flex items-center gap-4 text-right">
-                    <span className="text-lg font-bold text-gray-900">{likeCounts[entry.id]||0}</span>
+                    <div className="flex flex-col items-center min-w-[48px]">
+                      <span className="text-lg font-bold text-gray-900">{likeCounts[entry.id]||0}</span>
+                      <span className="text-[10px] text-gray-400 uppercase tracking-wide">LIKES</span>
+                    </div>
                     {/* Views */}
 
                     <div className="flex flex-col items-center min-w-[48px]">
