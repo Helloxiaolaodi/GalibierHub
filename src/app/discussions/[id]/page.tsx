@@ -703,6 +703,18 @@ export default function DiscussionDetailPage() {
 
   }, [id, fetchData, githubUser, session?.access_token]);
 
+  // Scroll to the target reply/post when arriving from the user menu activity links
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const targetId = params.get("reply");
+    if (!targetId || loading) return;
+    const timer = setTimeout(() => {
+      const target = document.getElementById("comment-" + targetId) || document.getElementById("discussion-" + targetId);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [loading, comments.length]);
+
   const timelineItems = useMemo(() => {
     if (!entry) return [];
     const items: {type:"entry"|"comment";data:SiteFeedbackEntry|FeedbackCommentEntry;date:string}[]=[
@@ -905,7 +917,7 @@ const isLoggedIn = !!(session || githubUser);
                 return (
                   <div key={(isEntry?"e-":"c-")+itemId}>
                     {gap&&<div className="flex items-center gap-3 my-6"><div className="flex-1 h-px bg-gray-200"/><span className="text-xs font-medium text-gray-400 flex-shrink-0">{gap}</span><div className="flex-1 h-px bg-gray-200"/></div>}
-                    <div ref={el=>{contentRefs.current[index]=el;}} className={"rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" + ((isEntry && (ed as SiteFeedbackEntry).hidden) || (!isEntry && (cd as FeedbackCommentEntry).hidden) ? " opacity-60 ring-2 ring-amber-200" : "")}>
+                    <div id={isEntry ? "discussion-" + ed.id : "comment-" + cd.id} ref={el=>{contentRefs.current[index]=el;}} className={"rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" + ((isEntry && (ed as SiteFeedbackEntry).hidden) || (!isEntry && (cd as FeedbackCommentEntry).hidden) ? " opacity-60 ring-2 ring-amber-200" : "")}>
                       {isEntry?(<>
                         <div className="flex items-start gap-3 mb-4">
                           <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(ed.display_name); setProfileCardUserId(ed.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-sm font-semibold text-white flex-shrink-0 hover:ring-2 hover:ring-slate-300 transition-all cursor-pointer">{getInitials(ed.display_name)}</button>
