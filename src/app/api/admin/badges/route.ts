@@ -68,21 +68,41 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ holders: holders || [] });
   }
 
-  const { data: rows, error: viewError } = await sb
-    .from("admin_badge_stats")
+  // Query badge definitions and user_badges instead of admin_badge_stats view
+  const { data: dictRows, error: dictError } = await sb
+    .from("badge_definitions")
     .select("*")
     .order("tier", { ascending: false });
 
-  if (viewError) {
-    return NextResponse.json(
-      { error: viewError.message.includes("does not exist") ? "Badge analytics view has not been deployed yet." : viewError.message },
-      { status: 500 },
-    );
+  if (dictError) {
+    return NextResponse.json({ error: dictError.message }, { status: 500 });
   }
 
-  const definitions = (rows || []).map((row: Record<string, unknown>) => ({
-    ...row,
-    total_holders: Number(row.total_holders || 0),
+  const { data: holderRows, error: countError } = await sb
+    .from("user_badges")
+    .select("badge_id");
+
+  if (countError) {
+    return NextResponse.json({ error: countError.message }, { status: 500 });
+  }
+
+  // Build holder count map
+  const holderCountMap: Record<string, number> = {};
+  for (const h of (holderRows || [])) {
+    holderCountMap[h.badge_id] = (holderCountMap[h.badge_id] || 0) + 1;
+  }
+
+  const definitions = (dictRows || []).map((row: Record<string, unknown>) => ({
+    badge_id: row.id || row.badge_id || "",
+    name: row.name || "",
+    description: row.description || "",
+    icon: row.icon || "",
+    tier: row.tier || "",
+    category: row.category || "",
+    criteria: row.criteria || "",
+    manual_only: row.manual_only || false,
+    total_holders: holderCountMap[row.id as string] || 0,
+    last_awarded_at: row.last_awarded_at || null,
   })) as BadgeRow[];
 
   const { count: totalUsers, error: userCountError } = await sb

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ClipboardEvent, type PointerEvent } from "react";
 import Link from "next/link";
@@ -72,7 +72,8 @@ function TimelineSidebar({ items, currentIndex, onNavigate, onReply }: {
     if (!track || items.length < 2) return;
     const rect = track.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-    scrollToIndex(Math.round(pct * (items.length - 1)));
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    window.scrollTo({ top: pct * maxScroll, behavior: "auto" });
   }
 
   return (
@@ -660,6 +661,12 @@ export default function DiscussionDetailPage() {
         if (!likedList.includes(entryId)) likedList.push(entryId);
       }
       localStorage.setItem("galibierhub-likes-"+(id||""), JSON.stringify(likedList));
+      // Send notification to the post author when liking their post
+      const likeTarget = entry as { user_id?: string | null; title?: string | null } | null;
+      if (!currentlyLiked && session?.user?.id && likeTarget?.user_id && likeTarget.user_id !== session.user.id) {
+        const postTitle = likeTarget.title?.substring(0, 40) || "your post";
+        fetch("/api/notifications", { method: "POST", headers: {"Content-Type":"application/json", Authorization:"Bearer "+(session?.access_token||"")}, body: JSON.stringify({ recipient_id: likeTarget.user_id, discussion_id: id, actor_name: actorName, preview_text: "liked your post \"" + postTitle + "\"" }) }).catch(()=>{});
+      }
     } catch {}
     finally { setLikeLoading(p=>({...p,[entryId]:false})); }
   }, [likes, id, getUserFingerprint, session]);
@@ -687,6 +694,7 @@ export default function DiscussionDetailPage() {
     if (!res.ok) throw new Error(d.error||"Failed to post");
     setFloatingReplyOpen(false);
     await fetchData();
+
   }, [id, fetchData, githubUser]);
 
   const timelineItems = useMemo(() => {
@@ -845,7 +853,6 @@ const isLoggedIn = !!(session || githubUser);
             <Link href="/discussions" className="text-sm text-gray-500 hover:text-gray-700 flex-shrink-0">Discussions</Link>
             {entry&&<><span className="text-gray-300">/</span><span className="text-sm font-medium text-gray-900 truncate">{entry.title||"Discussion"}</span></>}
           </div>
-          <Link href="/discussions" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0 shadow-sm">All Discussions</Link>
           <div className="relative">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <input type="text" value={commentSearch} onChange={e=>setCommentSearch(e.target.value)} placeholder="Search comments..."

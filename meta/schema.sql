@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS site_feedback (
   display_name TEXT NOT NULL,
   visitor_email TEXT,
   affiliation TEXT,
-  category TEXT NOT NULL DEFAULT 'general' CHECK (category IN ('general', 'issue', 'idea', 'data', 'collaboration')),
+  category TEXT NOT NULL DEFAULT 'general' CHECK (category IN ('general', 'issue', 'idea', 'data', 'collaboration', 'tutorials')),
   rating INTEGER NOT NULL DEFAULT 5 CHECK (rating >= 1 AND rating <= 5),
   visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'private')),
   message TEXT NOT NULL,
@@ -137,6 +137,10 @@ ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS hidden BOOLEAN DEFAULT false;
 ALTER TABLE site_feedback ADD COLUMN IF NOT EXISTS image_url TEXT;
 UPDATE site_feedback SET visibility = 'public' WHERE visibility IS NULL;
 ALTER TABLE site_feedback ALTER COLUMN visibility SET DEFAULT 'public';
+ALTER TABLE site_feedback DROP CONSTRAINT IF EXISTS site_feedback_category_check;
+ALTER TABLE site_feedback
+  ADD CONSTRAINT site_feedback_category_check
+  CHECK (category IN ('general', 'issue', 'idea', 'data', 'collaboration', 'tutorials'));
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'site_feedback_visibility_check'

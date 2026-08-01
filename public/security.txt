@@ -1,18 +1,12 @@
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA256
-
-Contact: mailto:security@seq-edge.vercel.app
-Contact: https://github.com/Helloxiaolaodi/SeqEdge/security/advisories
+Contact: mailto:yanglun2019@126.com
+Contact: https://github.com/Helloxiaolaodi/GalibierHub/security/advisories
 Canonical: https://seq-edge.vercel.app/security.txt
 Canonical: https://seq-edge.vercel.app/.well-known/security.txt
-Expires: 2027-07-28T00:00:00Z
-
+Canonical: https://galibierhub.org/.well-known/security.txt
+Expires: 2027-08-01T00:00:00Z
+Preferred-Languages: en, zh-CN
 Acknowledgments: https://seq-edge.vercel.app/acknowledgments
 Policy: https://seq-edge.vercel.app/security
 
-# SeqEdge is a research genomic database.
-# Please report vulnerabilities privately.
------BEGIN PGP SIGNATURE-----
-Version: placeholder
-
------END PGP SIGNATURE-----
+# Legacy mirror of /.well-known/security.txt.
+# GalibierHub coordinates vulnerability disclosure through GitHub Security Advisories and email.

@@ -494,7 +494,7 @@ export default function SiteFeedback({ isAdminHint = false, accessToken = null, 
     displayName: '',
     visitorEmail: '',
     affiliation: '',
-    category: 'general',
+    category: isAdminHint ? 'tutorials' : 'issue',
     rating: 5,
     visibility: 'public',
     message: '',
@@ -1169,7 +1169,10 @@ const [uploadingImage, setUploadingImage] = useState(false);
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(composerForm),
+        body: JSON.stringify({
+          ...composerForm,
+          category: (isAdmin || isAdminHint) ? composerForm.category : 'issue',
+        }),
       });
       const data = await response.json() as { error?: string };
       if (!response.ok) {
@@ -1180,7 +1183,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
         displayName: '',
         visitorEmail: '',
         affiliation: '',
-        category: 'general',
+        category: isAdminHint ? 'tutorials' : 'issue',
         rating: 5,
         visibility: 'public',
         message: '',
@@ -1307,6 +1310,17 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 />
               </label>
             </div>
+            <label className="space-y-1 text-sm text-gray-700">
+              <span>Category</span>
+              <select
+                value={composerForm.category}
+                onChange={(e) => setComposerForm((c) => ({ ...c, category: e.target.value }))}
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-500"
+              >
+                <option value="issue">Issue</option>
+                {(isAdmin || isAdminHint) && <option value="tutorials">Tutorials</option>}
+              </select>
+            </label>
             <label className="space-y-1 text-sm text-gray-700">
               <span>Visibility</span>
               <select

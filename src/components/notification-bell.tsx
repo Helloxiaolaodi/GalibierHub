@@ -14,6 +14,20 @@ type NotificationItem = {
   created_at: string;
 };
 
+function getNotificationLabel(previewText: string): string {
+  const t = (previewText || "").toLowerCase();
+  if (t.includes("started following")) return "started following you";
+  if (t.includes("stopped following")) return "stopped following you";
+  if (t.includes("liked your reply")) return "liked your reply";
+  if (t.includes("liked your discussion")) return "liked your discussion";
+  if (t.includes("liked your post")) return "liked your post";
+  if (t.includes("mentioned")) return "mentioned you in a reply";
+  if (t.includes("badge")) return "earned a new badge";
+  if (t.includes("replied")) return "replied to your discussion";
+  if (t.startsWith("@")) return "mentioned you";
+  return previewText ? previewText : "replied to your discussion";
+}
+
 function formatNotificationTime(dateStr: string): string {
   const d = new Date(dateStr);
   const now = new Date();
@@ -72,6 +86,13 @@ export default function NotificationBell({ session }: { session: Session | null 
     if (userId) fetchNotifications();
   }, [userId, fetchNotifications]);
 
+  // Poll as a fallback when Realtime is not available.
+  useEffect(() => {
+    if (!userId) return;
+    const timer = setInterval(() => { void fetchNotifications(); }, 15000);
+    return () => clearInterval(timer);
+  }, [userId, fetchNotifications]);
+
   // Supabase realtime subscription
   useEffect(() => {
     if (!userId) return;
@@ -105,9 +126,10 @@ export default function NotificationBell({ session }: { session: Session | null 
 
   const markAsRead = async (notifId: string, _discussionId: string) => {
     try {
+      const token = session?.access_token || "";
       await fetch("/api/notifications", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
         body: JSON.stringify({ id: notifId, is_read: true }),
       });
       setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
@@ -188,7 +210,7 @@ export default function NotificationBell({ session }: { session: Session | null 
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-900">
-                    <span className="font-semibold">{notif.actor_name}</span> replied to your discussion
+                    <span className="font-semibold">{notif.actor_name}</span> {getNotificationLabel(notif.preview_text)}
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5 truncate">{notif.preview_text}</p>
                   <p className="text-xs text-gray-400 mt-1">{formatNotificationTime(notif.created_at)}</p>

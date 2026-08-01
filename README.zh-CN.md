@@ -52,6 +52,7 @@ GalibierHub 当前主要包含五个核心界面：
 - **User Profiles**：/user/[username] 公开个人主页，含研究方向标签、动态看板（Profile & Threads & Replies 标签切换）、关注/取消关注功能（持久化至 Supabase）、在线状态（Online / Away / Busy）。
 - **Notification Center**：应用内通知铃铛，基于 Supabase 实时订阅，支持 @提及、回复和点赞的即时推送。
 - **Badge System**：游戏化徽章系统，包含 16+ 种徽章类别（入门引导、社区互动、技术极客、里程碑成就），以微型徽章形式展示在用户名旁。
+- **Security.txt**：在 `/.well-known/security.txt` 提供 RFC 9116 安全联系文件，并配套 `/security` 安全策略页与 `/acknowledgments` 致谢页。
 - **Settings & Preferences**：受保护的 /settings/preferences 页面，支持头像照片上传、个人资料编辑、邮件通知偏好和主题切换（浅色 / 深色 / 跟随系统）。
 
 需要说明的是，当前默认数据结构与界面命名仍然偏向 promoter / genome 的基因组场景。后续 fork 使用者可以自行泛化，但仓库目前仍以基因组数据库模板为主。
@@ -88,24 +89,25 @@ GalibierHub 当前主要包含五个核心界面：
  
 - 在同一弹窗中查看浏览器下载、`wget`、`curl` 与 `hf download` 命令。
 - 查看文件名、类型、大小、创建与更新时间、下载次数、访问模式、MD5 与 SHA256。
-- 一键复制 SHA256，并通过支持断点续传的命令行下载大文件。
+- 点击展开 SHA-256 与断点续传命令行后，再通过复制按钮获取。
 - 为公开样本文件生成 `.sh` 与 `.bat` 批量下载脚本。
 
 #### 社区与管理
 
-*   **认证系统** -- GitHub OAuth、Google OAuth 或邮箱/密码登录，配备 Cloudflare Turnstile 人机验证。
+*   **认证系统** -- GitHub OAuth 或邮箱/密码登录，配备 Cloudflare Turnstile 人机验证。
 *   **入驻引导** -- 首次登录后的 `/onboarding` 页面引导填写研究方向、常用工具和所属机构。
 *   **用户个人主页** -- `/user/[username]` 公开页面，展示徽章、动态、关注/取消关注。
 *   **徽章系统** -- 游戏化积分体系，青铜/白银/黄金/铂金四个等级，通过社区贡献自动获得。
 *   **世界时钟** -- 讨论区侧边栏时区面板和命令面板式全球时间搜索（已移除不需要的时区条目，改为点击外部关闭，搜索框使用 `Clear` 按钮）。
-*   **实时通知** -- 通过 Supabase Realtime WebSocket 推送回复、@提及和徽章解锁提醒。
+*   **实时通知** -- 通过 Supabase Realtime WebSocket 推送，并加入轮询兜底；回复、关注、取关、点赞、@提及和徽章解锁均可通知。
 *   **密码重置** -- `/update-password` 全自助流程，配合 Resend 精美 HTML 邮件模板。
 *   **管理员看板** -- 总注册用户数、本周新增趋势、GitHub 与邮箱注册占比、最近加入列表、讨论/下载/访客统计，以及徽章分析标签页。
 *   **浏览计数** -- 每篇讨论的浏览数同步至服务端。
 *   **跨设备资料同步** -- 个人资料保存至 Supabase，换设备登录后自动恢复。
+*   **AI 爬虫管控** -- `robots.txt` 拦截已知 AI 训练与 SEO 抓取爬虫，同时保留学术索引爬虫；Cloudflare 区域级开关说明见 `docs/cloudflare-security-configuration.md`。
 *   **密码可见性** -- 登录与注册密码栏提供显示/隐藏切换。
 *   **统一用户名** -- 所有页面显示同一用户名；邮箱注册默认使用邮箱 `@` 前的部分。
-*   **评论爱心** -- 每条单独回复的爱心按钮会实时更新数量。
+*   **评论点赞** -- 每条回复的点赞数量实时更新，不再显示红色爱心图标。
 *   **讨论浏览数与个人资料** -- 每篇讨论显示真实浏览量；头像悬浮卡片显示在线状态、支持关注/取消关注；`/user/[username]` 个人主页与动态页可正常打开。
 *   **通知事件** -- 关注、取消关注、评论点赞和 @提及会写入目标用户的站内通知中心。
 *   **时间线交互** -- 时间线滑条可拖动滚动整篇留言，与浏览器滚动同步，并显示主帖与每条回复的发布日期。
@@ -116,10 +118,10 @@ GalibierHub 当前主要包含五个核心界面：
 - 通过工具栏上传图片，点击图片可放大查看（Lightbox 灯箱）。
 - 使用被授权的 GitHub 管理员账号登录并发布官方回复、隐藏/删除帖子、置顶讨论。
 - 在讨论区上传图片，并通过可放大的灯箱查看已发布图片。
-- 点赞与取消点赞（心形切换），通过模态框分享讨论（支持 Twitter/X、Facebook、Email、LinkedIn、复制链接）。
-- 每条单独回复也支持爱心点赞，且所有计数实时更新。
+- 点赞与取消点赞以数值形式切换，通过模态框分享讨论（支持 Twitter/X、Facebook、Email、LinkedIn、复制链接）。
+- 每条单独回复支持数值点赞，且所有计数实时更新。
 - 富文本框的 ordered-list 按钮会依次插入 `1.`、`2.`、`3.` 阿拉伯编号。
-- 分类筛选提供 `General`、`Issue`、`Tutorials`，Downloads 的教程入口会跳转到 Discussions 的 Tutorials 分类。
+- 分类筛选提供 `All Categories`、`Issue`、`Tutorials`，且只有管理员可新建 Tutorials；Downloads 的下载指南位于 `/docs/download-cli`。
 - 按状态筛选讨论（全部、进行中、已解决），按最新、最旧或点赞数排序。
 - 通过社区参与获得徽章：Ice Breaker（首次发言）、Nice Reply（10 赞）、Markdown Master（使用代码块）等 16+ 种类别。
 - 页脚统计展示浏览量、链接数、参与者，以及实时站点运行时长和累计独立访客数。
@@ -298,19 +300,20 @@ Cloudflare Pages：
 - 单文件操作入口拆分为浏览器下载与 CLI/详情两类按钮，避免一个按钮承载过多动作。
 - 可导出机器可读的 Manifest，字段固定为 `Directory_Path`、`File_Name`、`File_Type`、`Size_Bytes`、`Direct_URL`、`SHA-256`。
 - Manifest CSV 与 CLI/校验和弹窗会从目录元数据解析真实 SHA-256，不再导出 `NA` 或显示 `N/A`。
-- Downloads 顶部不再显示 `All Discussions` 按钮；统一 `Tutorials` 菜单提供 `View all Tutorials` 与 `Download & CLI Usage Guide`，教程内容跳转到 Discussions 的 Tutorials 分类。
+- Downloads 顶部不再显示 `All Discussions` 按钮；统一 `Tutorials` 菜单提供 `View all Tutorials` 与 `Download & CLI Usage Guide`，其中下载指南位于 `/docs/download-cli`。
 - 分页显示，每页 20 个文件，大目录也能保持可浏览性。
 - 批量选择与下载，支持勾选文件后统一生成浏览器下载、`wget` 和 `curl` 命令。
 - README 按钮动态生成当前目录的文件结构与基本信息。
 
 ### 当前下载弹窗实际会展示什么
 
-对于能够解析出稳定原始直链的公开文件，`Download options` 弹窗现在会在同一个窗口里统一提供四类交付入口：
+对于能够解析出稳定原始直链的公开文件，`Download options` 弹窗现在会在同一个窗口里提供 `Download & CLI`、`File Preview`、`Checksum`、`Cite`、`Batch Script` 五类标签页。其中 URL 与命令行均改为“点击展开后再复制”的交互。
 
-- 浏览器下载
-- 可直接复制给 `Free Download Manager`、`Motrix`、`IDM` 等工具使用的公开直链
+- 浏览器下载入口
+- 可点击展开后复制给 `Free Download Manager`、`Motrix`、`IDM` 等工具使用的公开直链
 - 基于 `huggingface.co` 的 `Global (Official)` 断点续传命令
 - 基于 `hf-mirror.com` 的 `Asia-Pacific (Mirror)` 断点续传命令
+- 旧版 `Linked Tutorials` 标签与 `Pipeline Integration Guide` 已移除；独立下载指南位于 `/docs/download-cli`
 
 以 `scov2.fa` 为例，弹窗会在不改变数据集路径的前提下，同时提供官方线路和亚洲镜像线路。
 
