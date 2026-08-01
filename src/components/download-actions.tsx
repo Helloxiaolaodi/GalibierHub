@@ -450,17 +450,6 @@ const [unlocked, setUnlocked] = useState(false);
                   <div>Created: {effectiveInfo.created_at ? new Date(effectiveInfo.created_at).toLocaleString() : 'Unknown'}</div>
                   <div>Updated: {effectiveInfo.updated_at ? new Date(effectiveInfo.updated_at).toLocaleString() : 'Unknown'}</div>
                 </div>
-                <div className="space-y-2">
-                  <RevealRow
-                    rowKey="sha256"
-                    label="SHA-256"
-                    value={effectiveInfo.sha256_checksum}
-                    copied={copied}
-                    onCopy={handleCopy}
-                    loading={hfMeta.loading}
-                    unavailable="Not available yet"
-                  />
-                </div>
               
               {/* Tab Navigation */}
               <div className="flex border-b border-gray-200 -mx-5 px-5">

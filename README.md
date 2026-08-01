@@ -85,7 +85,7 @@ The current default schema and UI are still genomics-oriented. Template users ca
 - View browser download, `wget`, `curl`, and `hf download` commands in the same file dialog.
  
 - See file name, type, size, created and updated time, download count, access mode, MD5, and SHA256 together.
-- Reveal SHA-256 and resume-capable CLI commands behind copy buttons for large-file transfer.
+- Keep SHA-256 in the Checksum tab and reveal resume-capable CLI commands behind copy buttons for large-file transfer.
 - Generate `.sh` and `.bat` batch download scripts for public sample files.
 
 #### Community & Moderation
