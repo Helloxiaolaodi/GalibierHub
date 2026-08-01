@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BadgeDisplay from "@/components/badge-display";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
+import { getBadgeIcon } from "@/lib/badge-ids";
 import type { Session } from "@supabase/supabase-js";
 
-type TabId = "notifications" | "replies" | "likes" | "badges" | "settings";
+type TabId = "notifications" | "replies" | "likes" | "following" | "badges" | "settings";
 
 type NotificationItem = {
   id: string;
@@ -34,15 +35,17 @@ function getNotificationLabel(previewText: string): string {
 type BadgeItem = {
   badge_id: string;
   awarded_at: string;
+  id?: string;
   name?: string;
   icon?: string;
   description?: string;
   tier?: string;
-  badge_definitions?: { name: string; description: string; icon: string; tier: string };
+  badge_definitions?: { id?: string; name: string; description: string; icon: string; tier: string };
 };
 type ReplyItem = {
   id: string;
   feedback_id: string;
+  author_name?: string;
   message: string;
   created_at: string;
   thread_title?: string;
@@ -51,6 +54,13 @@ type LikeItem = {
   entry_id: string;
   title: string;
   like_count: number;
+  comment_id?: string;
+};
+type FollowingItem = {
+  id: string;
+  username?: string | null;
+  display_name?: string | null;
+  avatar_url?: string | null;
 };
 
 const TIER_COLORS: Record<string, string> = {
@@ -78,6 +88,8 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
   const [loadingReplies, setLoadingReplies] = useState(false);
   const [likesReceived, setLikesReceived] = useState<LikeItem[]>([]);
   const [loadingLikes, setLoadingLikes] = useState(false);
+  const [followingUsers, setFollowingUsers] = useState<FollowingItem[]>([]);
+  const [loadingFollowing, setLoadingFollowing] = useState(false);
   const [notifUnread, setNotifUnread] = useState(0);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const [loadingBadges, setLoadingBadges] = useState(false);
@@ -204,14 +216,19 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     try {
       const sb = getBrowserSupabase();
       if (!sb) { setLoadingReplies(false); return; }
-      const { data } = await sb.from("feedback_comments").select("id, feedback_id, message, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(30);
-      if (data) {
-        const feedbackIds = [...new Set(data.map((d: { feedback_id: string }) => d.feedback_id))];
-        const { data: threads } = await sb.from("site_feedback").select("id, title").in("id", feedbackIds);
-        const titleMap: Record<string, string> = {};
-        if (threads) threads.forEach((t: { id: string; title: string }) => { titleMap[t.id] = t.title; });
-        setReplies(data.map((d: { feedback_id: string; id: string; message: string; created_at: string }) => ({ ...d, thread_title: titleMap[d.feedback_id] || "Untitled" })));
-      } else { setReplies([]); }
+      const { data: myPosts } = await sb.from("site_feedback").select("id, title").eq("user_id", userId);
+      const postIds = (myPosts || []).map((post: { id: string }) => post.id);
+      const titleMap = new Map((myPosts || []).map((post: { id: string; title: string }) => [post.id, post.title]));
+      if (postIds.length === 0) { setReplies([]); setLoadingReplies(false); return; }
+      const { data: comments } = await sb.from("feedback_comments")
+        .select("id, feedback_id, author_name, message, created_at")
+        .in("feedback_id", postIds)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      setReplies((comments || []).map((comment: { id: string; feedback_id: string; author_name?: string; message: string; created_at: string }) => ({
+        ...comment,
+        thread_title: titleMap.get(comment.feedback_id) || "Your discussion",
+      })));
     } catch { setReplies([]); }
     finally { setLoadingReplies(false); }
   }, [userId]);
@@ -224,29 +241,76 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
       const sb = getBrowserSupabase();
       if (!sb) { setLoadingLikes(false); return; }
       const { data: myEntries } = await sb.from("site_feedback").select("id, title").eq("user_id", userId);
-      if (!myEntries || myEntries.length === 0) { setLikesReceived([]); setLoadingLikes(false); return; }
-      const entryIds = myEntries.map((e: { id: string }) => e.id);
-      const { data: reactions } = await sb.from("site_reactions").select("entry_id").eq("reaction_type", "like").in("entry_id", entryIds);
-      if (!reactions) { setLikesReceived([]); setLoadingLikes(false); return; }
-      const countMap: Record<string, number> = {};
-      reactions.forEach((r: { entry_id: string }) => { countMap[r.entry_id] = (countMap[r.entry_id] || 0) + 1; });
-      setLikesReceived(myEntries
-         .filter((e: { id: string }) => countMap[e.id])
-         .map((e: { id: string; title: string }) => ({ entry_id: e.id, title: e.title, like_count: countMap[e.id] }))
-         .sort((a: LikeItem, b: LikeItem) => b.like_count - a.like_count));
+      const entryIds = (myEntries || []).map((e: { id: string }) => e.id);
+      const entryLikes: LikeItem[] = [];
+      if (entryIds.length > 0) {
+        const { data: reactions } = await sb.from("site_reactions").select("entry_id").eq("reaction_type", "like").in("entry_id", entryIds);
+        const countMap: Record<string, number> = {};
+        (reactions || []).forEach((r: { entry_id: string }) => { countMap[r.entry_id] = (countMap[r.entry_id] || 0) + 1; });
+        entryLikes.push(...(myEntries || [])
+          .filter((e: { id: string }) => countMap[e.id])
+          .map((e: { id: string; title: string }) => ({ entry_id: e.id, title: e.title, like_count: countMap[e.id] })));
+      }
+
+      const { data: myComments } = await sb.from("feedback_comments").select("id, feedback_id").eq("user_id", userId);
+      const commentIds = (myComments || []).map((c: { id: string }) => c.id);
+      const commentLikes: LikeItem[] = [];
+      if (commentIds.length > 0) {
+        const { data: reactions } = await sb.from("site_reactions").select("comment_id").eq("reaction_type", "like").in("comment_id", commentIds);
+        const countMap: Record<string, number> = {};
+        (reactions || []).forEach((r: { comment_id: string }) => { countMap[r.comment_id] = (countMap[r.comment_id] || 0) + 1; });
+        const feedbackIds = [...new Set((myComments || []).map((c: { feedback_id: string }) => c.feedback_id))];
+        const { data: threads } = await sb.from("site_feedback").select("id, title").in("id", feedbackIds);
+        const titleMap = new Map((threads || []).map((t: { id: string; title: string }) => [t.id, t.title]));
+        commentLikes.push(...(myComments || [])
+          .filter((c: { id: string }) => countMap[c.id])
+          .map((c: { id: string; feedback_id: string }) => ({
+            entry_id: c.feedback_id,
+            comment_id: c.id,
+            title: titleMap.get(c.feedback_id) || "Your reply",
+            like_count: countMap[c.id],
+          })));
+      }
+
+      setLikesReceived([...entryLikes, ...commentLikes].sort((a, b) => b.like_count - a.like_count));
     } catch { setLikesReceived([]); }
     finally { setLoadingLikes(false); }
   }, [userId]);
 
+  // Fetch users this account follows
+  const fetchFollowing = useCallback(async () => {
+    if (!userId) return;
+    setLoadingFollowing(true);
+    try {
+      const sb = getBrowserSupabase();
+      if (!sb) { setLoadingFollowing(false); return; }
+      const { data: follows } = await sb.from("follows").select("following_id").eq("follower_id", userId);
+      const ids = [...new Set((follows || []).map((row) => String(row.following_id)).filter(Boolean))];
+      if (ids.length === 0) { setFollowingUsers([]); setLoadingFollowing(false); return; }
+      const { data: profiles } = await sb.from("profiles").select("id, username, display_name, avatar_url").in("id", ids);
+      const profileMap = new Map((profiles || []).map((profile) => [String(profile.id), profile]));
+      setFollowingUsers(ids.map((id) => profileMap.get(id)).filter(Boolean) as FollowingItem[]);
+    } catch {
+      setFollowingUsers([]);
+    } finally {
+      setLoadingFollowing(false);
+    }
+  }, [userId]);
 
-  useEffect(() => { if (open && userId) { fetchNotifications(); fetchBadges(); fetchReplies(); fetchLikesReceived(); } }, [open, userId, fetchNotifications, fetchBadges, fetchReplies, fetchLikesReceived]);
+
+  useEffect(() => { if (open && userId) { fetchNotifications(); fetchBadges(); fetchReplies(); fetchLikesReceived(); fetchFollowing(); } }, [open, userId, fetchNotifications, fetchBadges, fetchReplies, fetchLikesReceived, fetchFollowing]);
 
   // Poll notifications as a fallback when Realtime is not available.
   useEffect(() => {
     if (!userId) return;
-    const timer = setInterval(() => { void fetchNotifications(); }, 15000);
+    const timer = setInterval(() => {
+      void fetchNotifications();
+      void fetchReplies();
+      void fetchLikesReceived();
+      void fetchFollowing();
+    }, 15000);
     return () => clearInterval(timer);
-  }, [userId, fetchNotifications]);
+  }, [userId, fetchNotifications, fetchReplies, fetchLikesReceived, fetchFollowing]);
 
   // Sync profile from Supabase on panel open (fallback when localStorage is empty)
   useEffect(() => {
@@ -320,9 +384,14 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
         { event: 'INSERT', schema: 'public', table: 'site_reactions' },
         () => { fetchLikesReceived(); fetchNotifications(); }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'follows', filter: `follower_id=eq.${userId}` },
+        () => { fetchFollowing(); }
+      )
       .subscribe();
     return () => { sb.removeChannel(channel); };
-  }, [userId, fetchReplies, fetchLikesReceived, fetchNotifications]);
+  }, [userId, fetchReplies, fetchLikesReceived, fetchNotifications, fetchFollowing]);
 
   // Close on outside click
   useEffect(() => {
@@ -366,6 +435,10 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     {
       id: "likes", label: "Likes",
       icon: <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+    },
+    {
+      id: "following", label: "Following",
+      icon: <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
     },
     {
       id: "badges", label: "Badges",
@@ -533,6 +606,37 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                     )}
                   </>
                 )}
+                {activeTab === "following" && (
+                  <>
+                    {loadingFollowing ? (
+                      <div className="px-4 py-8 text-center text-sm text-gray-400">Loading...</div>
+                    ) : followingUsers.length === 0 ? (
+                      <div className="px-5 py-10 text-center">
+                        <svg className="mx-auto mb-3 h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        <p className="text-sm font-medium text-gray-700">No followed users yet</p>
+                        <p className="mt-2 text-xs text-gray-500 leading-relaxed max-w-[260px] mx-auto">Users you follow will appear here after you follow them from profile cards or profile pages.</p>
+                      </div>
+                    ) : (
+                      <div className="p-3 space-y-2">
+                        {followingUsers.map(user => (
+                          <Link key={user.id} href={user.username ? `/user/${user.username}` : `/user/${user.id}`} className="flex items-center gap-3 rounded-xl border border-gray-100 p-3 hover:bg-gray-50 transition-colors">
+                            {user.avatar_url ? (
+                              <img src={user.avatar_url} alt={user.display_name || user.username || "User"} className="h-9 w-9 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} referrerPolicy="no-referrer" />
+                            ) : (
+                              <span className="h-9 w-9 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-xs font-semibold text-white">
+                                {(user.display_name || user.username || "?").substring(0, 1).toUpperCase()}
+                              </span>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{user.display_name || user.username || "User"}</p>
+                              {user.username && <p className="text-xs text-gray-400 truncate">@{user.username}</p>}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
                 {activeTab === "badges" && (
                   <>
                     {loadingBadges ? (
@@ -552,7 +656,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                           const colors = TIER_COLORS[(def.tier as string) || "bronze"];
                           return (
                             <div key={badge.badge_id} className={`flex items-start gap-3 rounded-xl border p-3 ${colors}`}>
-                              <span className="text-xl flex-shrink-0">{def.icon || "??"}</span>
+                              <span className="text-xl flex-shrink-0">{getBadgeIcon(def.id, def.icon)}</span>
                               <div className="min-w-0">
                                 <p className="text-sm font-semibold">{def.name}</p>
                                 <p className="text-xs mt-0.5 opacity-80">{def.description}</p>

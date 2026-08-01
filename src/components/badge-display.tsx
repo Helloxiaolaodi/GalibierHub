@@ -1,17 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getBadgeIcon } from '@/lib/badge-ids';
 
 type Badge = {
   badge_id: string;
   awarded_at: string;
   badge_definitions?: {
+    id?: string;
     name: string;
     description: string;
     icon: string;
     tier: string;
     category: string;
   };
+  id?: string;
   name?: string;
   description?: string;
   icon?: string;
@@ -90,7 +93,7 @@ export default function BadgeDisplay({ userId, maxDisplay = 2, size = 'sm', show
             title={def.name + ': ' + (def.description || '')}
             className={'inline-flex items-center justify-center rounded-full ring-1 ring-inset cursor-help ' + sizeClasses + ' ' + colors}
           >
-            {def.icon || 'B'}
+            {getBadgeIcon(def.id, def.icon)}
           </span>
         );
       })}

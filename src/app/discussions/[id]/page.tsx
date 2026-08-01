@@ -96,7 +96,7 @@ function TimelineSidebar({ items, currentIndex, onNavigate, onReply }: {
         {items.map((item,index)=>(
           <button
             key={`${item.type}-${item.date}-${index}`}
-            onPointerDown={(e)=>{e.preventDefault(); e.stopPropagation(); scrollToIndex(index); handlePointer(e.clientY);}}
+            onPointerDown={(e)=>{e.preventDefault(); e.stopPropagation(); scrollToIndex(index);}}
             className={"flex w-auto flex-col justify-center self-start rounded-md px-3 py-1.5 text-left transition-colors "+(index===currentIndex?"bg-slate-900 text-white shadow-md":"bg-transparent text-slate-500 hover:bg-slate-100 cursor-pointer")}>
             <span className={"text-[9px] font-bold tracking-wider uppercase leading-none mb-1 "+(index===currentIndex?"text-slate-300":"text-slate-400")}>
               {item.type==="entry"?"Post":"Reply"}
