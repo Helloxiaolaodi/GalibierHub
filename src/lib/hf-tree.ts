@@ -25,8 +25,7 @@ type HuggingFaceDatasetRef = {
   apiTreeUrl: string;
 };
 
-const HF_TREE_PAGE_SIZE = 1000;
-const HF_TREE_MAX_PAGES = 100;
+const HF_TREE_MAX_DIRECTORIES = 1000;
 const HF_TREE_MAX_FILES = 20000;
 
 function parseHuggingFaceDatasetRef(baseUrl: string = STORAGE_BASE_URL): HuggingFaceDatasetRef | null {
@@ -40,15 +39,17 @@ function parseHuggingFaceDatasetRef(baseUrl: string = STORAGE_BASE_URL): Hugging
     const repo = `${parts[datasetsIndex + 1]}/${parts[datasetsIndex + 2]}`;
     const revision = parts[resolveIndex + 1] || "main";
     const rootPath = parts.slice(resolveIndex + 2).join("/");
-    const apiTreeUrl = `${parsed.origin}/api/datasets/${repo}/tree/${revision}${
-      rootPath ? `/${rootPath.split("/").map(encodeURIComponent).join("/")}` : ""
-    }`;
+    const apiTreeUrl = `${parsed.origin}/api/datasets/${repo}/tree/${revision}`;
     const resolveBaseUrl = `${parsed.origin}/${parts.slice(0, resolveIndex + 2).join("/")}`;
 
     return { repo, revision, rootPath, resolveBaseUrl, apiTreeUrl };
   } catch {
     return null;
   }
+}
+
+function encodePathSegments(path: string): string {
+  return path.split("/").filter(Boolean).map(encodeURIComponent).join("/");
 }
 
 function fullRepoPath(ref: HuggingFaceDatasetRef, entryPath: string): string {
@@ -58,6 +59,19 @@ function fullRepoPath(ref: HuggingFaceDatasetRef, entryPath: string): string {
     return `${ref.rootPath}/${normalized}`;
   }
   return normalized;
+}
+
+function resolveEntryPath(
+  ref: HuggingFaceDatasetRef,
+  directory: string,
+  entryPath: string,
+): string {
+  const prefixed = fullRepoPath(ref, entryPath);
+  if (!prefixed) return "";
+  if (directory && prefixed !== directory && !prefixed.startsWith(`${directory}/`)) {
+    return `${directory}/${prefixed}`;
+  }
+  return prefixed;
 }
 
 function extractNextUrl(linkHeader: string | null, currentUrl: URL): string | null {
@@ -70,14 +84,6 @@ function extractNextUrl(linkHeader: string | null, currentUrl: URL): string | nu
   return null;
 }
 
-function parseUpdatedAt(value: string | { date?: string | null } | null | undefined): string | null {
-  if (!value) return null;
-  const raw = typeof value === "string" ? value : value.date;
-  if (!raw) return null;
-  const date = new Date(raw);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
 export async function listHuggingFaceDatasetFiles(
   baseUrl: string = STORAGE_BASE_URL,
 ): Promise<HuggingFaceDatasetFile[]> {
@@ -85,66 +91,78 @@ export async function listHuggingFaceDatasetFiles(
   if (!ref) return [];
 
   const files: HuggingFaceDatasetFile[] = [];
-  const seen = new Set<string>();
-  let currentUrl: string | null = ref.apiTreeUrl;
-  let offset = 0;
-  let pages = 0;
+  const seenFiles = new Set<string>();
+  const seenDirectories = new Set<string>();
+  const queue: string[] = [];
+  const rootPath = ref.rootPath;
 
-  while (currentUrl && pages < HF_TREE_MAX_PAGES && files.length < HF_TREE_MAX_FILES) {
-    const url: URL = new URL(currentUrl);
-    url.searchParams.set("recursive", "true");
-    url.searchParams.set("expand", "true");
-    url.searchParams.set("limit", String(HF_TREE_PAGE_SIZE));
-    if (offset > 0 && !url.searchParams.has("offset")) {
-      url.searchParams.set("offset", String(offset));
-    }
+  seenDirectories.add(rootPath);
+  queue.push(rootPath);
 
-    const response: Response = await fetch(url, {
-      headers: { "User-Agent": "GalibierHub/1.0", Accept: "application/json" },
-      cache: "no-store",
-      redirect: "follow",
-    });
-    if (!response.ok) {
-      throw new Error(`Hugging Face tree API returned ${response.status}`);
-    }
+  while (
+    queue.length > 0 &&
+    seenDirectories.size <= HF_TREE_MAX_DIRECTORIES &&
+    files.length < HF_TREE_MAX_FILES
+  ) {
+    const directory = queue.shift() as string;
+    const apiUrl = new URL(
+      ref.apiTreeUrl + (directory ? `/${encodePathSegments(directory)}` : ""),
+    );
+    apiUrl.searchParams.set("recursive", "false");
+    let pageUrl: string | null = apiUrl.toString();
 
-    const entries = (await response.json()) as HfTreeEntry[];
-    const previousFileCount = files.length;
-    for (const entry of entries) {
-      if (!entry.path || entry.type !== "file") continue;
-      const path = fullRepoPath(ref, entry.path);
-      if (!path || seen.has(path)) continue;
-      seen.add(path);
-      const base = ref.resolveBaseUrl.endsWith("/") ? ref.resolveBaseUrl : `${ref.resolveBaseUrl}/`;
-      files.push({
-        path,
-        url: new URL(path, base).toString(),
-        size: typeof entry.size === "number" ? entry.size : null,
-        sha256Checksum: entry.lfs?.oid ?? entry.oid ?? null,
-        updatedAt: parseUpdatedAt(entry.lastCommit),
+    while (pageUrl) {
+      const url: URL = new URL(pageUrl);
+      let response: Response = await fetch(url, {
+        headers: { "User-Agent": "GalibierHub/1.0", Accept: "application/json" },
+        cache: "no-store",
+        redirect: "follow",
       });
-    }
-    pages += 1;
 
-    const nextFromLink: string | null = extractNextUrl(response.headers.get("link"), url);
-    const nextHeader: string | null = response.headers.get("x-next-link") || response.headers.get("next-link");
-    if (nextFromLink) {
-      currentUrl = nextFromLink;
-      continue;
+      if (!response.ok && response.status === 400 && url.searchParams.has("recursive")) {
+        url.searchParams.delete("recursive");
+        response = await fetch(url, {
+          headers: { "User-Agent": "GalibierHub/1.0", Accept: "application/json" },
+          cache: "no-store",
+          redirect: "follow",
+        });
+      }
+      if (!response.ok) {
+        throw new Error(`Hugging Face tree API returned ${response.status}`);
+      }
+
+      const entries = (await response.json()) as HfTreeEntry[];
+      for (const entry of entries) {
+        if (!entry.path) continue;
+        const path = resolveEntryPath(ref, directory, entry.path);
+        if (!path) continue;
+
+        if (entry.type === "directory") {
+          if (!seenDirectories.has(path)) {
+            seenDirectories.add(path);
+            queue.push(path);
+          }
+          continue;
+        }
+
+        if (entry.type !== "file" || seenFiles.has(path)) continue;
+        seenFiles.add(path);
+        const base = ref.resolveBaseUrl.endsWith("/")
+          ? ref.resolveBaseUrl
+          : `${ref.resolveBaseUrl}/`;
+        files.push({
+          path,
+          url: new URL(path, base).toString(),
+          size: typeof entry.size === "number" ? entry.size : null,
+          sha256Checksum: entry.lfs?.oid ?? entry.oid ?? null,
+          updatedAt: null,
+        });
+      }
+
+      const nextFromLink = extractNextUrl(response.headers.get("link"), url);
+      const nextHeader = response.headers.get("x-next-link") || response.headers.get("next-link");
+      pageUrl = nextFromLink || (nextHeader ? new URL(nextHeader, url).toString() : null);
     }
-    if (nextHeader) {
-      currentUrl = new URL(nextHeader, url).toString();
-      continue;
-    }
-    if (files.length === previousFileCount && offset > 0) {
-      break;
-    }
-    if (entries.length >= HF_TREE_PAGE_SIZE) {
-      offset += entries.length;
-      currentUrl = url.toString();
-      continue;
-    }
-    currentUrl = null;
   }
 
   return files;
