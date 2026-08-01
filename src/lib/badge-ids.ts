@@ -16,3 +16,40 @@ export function getBadgeIdVariants(value: string | null | undefined): string[] {
   const canonical = normalizeBadgeId(value);
   return [...new Set([canonical, ...(BADGE_ID_ALIASES[canonical] || [])])].filter(Boolean);
 }
+
+const BADGE_ICON_MAP: Record<string, string> = {
+  basecamp: "⛺",
+  hello_world: "👋",
+  profile_setup: "⛰️",
+  sherpa: "🧗",
+  data_miner: "⛏️",
+  high_performance: "🚀",
+  helpful: "🤝",
+  hc: "🏔️",
+  polka_dot: "🔴",
+  pi: "🎓",
+  founder: "👑",
+  ice_breaker: "❄️",
+  first_like: "❤️",
+  welcome: "👏",
+  nice_reply: "👍",
+  nice_topic: "💬",
+  appreciated: "🌟",
+  thank_you: "🙏",
+  markdown_master: "📝",
+  data_visualizer: "📊",
+  open_science: "🔗",
+  cli_maestro: "⌨️",
+  great_topic: "🏆",
+  top_contributor: "🥇",
+  community_curator: "✅",
+  bug_hunter: "🐛",
+  enthusiast: "🔥",
+};
+
+export function getBadgeIcon(
+  badgeId: string | null | undefined,
+  fallbackIcon?: string | null,
+): string {
+  return BADGE_ICON_MAP[normalizeBadgeId(badgeId)] || fallbackIcon || "🏅";
+}

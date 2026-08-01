@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getBadgeIcon } from "@/lib/badge-ids";
 
 type BadgeRow = {
+  id?: string;
   badge_id: string;
   name: string;
   description: string;
@@ -301,7 +303,7 @@ export default function AdminBadgeStats({ accessToken }: { accessToken?: string 
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-sm">
-                          {badge.icon || "?"}
+                          {getBadgeIcon(badge.badge_id || badge.id, badge.icon)}
                         </span>
                         <div className="min-w-0">
                           <p className="truncate font-medium text-white">{badge.name}</p>

@@ -190,13 +190,6 @@ export default function PreferencesPage() {
               </label>
             </div>
 
-            {/* Display Name */}
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Display Name</label>
-              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200 transition-colors" />
-            </div>
-
             {/* Affiliation */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Affiliation</label>

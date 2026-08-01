@@ -55,9 +55,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (badgeId) {
-    const { data: holders, error: holdersError } = await sb
+    const { data: userBadgeRows, error: holdersError } = await sb
       .from("user_badges")
-      .select("user_id, awarded_at, profiles(id, username, display_name, avatar_url)")
+      .select("user_id, awarded_at")
       .in("badge_id", getBadgeIdVariants(badgeId))
       .order("awarded_at", { ascending: false })
       .limit(100);
@@ -65,6 +65,33 @@ export async function GET(request: NextRequest) {
     if (holdersError) {
       return NextResponse.json({ error: holdersError.message }, { status: 500 });
     }
+
+    const userIds = [...new Set((userBadgeRows || []).map((row) => String(row.user_id)).filter(Boolean))];
+    let profileRows: Array<Record<string, unknown>> = [];
+    if (userIds.length > 0) {
+      const { data, error: profileError } = await sb
+        .from("profiles")
+        .select("id, username, display_name, avatar_url")
+        .in("id", userIds);
+      if (profileError) {
+        return NextResponse.json({ error: profileError.message }, { status: 500 });
+      }
+      profileRows = (data || []) as Array<Record<string, unknown>>;
+    }
+    const profileMap = new Map(profileRows.map((profile) => [profile.id, profile]));
+    const holders = (userBadgeRows || []).map((row) => {
+      const userId = String(row.user_id);
+      return {
+        user_id: userId,
+        awarded_at: row.awarded_at,
+        profiles: profileMap.get(userId) || {
+          id: userId,
+          username: "user-" + userId.slice(0, 8),
+          display_name: "User " + userId.slice(0, 8),
+          avatar_url: null,
+        },
+      };
+    });
 
     return NextResponse.json({ holders: holders || [] });
   }

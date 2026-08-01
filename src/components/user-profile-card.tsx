@@ -64,6 +64,18 @@ export default function UserProfileCard({
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const sb = getBrowserSupabase();
+    if (!sb) return;
+    sb.auth.getSession().then(({ data }) => {
+      const id = data.session?.user?.id;
+      if (id) {
+        setCurrentUserId(id);
+        localStorage.setItem("galibierhub-user-id", id);
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
     let cancelled = false;
     const loadProfile = async () => {
@@ -442,7 +454,7 @@ export default function UserProfileCard({
           )}
         </div>
 
-        {!isOwnCard && !userId && (
+        {!isOwnCard && !userId && !currentUserId && (
           <p className="mt-3 text-[10px] text-gray-400 text-center">Sign in to follow users</p>
         )}
       </div>,
