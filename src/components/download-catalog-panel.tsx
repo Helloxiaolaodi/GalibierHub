@@ -13,7 +13,7 @@ type DownloadCatalogItem = {
   sizeBytes: number | null;
   showCli: boolean;
   providerLabel: string;
-  sourceScope: 'featured' | 'sample' | 'mixed';
+  sourceScope: 'featured' | 'sample' | 'dataset' | 'mixed';
   sampleCount: number;
   sampleIds: string[];
   kinds: string[];
@@ -107,9 +107,10 @@ function deriveFileType(fileName: string): string {
 }
 
 function scopeLabel(scope: DownloadCatalogItem['sourceScope']): string {
-  if (scope === 'mixed') return 'Overview + records';
+  if (scope === 'mixed') return 'Mixed source';
   if (scope === 'featured') return 'Overview source';
-  return 'Record source';
+  if (scope === 'sample') return 'Record source';
+  return 'Dataset source';
 }
 
 function buildTree(items: DownloadCatalogItem[]): FolderNode {
@@ -413,13 +414,16 @@ export default function DownloadCatalogPanel({
 
   const readmeText = useMemo(() => {
     const header = '# Directory: ' + rootLabel + (currentPath ? '/' + currentPath : '') + '\n\n';
-    const summary = 'Files: ' + visibleFiles.length + ' | Folders: ' + currentFolderSummary.folderCount + '\n\n';
-    const fileList = visibleFiles.map((item) => {
+    const summary = 'Files: ' + currentFolderItems.length + ' | Folders: ' + currentFolderSummary.folderCount + '\n\n';
+    const fileList = currentFolderItems.map((item) => {
       const size = item.sizeBytes ? formatDownloadBytes(item.sizeBytes) : (item.sizeLabel || 'Unknown');
-      return '- ' + item.fileName + '  (' + size + (item.updatedLabel ? ', ' + item.updatedLabel : '') + ')';
+      const location = item.directoryPath
+        ? `${rootLabel}/${item.directoryPath}/${item.fileName}`
+        : `${rootLabel}/${item.fileName}`;
+      return '- ' + location + '  (' + size + (item.updatedLabel ? ', ' + item.updatedLabel : '') + ')';
     });
     return header + summary + fileList.join('\n');
-  }, [rootLabel, currentPath, visibleFiles, currentFolderSummary]);
+  }, [rootLabel, currentPath, currentFolderItems, currentFolderSummary]);
 
   const totalPages = Math.max(1, Math.ceil(visibleFiles.length / pageSize));
   const paginatedFiles = useMemo(() => {
@@ -527,7 +531,7 @@ export default function DownloadCatalogPanel({
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
               <span className="rounded bg-teal-50 px-2 py-1 text-teal-700">Files: {totals.all}</span>
               <span className="rounded bg-slate-100 px-2 py-1 text-slate-700">Folders: {currentFolderSummary.folderCount}</span>
-              {visibleFiles.length > 0 && (
+              {currentFolderItems.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setReadmeOpen(true)}
