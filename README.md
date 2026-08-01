@@ -57,13 +57,13 @@ The current default schema and UI are still genomics-oriented. Template users ca
 
 ### Preview Media
 
+![GalibierHub logo](./docs/media/galibierhub-ui-overview.png)
+
+*GalibierHub website logo.*
+
 ![GalibierHub Architecture](./docs/architecture.gif)
 
 *Architecture walkthrough used in the README. Media credit: generated with **Gemini 3.1 Pro**.*
-
-![GalibierHub UI and feature overview](./docs/media/galibierhub-ui-overview.png)
-
-*UI and primary-feature overview image for the README. Media credit: generated with **Gemini 3.1 Pro**.*
 
 ## What GalibierHub Includes
 

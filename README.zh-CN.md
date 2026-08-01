@@ -59,13 +59,13 @@ GalibierHub 当前主要包含五个核心界面：
 
 ### 预览媒体
 
+![GalibierHub 网站 Logo](./docs/media/galibierhub-ui-overview.png)
+
+*GalibierHub 网站 Logo。*
+
 ![GalibierHub 架构图](./docs/architecture.gif)
 
 *README 中使用的架构演示 GIF。媒体署名：由 **Gemini 3.1 Pro** 生成。*
-
-![GalibierHub 界面与主要功能总览](./docs/media/galibierhub-ui-overview.png)
-
-*README 中使用的界面与主要功能总览图。媒体署名：由 **Gemini 3.1 Pro** 生成。*
 
 *(详细搭建指南、项目命名故事及深度技术讨论，见 [GalibierHub 开发者笔记](https://www.cnblogs.com/Administrator/p/21776736)。)*
 
