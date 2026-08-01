@@ -65,6 +65,8 @@ The current default schema and UI are still genomics-oriented. Template users ca
 
 *Architecture walkthrough used in the README. Media credit: generated with **Gemini 3.1 Pro**.*
 
+(For detailed setup guide, project naming story and in-depth technical discussion, please refer to [GalibierHub Developer Notes](https://www.cnblogs.com/Helloxiaolaodi/p/22134246). ) *
+
 ## What GalibierHub Includes
 
 ### End-user capabilities
