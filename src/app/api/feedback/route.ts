@@ -402,6 +402,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Comment message must be between 1 and 2000 characters." }, { status: 400 });
     }
     const sbComments = getSupabase();
+    const notifyClient = hasSupabaseServiceRole ? getServiceSupabase() : sbComments;
     const { data: feedbackEntry, error: feedbackLookupErr } = await sbComments
       .from("site_feedback")
       .select("id, title, display_name, visibility, created_at, user_id")
@@ -437,7 +438,7 @@ export async function POST(request: Request) {
       const fbEntry = feedbackEntry as Record<string, unknown>;
       const posterUserId = fbEntry.user_id as string | null | undefined;
       if (posterUserId) {
-        await sbComments.from('site_notifications').insert({
+        await notifyClient.from('site_notifications').insert({
           recipient_id: posterUserId,
           discussion_id: feedbackId,
           actor_name: commentAuthor,
@@ -479,7 +480,7 @@ export async function POST(request: Request) {
       processUsers(profilesUsers);
       
       for (const uid of notifiedUserIds) {
-        await sbComments.from('site_notifications').insert({
+        await notifyClient.from('site_notifications').insert({
           recipient_id: uid,
           discussion_id: feedbackId,
           actor_name: commentAuthor,

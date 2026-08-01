@@ -399,7 +399,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
       .channel('realtime:user-activity-' + userId)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'feedback_comments', filter: `user_id=eq.${userId}` },
+        { event: 'INSERT', schema: 'public', table: 'feedback_comments' },
         () => { fetchReplies(); fetchNotifications(); }
       )
       .on(
@@ -412,9 +412,21 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
         { event: '*', schema: 'public', table: 'follows', filter: `follower_id=eq.${userId}` },
         () => { fetchFollowing(); fetchFollowers(); }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'follows', filter: `following_id=eq.${userId}` },
+        () => { fetchFollowing(); fetchFollowers(); }
+      )
       .subscribe();
     return () => { sb.removeChannel(channel); };
   }, [userId, fetchReplies, fetchLikesReceived, fetchNotifications, fetchFollowing, fetchFollowers]);
+
+  // Refresh Following/Followers immediately when follow state changes in profile cards or pages
+  useEffect(() => {
+    const handler = () => { fetchFollowing(); fetchFollowers(); };
+    window.addEventListener('galibierhub-follows-updated', handler);
+    return () => window.removeEventListener('galibierhub-follows-updated', handler);
+  }, [fetchFollowing, fetchFollowers]);
 
   // Close on outside click
   useEffect(() => {
@@ -592,7 +604,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                       </div>
                     ) : (
                       replies.map(r => (
-                        <Link key={r.id} href={"/discussions/" + r.feedback_id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
+                        <Link key={r.id} href={"/discussions/" + r.feedback_id + "?reply=" + encodeURIComponent(r.id)} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
                           <svg className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-gray-900 truncate">{r.thread_title}</p>
@@ -616,7 +628,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                       </div>
                     ) : (
                       likesReceived.map(item => (
-                        <Link key={item.entry_id} href={"/discussions/" + item.entry_id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
+                        <Link key={item.entry_id + (item.comment_id || "")} href={"/discussions/" + item.entry_id + (item.comment_id ? "?reply=" + encodeURIComponent(item.comment_id) : "")} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
                           <span className="h-5 w-5 flex-shrink-0 flex items-center justify-center rounded-full bg-red-50 text-red-500 text-[10px]">
                             <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                           </span>
