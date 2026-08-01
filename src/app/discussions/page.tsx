@@ -654,6 +654,11 @@ export default function DiscussionsPage() {
 
     if (!composerForm.message.trim() || composerForm.message.trim().length < 3) { setComposerError("Message must be at least 3 characters."); return; }
 
+    if (!githubUser && !session?.access_token) {
+      setComposerError("Please sign in to post a discussion.");
+      return;
+    }
+
     const displayName = composerForm.displayName.trim() || (githubUser || "User");
 
     setComposerSubmitting(true); setComposerError(null);

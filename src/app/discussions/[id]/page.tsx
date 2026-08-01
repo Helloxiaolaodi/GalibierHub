@@ -687,6 +687,9 @@ export default function DiscussionDetailPage() {
   }, []);
 
   const handleSubmitComment = useCallback(async (text: string) => {
+    if (!githubUser && !session?.access_token) {
+      throw new Error("Please sign in to reply.");
+    }
     const authorName = isAdmin ? "GalibierHub Team" : (githubUser || (session?.user?.email ? session.user.email.split("@")[0] : null) || "User");
     const res = await fetch("/api/feedback", {
       method: "POST",
@@ -698,7 +701,7 @@ export default function DiscussionDetailPage() {
     setFloatingReplyOpen(false);
     await fetchData();
 
-  }, [id, fetchData, githubUser]);
+  }, [id, fetchData, githubUser, session?.access_token]);
 
   const timelineItems = useMemo(() => {
     if (!entry) return [];

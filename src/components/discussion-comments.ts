@@ -27,6 +27,11 @@ export function useDiscussionComments(accessToken?: string | null, isAdmin = fal
     const draft = (commentDrafts[entryId] || '').trim();
     if (!draft || draft.length < 1) return;
     const storedGithubUser = typeof window === 'undefined' ? null : window.localStorage.getItem('galibierhub-github-user');
+    const storedUserId = typeof window === 'undefined' ? null : window.localStorage.getItem('galibierhub-user-id');
+    if (!accessToken && !storedGithubUser && !storedUserId) {
+      setCommentError((e) => ({ ...e, [entryId]: 'Please sign in to reply.' }));
+      return;
+    }
     const authorName = isAdmin ? 'GalibierHub Team' : (storedGithubUser || 'User');
     setCommentSubmitting((s) => ({ ...s, [entryId]: true }));
     setCommentError((e) => ({ ...e, [entryId]: null }));
@@ -51,7 +56,7 @@ export function useDiscussionComments(accessToken?: string | null, isAdmin = fal
     } finally {
       setCommentSubmitting((s) => ({ ...s, [entryId]: false }));
     }
-  }, [commentDrafts, fetchEntryComments, isAdmin]);
+  }, [accessToken, commentDrafts, fetchEntryComments, isAdmin]);
 
   return {
     entryComments,

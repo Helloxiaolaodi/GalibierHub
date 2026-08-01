@@ -175,6 +175,18 @@ export default function AuthModal({
         setAuthError(verifyError);
         return;
       }
+      const emailCheck = await fetch("/api/auth-email-exists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (emailCheck.ok) {
+        const check = await emailCheck.json() as { exists?: boolean };
+        if (check.exists) {
+          setAuthError("This email is already registered and already has an account on GalibierHub.");
+          return;
+        }
+      }
       const username = email.trim().split("@")[0] || "user";
       const { error } = await sb.auth.signUp({
         email: email.trim(),

@@ -1166,6 +1166,20 @@ const [uploadingImage, setUploadingImage] = useState(false);
     setComposerErrors({});
 
     try {
+      const sb = getBrowserSupabase();
+      const { data: sessionData } = await sb?.auth.getSession() ?? { data: { session: null } };
+      if (!sessionData.session) {
+        setComposerError('Please sign in to post a discussion.');
+        setComposerSubmitting(false);
+        return;
+      }
+    } catch {
+      setComposerError('Please sign in to post a discussion.');
+      setComposerSubmitting(false);
+      return;
+    }
+
+    try {
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
