@@ -106,6 +106,16 @@ export default function NotificationBell({ session }: { session: Session | null 
         { event: "INSERT", schema: "public", table: "site_notifications", filter: "recipient_id=eq." + userId },
         () => { fetchNotifications(); }
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "feedback_comments" },
+        () => { fetchNotifications(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "site_reactions" },
+        () => { fetchNotifications(); }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
