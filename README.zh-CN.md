@@ -67,7 +67,7 @@ GalibierHub 当前主要包含五个核心界面：
 
 *README 中使用的架构演示 GIF。媒体署名：由 **Gemini 3.1 Pro** 生成。*
 
-*(详细搭建指南、项目命名故事及深度技术讨论，见 [GalibierHub 开发者笔记](https://www.cnblogs.com/Administrator/p/21776736)。)*
+*(详细搭建指南、项目命名故事及深度技术讨论，见 [GalibierHub 开发者笔记](https://www.cnblogs.com/Helloxiaolaodi/p/22134232)。)*
 
 ## GalibierHub 当前包含的能力
 
