@@ -264,6 +264,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           });
         } catch {}
         setIsFollowing(false);
+        window.dispatchEvent(new Event('galibierhub-follows-updated'));
       } else {
         await sb.from("follows").insert({ follower_id: currentUserId, following_id: profile.id });
         try {
@@ -290,6 +291,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           });
         } catch {}
         setIsFollowing(true);
+        window.dispatchEvent(new Event('galibierhub-follows-updated'));
       }
     } catch {} finally {
       setFollowLoading(false);

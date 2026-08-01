@@ -143,8 +143,9 @@ async function fetchAllSampleRows() {
 
 export async function GET(request: NextRequest) {
   const cacheKey = getBearerToken(request) ? "admin" : "public";
+  const forceRefresh = request.nextUrl.searchParams.get('nocache') === '1' || request.nextUrl.searchParams.get('refresh') === '1';
   const cached = catalogCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
+  if (!forceRefresh && cached && cached.expiresAt > Date.now()) {
     return NextResponse.json(cached.payload, {
       headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
     });

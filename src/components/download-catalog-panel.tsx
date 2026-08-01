@@ -278,7 +278,7 @@ export default function DownloadCatalogPanel({
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
-  const loadCatalog = useCallback(async () => {
+  const loadCatalog = useCallback(async (nocache?: boolean) => {
     let active = true;
     setLoading(true);
     setError(null);
@@ -286,7 +286,8 @@ export default function DownloadCatalogPanel({
       ? { Authorization: `Bearer ${accessToken}` }
       : {};
     try {
-      const res = await fetch('/api/download-catalog', { headers });
+      const url = '/api/download-catalog' + (nocache ? '?nocache=1' : '');
+      const res = await fetch(url, { headers });
       const data = await res.json();
       if (!active) return () => {
         active = false;
@@ -512,6 +513,16 @@ export default function DownloadCatalogPanel({
             <h2 className="text-lg font-semibold text-gray-900">Downloads</h2>
             <p className="mt-1 text-sm text-gray-600">
               Browse files by directory, export manifests, and choose browser or CLI delivery.
+              <button
+                type="button"
+                onClick={() => { loadCatalog(true); }}
+                className="ml-3 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
               <span className="rounded bg-teal-50 px-2 py-1 text-teal-700">Files: {totals.all}</span>
