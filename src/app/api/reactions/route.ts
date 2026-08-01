@@ -1,6 +1,12 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
-import { hashVisitorFingerprint } from '@/lib/feedback-admin';
+import {
+  getServiceSupabase,
+  getSupabase,
+  getSupabaseWithAuth,
+  hasSupabaseServiceRole,
+  isSupabaseConfigured,
+} from '@/utils/supabase';
+import { getBearerToken, hashVisitorFingerprint } from '@/lib/feedback-admin';
 
 type ReactionType = 'like' | 'bookmark';
 
@@ -104,6 +110,10 @@ export async function POST(request: NextRequest) {
 
   const fingerprintHash = hashVisitorFingerprint(fingerprint);
   const sb = getSupabase();
+  const notificationToken = getBearerToken(request);
+  const notificationClient = hasSupabaseServiceRole
+    ? getServiceSupabase()
+    : (notificationToken ? getSupabaseWithAuth(notificationToken) : sb);
 
   let existingQuery = sb
     .from('site_reactions')
@@ -155,15 +165,16 @@ export async function POST(request: NextRequest) {
   // Notify the entry author when their post is liked (best-effort)
   if (reactionType === 'like' && (entryId || commentId)) {
     try {
-      const targetId = commentId || entryId;
       let recipientId: string | null | undefined = null;
+      let discussionId: string | null = entryId || null;
       if (commentId) {
         const { data: likedComment } = await sb
           .from('feedback_comments')
-          .select('user_id')
+          .select('user_id, feedback_id')
           .eq('id', commentId)
           .maybeSingle();
         recipientId = likedComment?.user_id as string | null | undefined;
+        discussionId = likedComment?.feedback_id ? String(likedComment.feedback_id) : null;
       } else {
         const { data: likedEntry } = await sb
           .from('site_feedback')
@@ -176,9 +187,9 @@ export async function POST(request: NextRequest) {
         const actorName = typeof (body as { actorName?: unknown }).actorName === 'string'
           ? (body as { actorName: string }).actorName
           : 'Someone';
-        await sb.from('site_notifications').insert({
+        await notificationClient.from('site_notifications').insert({
           recipient_id: recipientId,
-          discussion_id: targetId,
+          discussion_id: discussionId,
           actor_name: actorName,
           preview_text: commentId ? 'liked your reply' : 'liked your discussion',
           is_read: false,

@@ -48,3 +48,17 @@ export function getServiceSupabase(): SupabaseClient {
   }
   return _supabaseService;
 }
+
+export function getSupabaseWithAuth(token: string): SupabaseClient {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+}
