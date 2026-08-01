@@ -6,9 +6,7 @@ import type { Promoter, DashboardStats } from '@/types/genome';
 import { SiteConfig } from '@/site-config';
 import { getBrowserSupabase } from '@/utils/supabase-browser';
 import SearchFilters, { type SearchFilters as FiltersType } from '@/components/search-filters';
-import StatsChart from '@/components/stats-chart';
 import FlipCard from '@/components/flip-card';
-import PromoterTable from '@/components/promoter-table';
 import UserGuide from '@/components/user-guide';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -24,7 +22,9 @@ type SummaryMode = 'overview' | 'sample' | 'chromosome';
 type ActiveTab = 'overview' | 'promoters' | 'genome-browser' | 'discussion' | 'downloads' | 'admin' | 'badges';
 
 const GenomeBrowser = dynamic(() => import('@/components/genome-browser'), { ssr: false });
+const StatsChart = dynamic(() => import('@/components/stats-chart'), { ssr: false, loading: () => <div className="h-72 rounded-lg border bg-white text-sm text-gray-400 flex items-center justify-center">Loading metrics...</div> });
 const PromoterDetail = dynamic(() => import('@/components/promoter-detail'), { ssr: false });
+const PromoterTable = dynamic(() => import('@/components/promoter-table'), { ssr: false, loading: () => <div className="rounded-lg border bg-white p-6 text-sm text-gray-400">Loading records...</div> });
 const DownloadCatalogPanel = dynamic(() => import('@/components/download-catalog-panel'), { ssr: false });
 const SiteFeedback = dynamic(() => import('@/components/site-feedback'), { ssr: false });
 const AdminUserStats = dynamic(() => import('@/components/admin-user-stats'), { ssr: false });
@@ -216,9 +216,10 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, [sortMode]);
 
+  const shouldFetchPromoters = activeTab === 'promoters' || activeTab === 'genome-browser';
   useEffect(() => {
-    fetchPromoters(currentFilters, pageIndex, pageSize);
-  }, [currentFilters, fetchPromoters, pageIndex, pageSize]);
+    if (shouldFetchPromoters) fetchPromoters(currentFilters, pageIndex, pageSize);
+  }, [shouldFetchPromoters, currentFilters, fetchPromoters, pageIndex, pageSize]);
 
   const handleSearch = useCallback((filters: FiltersType) => {
     setPageIndex(0);
@@ -444,7 +445,7 @@ export default function HomePage() {
         )}
         {activeTab === 'overview' && (
           <>
-            <StatsChart stats={stats} />
+            <StatsChart stats={stats} loading={!stats && !dataError} />
             {isCreatorAdmin && totalUsers !== null && (
               <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center gap-4">
@@ -625,15 +626,11 @@ export default function HomePage() {
                 </button>
                 {tutorialMenuOpen && (
                   <div className="absolute right-0 mt-2 z-30 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
-                    <Link href="/discussions?category=tutorials" className="flex items-center gap-3 rounded-lg p-3 hover:bg-slate-50 transition-colors">
-                      <svg className="h-5 w-5 text-teal-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                      <div><div className="text-sm font-medium text-gray-900">View all Tutorials</div><div className="text-xs text-gray-500">Browse community guides and official documentation</div></div>
-                    </Link>
                     <Link href="/docs/download-cli" className="flex items-center gap-3 rounded-lg p-3 hover:bg-slate-50 transition-colors">
                       <svg className="h-5 w-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                       <div><div className="text-sm font-medium text-gray-900">Download &amp; CLI Usage Guide</div><div className="text-xs text-gray-500">How to use wget/curl/aria2c for batch downloads</div></div>
                     </Link>
-                    <Link href="/discussions?category=tutorials" className="flex items-center gap-3 rounded-lg p-3 hover:bg-slate-50 transition-colors">
+                    <Link href="/discussions?category=issue" className="flex items-center gap-3 rounded-lg p-3 hover:bg-slate-50 transition-colors">
                       <svg className="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                       <div><div className="text-sm font-medium text-gray-900">Ask in Discussions</div><div className="text-xs text-gray-500">Post questions about the data downloads</div></div>
                     </Link>

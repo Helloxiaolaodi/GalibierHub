@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
 import { getServiceSupabase, hasSupabaseServiceRole } from "@/utils/supabase";
+import { getBadgeIdVariants, normalizeBadgeId } from "@/lib/badge-ids";
 
 type BadgeRow = {
   badge_id: string;
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
     const { data: holders, error: holdersError } = await sb
       .from("user_badges")
       .select("user_id, awarded_at, profiles(id, username, display_name, avatar_url)")
-      .eq("badge_id", badgeId)
+      .in("badge_id", getBadgeIdVariants(badgeId))
       .order("awarded_at", { ascending: false })
       .limit(100);
 
@@ -89,7 +90,8 @@ export async function GET(request: NextRequest) {
   // Build holder count map
   const holderCountMap: Record<string, number> = {};
   for (const h of (holderRows || [])) {
-    holderCountMap[h.badge_id] = (holderCountMap[h.badge_id] || 0) + 1;
+    const canonicalBadgeId = normalizeBadgeId(h.badge_id);
+    holderCountMap[canonicalBadgeId] = (holderCountMap[canonicalBadgeId] || 0) + 1;
   }
 
   const definitions = (dictRows || []).map((row: Record<string, unknown>) => ({
@@ -101,7 +103,7 @@ export async function GET(request: NextRequest) {
     category: row.category || "",
     criteria: row.criteria || "",
     manual_only: row.manual_only || false,
-    total_holders: holderCountMap[row.id as string] || 0,
+    total_holders: holderCountMap[normalizeBadgeId(row.id as string)] || 0,
     last_awarded_at: row.last_awarded_at || null,
   })) as BadgeRow[];
 

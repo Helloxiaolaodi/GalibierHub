@@ -89,15 +89,23 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
         if (queryError || !data) {
           const storedId = typeof window !== "undefined" ? localStorage.getItem("galibierhub-user-id") : null;
           const session = sessionLookup.data.session;
-          const isOwnProfile = UUID_RE.test(username) && (storedId === username || sessionUserId === username);
-          if (isOwnProfile && sessionUserId === username) {
-            const emailPrefix = session?.user?.email ? session.user.email.split("@")[0] : username.substring(0, 8);
+          const emailPrefix = session?.user?.email ? session.user.email.split("@")[0] : null;
+          const metadataLogin = session?.user?.user_metadata?.user_name
+            || session?.user?.user_metadata?.preferred_username
+            || session?.user?.user_metadata?.login;
+          const normalizedUsername = username.trim().replace(/^@/, "").toLowerCase();
+          const isOwnProfile =
+            (UUID_RE.test(username) && (storedId === username || sessionUserId === username)) ||
+            Boolean(emailPrefix && normalizedUsername === emailPrefix.toLowerCase()) ||
+            Boolean(metadataLogin && normalizedUsername === String(metadataLogin).trim().replace(/^@/, "").toLowerCase());
+          if (isOwnProfile && sessionUserId) {
+            const profileEmailPrefix = session?.user?.email ? session.user.email.split("@")[0] : username.substring(0, 8);
             const fullName = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || emailPrefix;
             const { data: newProfile, error: createError } = await sb
               .from("profiles")
               .insert({
                 id: sessionUserId,
-                username: emailPrefix,
+                username: profileEmailPrefix,
                 display_name: fullName,
                 full_name: fullName,
                 email: session?.user?.email || "",

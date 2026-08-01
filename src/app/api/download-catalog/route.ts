@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SiteConfig } from '@/site-config';
 import { getDirectDownloadUrl, validateDirectFileUrl } from '@/lib/storage';
 import { normalizeDownloadKey } from '@/lib/download-info';
-import { resolveHttpChecksum } from '@/lib/http-checksum';
+import { resolveHttpChecksum, resolveHttpFileSize } from '@/lib/http-checksum';
 import { isExcludedSampleId } from '@/lib/sample-exclusions';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 import { getBearerToken, requireCreatorGithubAuth } from '@/lib/feedback-admin';
@@ -36,7 +36,7 @@ type MutableCatalogItem = DownloadCatalogItem & {
 
 const SAMPLE_FIELDS = 'sample_id, vcf_download_url, fasta_download_url, gb_download_url, bed_download_url, gff3_download_url, vcf_download_mode, fasta_download_mode';
 const PAGE_SIZE = 1000;
-const CATALOG_CACHE_MS = 5 * 60 * 1000;
+const CATALOG_CACHE_MS = 24 * 60 * 60 * 1000;
 const catalogCache = new Map<string, { expiresAt: number; payload: unknown }>();
 
 function inferProviderLabel(url: string): string {
@@ -262,10 +262,17 @@ export async function GET(request: NextRequest) {
   }
 
   // Auto-fetch file sizes for items that still have no sizeBytes
-  const itemsWithoutSize = result.filter((item) => item.sizeBytes == null && !item.sizeLabel);
+  const itemsWithoutSize = result.filter(
+    (item) => item.sizeBytes == null && (!item.sizeLabel || /^unknown$/i.test(item.sizeLabel)),
+  );
   if (itemsWithoutSize.length > 0 && itemsWithoutSize.length <= 30) {
     const sizePromises = itemsWithoutSize.map(async (item) => {
       try {
+        const hfSize = await resolveHttpFileSize(item.url);
+        if (hfSize != null) {
+          item.sizeBytes = hfSize;
+          return;
+        }
         const directUrl = getDirectDownloadUrl(item.url);
         if (!validateDirectFileUrl(directUrl)) return;
         const controller = new AbortController();
@@ -298,6 +305,6 @@ export async function GET(request: NextRequest) {
   const payload = { items: result, warning: metadataWarning, isAdmin };
   catalogCache.set(cacheKey, { expiresAt: Date.now() + CATALOG_CACHE_MS, payload });
   return NextResponse.json(payload, {
-    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+    headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
   });
 }

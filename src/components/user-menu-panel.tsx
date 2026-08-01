@@ -239,7 +239,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
   }, [userId]);
 
 
-  useEffect(() => { if (open && userId) { fetchNotifications(); fetchBadges(); fetchReplies(); fetchLikesReceived(); } }, [open, userId, fetchNotifications, fetchBadges]);
+  useEffect(() => { if (open && userId) { fetchNotifications(); fetchBadges(); fetchReplies(); fetchLikesReceived(); } }, [open, userId, fetchNotifications, fetchBadges, fetchReplies, fetchLikesReceived]);
 
   // Poll notifications as a fallback when Realtime is not available.
   useEffect(() => {
@@ -302,6 +302,27 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
       .subscribe();
     return () => { sb.removeChannel(channel); };
   }, [userId]);
+
+  // Realtime refresh for replies and likes received
+  useEffect(() => {
+    if (!userId) return;
+    const sb = getBrowserSupabase();
+    if (!sb) return;
+    const channel = sb
+      .channel('realtime:user-activity-' + userId)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'feedback_comments', filter: `user_id=eq.${userId}` },
+        () => { fetchReplies(); fetchNotifications(); }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'site_reactions' },
+        () => { fetchLikesReceived(); fetchNotifications(); }
+      )
+      .subscribe();
+    return () => { sb.removeChannel(channel); };
+  }, [userId, fetchReplies, fetchLikesReceived, fetchNotifications]);
 
   // Close on outside click
   useEffect(() => {
@@ -565,7 +586,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                       </div>
                     </div>
                     {/* View Full Profile */}
-                    <Link href={userId ? `/user/${userId}` : "#"} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                    <Link href={githubUser ? `/user/${githubUser}` : (userId ? `/user/${userId}` : "#")} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       <span>View Full Profile</span>
                     </Link>
@@ -575,7 +596,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                       <span>Settings</span>
                     </Link>
                     {/* Activity */}
-                    <Link href={userId ? `/user/${userId}?tab=activity` : "/discussions"} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                    <Link href={githubUser ? `/user/${githubUser}?tab=activity` : (userId ? `/user/${userId}?tab=activity` : "/discussions")} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
                       <span>Activity</span>
                     </Link>

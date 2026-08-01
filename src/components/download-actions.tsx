@@ -16,6 +16,7 @@ interface DownloadActionsProps {
   url: string;
   label: string;
   sizeLabel?: string | null;
+  initialSizeBytes?: number | null;
   description?: string | null;
   showCli?: boolean;
   isAdmin?: boolean;
@@ -42,32 +43,6 @@ type EditDraft = {
   md5_checksum: string;
   sha256_checksum: string;
 };
-
-async function readFileMeta(url: string): Promise<{ size: number | null; sha256: string | null }> {
-  try {
-    const parsed = new URL(url);
-    const parts = parsed.pathname.split('/').filter(Boolean);
-    const datasetsIndex = parts.indexOf('datasets');
-    const resolveIndex = parts.indexOf('resolve');
-    if (datasetsIndex === -1 || resolveIndex === -1 || resolveIndex <= datasetsIndex + 2) {
-      return { size: null, sha256: null };
-    }
-    // Support both datasets/org/repo and datasets/repo forms.
-    const repoCandidate = parts.slice(datasetsIndex + 1, resolveIndex).join('/');
-    if (!repoCandidate) return { size: null, sha256: null };
-    const repo = repoCandidate;
-    const dirPath = parts.slice(resolveIndex + 2, -1).join('/');
-    const fileName = parts[parts.length - 1];
-    const api = `https://huggingface.co/api/datasets/${repo}/tree/main${dirPath ? `/${dirPath}` : ''}?recursive=false`;
-    const res = await fetch(api, { cache: 'force-cache' });
-    if (!res.ok) return { size: null, sha256: null };
-    const data = (await res.json()) as Array<{ path: string; size?: number; lfs?: { oid?: string } }>;
-    const hit = data.find((item) => item.path.split('/').pop() === fileName);
-    return { size: hit?.size ?? null, sha256: hit?.lfs?.oid ?? null };
-  } catch {
-    return { size: null, sha256: null };
-  }
-}
 
 async function readDbMeta(key: string, downloadUrl: string): Promise<DownloadMetadataPayload> {
   try {
@@ -133,6 +108,7 @@ export default function DownloadActions({
   url,
   label,
   sizeLabel,
+  initialSizeBytes,
   description,
   showCli = false,
   isAdmin = false,
@@ -163,7 +139,7 @@ const [unlocked, setUnlocked] = useState(false);
   useEffect(() => {
     if (!open) return;
     let active = true;
-    setHfMeta({ size: null, sha256: null, loading: true });
+    setHfMeta({ size: initialSizeBytes ?? null, sha256: null, loading: false });
     setDbMeta(DEFAULT_DOWNLOAD_METADATA);
     setResolvedInfo(null);
     setUnlocked(false);
@@ -172,13 +148,6 @@ const [unlocked, setUnlocked] = useState(false);
     setDraft(null);
     setSaveState(null);
     setDownloadRegion('global');
-    if (url.includes('huggingface.co')) {
-      readFileMeta(url).then((meta) => {
-        if (active) setHfMeta({ ...meta, loading: false });
-      });
-    } else {
-      setHfMeta({ size: null, sha256: null, loading: false });
-    }
     readDbMeta(key, url).then((meta) => {
       if (!active) return;
       setDbMeta(meta);
@@ -187,7 +156,7 @@ const [unlocked, setUnlocked] = useState(false);
     return () => {
       active = false;
     };
-  }, [open, key, url, label, description]);
+  }, [open, key, url, label, description, initialSizeBytes]);
 
   useEffect(() => {
     setDbMeta((current) => (current.hidden === initialHidden ? current : { ...current, hidden: initialHidden ?? false }));
@@ -197,10 +166,10 @@ const [unlocked, setUnlocked] = useState(false);
     const base = resolvedInfo || buildDownloadResolvedInfo(key, dbMeta, label, description);
     return {
       ...base,
-      size_bytes: dbMeta.custom_size_bytes ?? hfMeta.size ?? base.size_bytes,
+      size_bytes: dbMeta.custom_size_bytes ?? hfMeta.size ?? base.size_bytes ?? initialSizeBytes ?? null,
       sha256_checksum: dbMeta.sha256_checksum ?? hfMeta.sha256 ?? base.sha256_checksum,
     };
-  }, [resolvedInfo, key, dbMeta, label, description, hfMeta.size, hfMeta.sha256]);
+  }, [resolvedInfo, key, dbMeta, label, description, initialSizeBytes, hfMeta.size, hfMeta.sha256]);
 
   const displaySize = hfMeta.loading ? 'Loading...' : formatDownloadBytes(effectiveInfo.size_bytes) || sizeLabel || '';
   const hidden = dbMeta.hidden ?? initialHidden ?? false;
