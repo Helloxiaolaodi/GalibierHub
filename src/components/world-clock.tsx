@@ -136,8 +136,8 @@ export default function WorldClock() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none" aria-hidden="true">
+          <div className="pointer-events-auto w-full max-w-md rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
             <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
               <svg className="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -155,7 +155,7 @@ export default function WorldClock() {
                   Clear
                 </button>
               )}
-              <button onClick={() => setOpen(false)} className="rounded p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+              <button onClick={() => setOpen(false)} aria-label="Close World Clock" className="rounded p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -190,7 +190,7 @@ export default function WorldClock() {
               )}
             </div>
             <div className="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between text-[10px] text-gray-400">
-              <span>Click outside to close</span>
+              <span>Close with the X button</span>
               <span className="flex items-center gap-1">{new Date(now).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })} your time</span>
             </div>
           </div>

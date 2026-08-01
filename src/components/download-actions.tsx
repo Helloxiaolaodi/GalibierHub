@@ -69,9 +69,9 @@ async function readFileMeta(url: string): Promise<{ size: number | null; sha256:
   }
 }
 
-async function readDbMeta(key: string): Promise<DownloadMetadataPayload> {
+async function readDbMeta(key: string, downloadUrl: string): Promise<DownloadMetadataPayload> {
   try {
-    const res = await fetch(`/api/download-metadata?key=${encodeURIComponent(key)}`);
+    const res = await fetch(`/api/download-metadata?key=${encodeURIComponent(key)}&url=${encodeURIComponent(downloadUrl)}`);
     if (!res.ok) throw new Error('failed');
     const data = (await res.json()) as Partial<DownloadMetadataPayload>;
     return { ...DEFAULT_DOWNLOAD_METADATA, ...data };
@@ -179,7 +179,7 @@ const [unlocked, setUnlocked] = useState(false);
     } else {
       setHfMeta({ size: null, sha256: null, loading: false });
     }
-    readDbMeta(key).then((meta) => {
+    readDbMeta(key, url).then((meta) => {
       if (!active) return;
       setDbMeta(meta);
       setResolvedInfo(buildDownloadResolvedInfo(key, meta, label, description));
@@ -336,7 +336,7 @@ const [unlocked, setUnlocked] = useState(false);
         setSaveState({ ok: false, text: data.error || 'Save failed.' });
         return;
       }
-      const nextMeta = await readDbMeta(key);
+      const nextMeta = await readDbMeta(key, url);
       setDbMeta(nextMeta);
       setResolvedInfo(buildDownloadResolvedInfo(key, nextMeta, label, description));
       onMetadataSaved?.(nextMeta);
@@ -361,7 +361,7 @@ const [unlocked, setUnlocked] = useState(false);
         setSaveState({ ok: false, text: data.error || 'Update failed.' });
         return;
       }
-      const nextMeta = await readDbMeta(key);
+      const nextMeta = await readDbMeta(key, url);
       setDbMeta(nextMeta);
       setResolvedInfo(buildDownloadResolvedInfo(key, nextMeta, label, description));
       onMetadataSaved?.(nextMeta);
@@ -369,7 +369,7 @@ const [unlocked, setUnlocked] = useState(false);
     } catch (error) {
       setSaveState({ ok: false, text: error instanceof Error ? error.message : 'Update failed.' });
     }
-  }, [isAdmin, accessToken, hidden, key, label, description, onMetadataSaved]);
+  }, [isAdmin, accessToken, hidden, key, url, label, description, onMetadataSaved]);
 
   if (!url) return null;
 

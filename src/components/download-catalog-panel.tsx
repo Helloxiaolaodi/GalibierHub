@@ -175,6 +175,12 @@ function escapeCsv(value: string): string {
   return value;
 }
 
+function cleanChecksum(value: string | null | undefined): string {
+  const trimmed = (value || '').trim();
+  if (!trimmed || trimmed.toLowerCase() === 'na' || trimmed.toLowerCase() === 'n/a') return '';
+  return trimmed;
+}
+
 function downloadText(filename: string, text: string, mime = 'text/plain;charset=utf-8'): void {
   const blob = new Blob([text], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -219,7 +225,7 @@ function buildManifestRows(folderItems: FileRow[], rootLabel: string): Array<Rec
     File_Type: item.fileType,
     Size_Bytes: item.sizeBytes != null ? String(item.sizeBytes) : '',
     Direct_URL: item.url,
-    'SHA-256': item.sha256_checksum || item.sha256Checksum || item.sha256 || item.oid || item.cksum || '',
+    'SHA-256': cleanChecksum(item.sha256_checksum || item.sha256Checksum || item.sha256 || item.oid || item.cksum),
   }));
 }
 
@@ -241,8 +247,8 @@ function buildManifestCsv(rows: Array<Record<string, string>>): string {
 
 function buildChecksumFile(folderItems: FileRow[], algorithm: 'md5' | 'sha256'): string {
   const lines = folderItems
-    .filter((item) => (algorithm === 'sha256' ? item.sha256Checksum : item.md5Checksum))
-    .map((item) => `${algorithm === 'sha256' ? item.sha256Checksum : item.md5Checksum}  ${item.fileName}`);
+    .filter((item) => (algorithm === 'sha256' ? cleanChecksum(item.sha256Checksum || item.sha256_checksum || item.sha256 || item.oid || item.cksum) : item.md5Checksum))
+    .map((item) => `${algorithm === 'sha256' ? cleanChecksum(item.sha256Checksum || item.sha256_checksum || item.sha256 || item.oid || item.cksum) : item.md5Checksum}  ${item.fileName}`);
   return lines.join('\n');
 }
 
