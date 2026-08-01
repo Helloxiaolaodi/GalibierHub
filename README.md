@@ -10,7 +10,7 @@ Edge-Native Genomics Database Template
 
 Language: **English** | [简体中文](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/GalibierHub/issues)
 
-Detailed build guide: [GalibierHub Developer Notes](https://www.cnblogs.com/Administrator/p/21776736)
+Detailed build guide: [GalibierHub Developer Notes](https://www.cnblogs.com/Helloxiaolaodi/p/22134246)
 
 Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts
 

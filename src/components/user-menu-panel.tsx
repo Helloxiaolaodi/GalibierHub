@@ -600,7 +600,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                       <div className="px-5 py-10 text-center">
                         <svg className="mx-auto mb-3 h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
                         <p className="text-sm font-medium text-gray-700">No replies yet</p>
-                        <p className="mt-2 text-xs text-gray-500 leading-relaxed max-w-[260px] mx-auto">Your replies to discussions will appear here.</p>
+                        <p className="mt-2 text-xs text-gray-500 leading-relaxed max-w-[260px] mx-auto">Replies to your discussions will appear here.</p>
                       </div>
                     ) : (
                       replies.map(r => (
@@ -608,6 +608,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                           <svg className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-gray-900 truncate">{r.thread_title}</p>
+                            {r.author_name && <p className="text-xs text-gray-500 truncate mt-0.5">{r.author_name}</p>}
                             <p className="text-xs text-gray-500 truncate mt-0.5">{r.message.substring(0, 60)}{r.message.length>60?"...":""}</p>
                             <p className="text-xs text-gray-400 mt-1">{formatTimeAgo(r.created_at)}</p>
                           </div>

@@ -12,7 +12,7 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 
 语言：**简体中文** | [English](./README.md) | [问题反馈](https://github.com/Helloxiaolaodi/GalibierHub/issues)
 
-详细搭建指南：[GalibierHub 开发者笔记](https://www.cnblogs.com/Administrator/p/21776736)
+详细搭建指南：[GalibierHub 开发者笔记](https://www.cnblogs.com/Helloxiaolaodi/p/22134232)
 
 技术栈：Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts
 

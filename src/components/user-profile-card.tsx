@@ -294,9 +294,7 @@ export default function UserProfileCard({
         }
       }
     } catch {}
-    if (nowFollowing) {
-      window.dispatchEvent(new Event("galibierhub-follows-updated"));
-    }
+    window.dispatchEvent(new Event("galibierhub-follows-updated"));
     setFollowLoading(false);
   }, [userId, isFollowing, followLoading, currentUserId]);
 
@@ -341,7 +339,7 @@ export default function UserProfileCard({
   if (!open) return null;
 
   const targetPresence = userId ? presence[userId] : null;
-  const effectiveStatus = targetPresence?.status || (isOwnCard ? (onlineStatus || "online") : "offline");
+  const effectiveStatus = targetPresence?.status || onlineStatus || "online";
   const statusColor = effectiveStatus === "online" ? "bg-emerald-500" : effectiveStatus === "away" ? "bg-amber-400" : effectiveStatus === "busy" ? "bg-red-400" : "bg-gray-300";
   const statusText = effectiveStatus === "online" ? "Online" : effectiveStatus === "away" ? "Away" : effectiveStatus === "busy" ? "Busy" : "Offline";
 

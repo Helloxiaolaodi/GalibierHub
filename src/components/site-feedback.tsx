@@ -1180,11 +1180,22 @@ const [uploadingImage, setUploadingImage] = useState(false);
     }
 
     try {
+      let accessToken = "";
+      let userId: string | null = null;
+      try {
+        const { data: submitSession } = await getBrowserSupabase()?.auth.getSession() ?? { data: { session: null } };
+        accessToken = submitSession.session?.access_token || "";
+        userId = submitSession.session?.user?.id || localStorage.getItem("galibierhub-user-id");
+      } catch {}
       const response = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { 'Authorization': 'Bearer ' + accessToken } : {}),
+        },
         body: JSON.stringify({
           ...composerForm,
+          userId,
           category: (isAdmin || isAdminHint) ? composerForm.category : 'issue',
         }),
       });

@@ -398,6 +398,7 @@ export default function DiscussionDetailPage() {
   const [totalViews, setTotalViews] = useState(() => { try { const v = localStorage.getItem("galibierhub-view-" + window.location.pathname.split("/").pop()); return v ? parseInt(v,10) : 0; } catch { return 0; } });
   const [floatingReplyOpen, setFloatingReplyOpen] = useState(false);
   const [replyTarget, setReplyTarget] = useState<string|null>(null);
+  const [replyTargetUserId, setReplyTargetUserId] = useState<string|null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareId, setShareId] = useState<string>("");
   const [lightbox, setLightbox] = useState<{src:string;alt:string}|null>(null);
@@ -681,8 +682,9 @@ export default function DiscussionDetailPage() {
   }, []);
 
   // Reply to specific post
-  const handleReplyTo = useCallback((authorName: string) => {
+  const handleReplyTo = useCallback((authorName: string, authorUserId?: string | null) => {
     setReplyTarget(authorName);
+    setReplyTargetUserId(authorUserId || null);
     setFloatingReplyOpen(true);
   }, []);
 
@@ -693,15 +695,24 @@ export default function DiscussionDetailPage() {
     const authorName = isAdmin ? "GalibierHub Team" : (githubUser || (session?.user?.email ? session.user.email.split("@")[0] : null) || "User");
     const res = await fetch("/api/feedback", {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({feedbackId:id, message:text, authorName, userId: currentUserId || (typeof window !== "undefined" ? localStorage.getItem("galibierhub-user-id") : null)})
+      headers: {
+        "Content-Type":"application/json",
+        ...(session?.access_token ? { Authorization: "Bearer " + session.access_token } : {}),
+      },
+      body: JSON.stringify({
+        feedbackId:id,
+        message:text,
+        authorName,
+        userId: currentUserId || (typeof window !== "undefined" ? localStorage.getItem("galibierhub-user-id") : null),
+        replyToUserId: replyTargetUserId,
+      })
     });
     const d = await res.json() as {error?:string};
     if (!res.ok) throw new Error(d.error||"Failed to post");
     setFloatingReplyOpen(false);
     await fetchData();
 
-  }, [id, fetchData, githubUser, session?.access_token]);
+  }, [id, fetchData, githubUser, session?.access_token, replyTargetUserId]);
 
   // Scroll to the target reply/post when arriving from the user menu activity links
   useEffect(() => {
@@ -958,7 +969,7 @@ const isLoggedIn = !!(session || githubUser);
                       </>)}
                       {/* Post-level interaction buttons */}
                       <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-gray-100">
-                        <button onClick={()=>handleReplyTo(isEntry?ed.display_name:cd.author_name)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-teal-500 transition-colors">
+                        <button onClick={()=>handleReplyTo(isEntry?ed.display_name:cd.author_name, isEntry?ed.user_id:cd.user_id)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-teal-500 transition-colors">
                           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg> Reply
                         </button>
                         <button onClick={()=>handleLike(itemId)} disabled={likeLoading[itemId]}

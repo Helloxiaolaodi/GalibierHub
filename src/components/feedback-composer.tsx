@@ -221,14 +221,25 @@ const [uploadingImage, setUploadingImage] = useState(false);
     setValidationErrors({});
 
    try {
+      let accessToken = "";
+      let userId: string | null = null;
+      try {
+        const { getBrowserSupabase } = await import("@/utils/supabase-browser");
+        const supabase = getBrowserSupabase();
+        const { data: sessionData } = await supabase?.auth.getSession() ?? { data: { session: null } };
+        accessToken = sessionData.session?.access_token || "";
+        userId = sessionData.session?.user?.id || null;
+      } catch {}
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: {
               'Content-Type': 'application/json',
+              ...(accessToken ? { 'Authorization': 'Bearer ' + accessToken } : {}),
               ...(turnstileToken ? { 'x-turnstile-token': turnstileToken } : {}),
             },
         body: JSON.stringify({
               ...form,
+              userId,
               _rendered_at: Date.now() - (typeof performance !== 'undefined' ? performance.now() : 0),
             }),
       });

@@ -27,6 +27,7 @@ type HuggingFaceDatasetRef = {
 
 const HF_TREE_MAX_DIRECTORIES = 1000;
 const HF_TREE_MAX_FILES = 20000;
+const ROOT_HIDDEN_FILES = new Set(["README.md", ".gitattributes"]);
 
 function parseHuggingFaceDatasetRef(baseUrl: string = STORAGE_BASE_URL): HuggingFaceDatasetRef | null {
   try {
@@ -136,6 +137,8 @@ export async function listHuggingFaceDatasetFiles(
         if (!entry.path) continue;
         const path = resolveEntryPath(ref, directory, entry.path);
         if (!path) continue;
+        const relativePath = ref.rootPath ? path.slice(ref.rootPath.length + 1) : path;
+        if (ROOT_HIDDEN_FILES.has(relativePath)) continue;
 
         if (entry.type === "directory") {
           if (!seenDirectories.has(path)) {

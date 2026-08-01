@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
-import { getServiceSupabase, hasSupabaseServiceRole } from "@/utils/supabase";
+import {
+  getServiceSupabase,
+  getSupabaseWithAuth,
+  hasSupabaseServiceRole,
+  isSupabaseConfigured,
+} from "@/utils/supabase";
 import { getBearerToken } from "@/lib/feedback-admin";
 
 export async function POST(request: NextRequest) {
@@ -13,7 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const sb = hasSupabaseServiceRole ? getServiceSupabase() : getSupabase();
+  const sb = hasSupabaseServiceRole ? getServiceSupabase() : getSupabaseWithAuth(token);
   const { data: { user }, error: userError } = await sb.auth.getUser(token);
   if (userError || !user) {
     return NextResponse.json({ error: "Invalid session" }, { status: 401 });
@@ -55,7 +59,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Get user from token using Supabase
-  const sb = hasSupabaseServiceRole ? getServiceSupabase() : getSupabase();
+  const sb = hasSupabaseServiceRole ? getServiceSupabase() : getSupabaseWithAuth(token);
   const { data: { user }, error: userError } = await sb.auth.getUser(token);
   if (userError || !user) {
     return NextResponse.json({ error: "Invalid session" }, { status: 401 });
@@ -163,7 +167,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const sb = hasSupabaseServiceRole ? getServiceSupabase() : getSupabase();
+  const sb = hasSupabaseServiceRole ? getServiceSupabase() : getSupabaseWithAuth(token);
   const { data: { user }, error: userError } = await sb.auth.getUser(token);
   if (userError || !user) {
     return NextResponse.json({ error: "Invalid session" }, { status: 401 });

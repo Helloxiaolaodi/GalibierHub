@@ -1,5 +1,11 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase, getSupabase, hasSupabaseServiceRole, isSupabaseConfigured } from "@/utils/supabase";
+import {
+  getServiceSupabase,
+  getSupabase,
+  getSupabaseWithAuth,
+  hasSupabaseServiceRole,
+  isSupabaseConfigured,
+} from "@/utils/supabase";
 import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
 
 const VALID_CATEGORIES = new Set(["general", "issue", "tutorials", "idea", "data", "collaboration"]);
@@ -390,6 +396,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
+  const bodyRecord = body && typeof body === "object"
+    ? body as Record<string, unknown>
+    : {};
+  const authToken = getBearerToken(request);
+  let authenticatedUserId: string | null = null;
+  if (authToken) {
+    try {
+      const authClient = getSupabaseWithAuth(authToken);
+      const { data: { user } } = await authClient.auth.getUser(authToken);
+      authenticatedUserId = user?.id || null;
+    } catch {
+      // Anonymous or invalid sessions still allow public feedback posting.
+    }
+  }
+  const effectiveUserId = authenticatedUserId;
+  const replyToUserId = typeof bodyRecord.replyToUserId === "string"
+    ? bodyRecord.replyToUserId.trim()
+    : null;
+
   // Handle comment submission (POST to a specific feedback entry)
   const feedbackId = typeof (body as { feedbackId?: unknown }).feedbackId === 'string'
     ? (body as { feedbackId: string }).feedbackId.trim() : '';
@@ -402,7 +427,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Comment message must be between 1 and 2000 characters." }, { status: 400 });
     }
     const sbComments = getSupabase();
-    const notifyClient = hasSupabaseServiceRole ? getServiceSupabase() : sbComments;
+    const notifyClient = hasSupabaseServiceRole
+      ? getServiceSupabase()
+      : (authToken ? getSupabaseWithAuth(authToken) : sbComments);
     const { data: feedbackEntry, error: feedbackLookupErr } = await sbComments
       .from("site_feedback")
       .select("id, title, display_name, visibility, created_at, user_id")
@@ -417,7 +444,7 @@ export async function POST(request: Request) {
 
     const { data: comment, error: commentErr } = await sbComments
       .from("feedback_comments")
-      .insert({ feedback_id: feedbackId, author_name: commentAuthor, message: commentMessage, user_id: (typeof body === "object" && body !== null && "userId" in body ? (body as Record<string,unknown>).userId : null) })
+      .insert({ feedback_id: feedbackId, author_name: commentAuthor, message: commentMessage, user_id: effectiveUserId })
       .select("id, feedback_id, author_name, author_email, message, image_url, created_at, user_id")
       .single();
     if (commentErr) {
@@ -448,46 +475,75 @@ export async function POST(request: Request) {
       }
     } catch { /* notification insert is best-effort */ }
 
-  // Handle @mentions in comment text - look up mentioned users and notify them
+  // Notify explicit reply targets and @mentions in comment text.
   try {
-    const mentionMatches = commentMessage.match(/@([\w.@+\\-]{1,100})/g);
-    if (mentionMatches) {
-      const mentionedNames = [...new Set(mentionMatches.map((m: string) => m.slice(1)))];
-      // Search across site_feedback AND profiles tables for user matches
-      const { data: feedbackUsers } = await sbComments.from('site_feedback')
-        .select('user_id, display_name').in('display_name', mentionedNames).limit(20);
-      // Also try profiles table
-      let profilesUsers: { id: string; display_name: string }[] = [];
-      try {
-        const { data: pData } = await sbComments.from('profiles')
-          .select('id, display_name').in('display_name', mentionedNames).limit(20);
-        if (pData) profilesUsers = pData as typeof profilesUsers;
-      } catch {}
-      
-      const notifiedUserIds = new Set<string>();
-      const fbEntry2 = feedbackEntry as Record<string, unknown>;
-      const pUid = fbEntry2.user_id as string | null;
-      
-      const processUsers = (users: { user_id?: string; id?: string }[]) => {
-        for (const mu of users) {
-          const uid = (mu.user_id || mu.id) as string | null | undefined;
-          if (uid && uid !== pUid && !notifiedUserIds.has(uid)) {
-            notifiedUserIds.add(uid);
-          }
-        }
-      };
-      if (feedbackUsers) processUsers(feedbackUsers as { user_id: string }[]);
-      processUsers(profilesUsers);
-      
-      for (const uid of notifiedUserIds) {
-        await notifyClient.from('site_notifications').insert({
-          recipient_id: uid,
-          discussion_id: feedbackId,
-          actor_name: commentAuthor,
-          preview_text: 'You were mentioned in a reply',
-          is_read: false,
-        }).select().single();
+    const notifiedUserIds = new Set<string>();
+    const fbEntry2 = feedbackEntry as Record<string, unknown>;
+    const posterUid = fbEntry2.user_id as string | null | undefined;
+    const addRecipient = (uid: string | null | undefined) => {
+      if (
+        uid &&
+        uid !== posterUid &&
+        uid !== effectiveUserId &&
+        !notifiedUserIds.has(uid)
+      ) {
+        notifiedUserIds.add(uid);
       }
+    };
+
+    if (replyToUserId) addRecipient(replyToUserId);
+
+    const mentionMatches = commentMessage.match(
+      /@([\p{L}\p{N}_.-]+(?:\s+[\p{L}\p{N}_.-]+){0,2})/gu,
+    ) || [];
+    const mentionTokens = [...new Set(
+      mentionMatches.map((m: string) => m.slice(1).trim()).filter(Boolean),
+    )];
+
+    for (const token of mentionTokens) {
+      try {
+        const { data: usernameProfiles } = await sbComments
+          .from('profiles')
+          .select('id')
+          .eq('username', token)
+          .limit(5);
+        for (const profile of usernameProfiles || []) {
+          addRecipient(String(profile.id));
+        }
+      } catch {}
+      try {
+        const { data: displayProfiles } = await sbComments
+          .from('profiles')
+          .select('id')
+          .eq('display_name', token)
+          .limit(5);
+        for (const profile of displayProfiles || []) {
+          addRecipient(String(profile.id));
+        }
+      } catch {}
+    }
+
+    if (mentionTokens.length > 0) {
+      try {
+        const { data: feedbackUsers } = await sbComments
+          .from('site_feedback')
+          .select('user_id')
+          .in('display_name', mentionTokens)
+          .limit(20);
+        for (const user of feedbackUsers || []) {
+          addRecipient(user.user_id);
+        }
+      } catch {}
+    }
+
+    for (const uid of notifiedUserIds) {
+      await notifyClient.from('site_notifications').insert({
+        recipient_id: uid,
+        discussion_id: feedbackId,
+        actor_name: commentAuthor,
+        preview_text: 'You were mentioned in a reply',
+        is_read: false,
+      });
     }
   } catch { /* mentions are best-effort */ }
 
@@ -578,8 +634,9 @@ export async function POST(request: Request) {
     category,
     rating,
     visibility,
-     message,
+    message,
       image_url: imageUrl || null,
+      user_id: effectiveUserId,
    })
    .select(FEEDBACK_SELECT)
    .single();
