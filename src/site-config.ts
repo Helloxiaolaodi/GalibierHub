@@ -119,7 +119,7 @@ export const SiteConfig = {
   creatorCreditPrefix: 'An open-source project maintained by',
   creatorCreditLabel: '@Helloxiaolaodi',
   creatorCreditUrl: 'https://github.com/Helloxiaolaodi/GalibierHub',
-  adminGithubLoginFallback: 'helloxiaolaodi',
+  adminGithubLoginFallback: 'helloxiaolaodi,yangsanduo,xulab-admin',
   description:
     'Interactive database for predicted promoters, genome annotations, and genomic data, powered by serverless edge infrastructure.',
   keywords: ['promoter', 'genome', 'bioinformatics', 'transcription factor', 'TFBS', 'gene regulation', 'galibierhub'],

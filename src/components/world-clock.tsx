@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // Major research hub timezones for default display
 const HUBS: { city: string; tz: string }[] = [
@@ -135,8 +136,8 @@ export default function WorldClock() {
         <kbd className="hidden sm:inline-flex items-center rounded border border-gray-300 bg-gray-100 px-1.5 py-0 text-[10px] font-mono text-gray-500">Ctrl+K</kbd>
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none" aria-hidden="true">
+      {open && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
           <div className="pointer-events-auto w-full max-w-md rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
             <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
               <svg className="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,7 +160,7 @@ export default function WorldClock() {
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="max-h-[400px] overflow-y-auto p-2">
+            <div className="max-h-[min(80vh,480px)] overflow-y-auto p-2">
               {!query && (
                 <div className="px-3 pt-1 pb-2">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Major Research Hubs</span>
@@ -194,7 +195,8 @@ export default function WorldClock() {
               <span className="flex items-center gap-1">{new Date(now).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })} your time</span>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

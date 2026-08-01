@@ -312,19 +312,67 @@ export async function GET(request: NextRequest) {
       };
     });
 
+  const entryIds = entries.map((entry) => String(entry.id)).filter(Boolean);
+  const commentCounts: Record<string, number> = {};
+  const lastActivity: Record<string, string> = {};
+  if (entryIds.length > 0) {
+    const commentSelect = isAdmin ? "feedback_id, created_at" : "feedback_id, created_at, hidden";
+    let commentRows: Array<{ feedback_id: string; created_at: string; hidden?: boolean }> = [];
+    let commentError: { message?: string } | null = null;
+    const result = await sb
+      .from("feedback_comments")
+      .select(commentSelect)
+      .in("feedback_id", entryIds);
+    if (result.error && result.error.message?.includes("hidden")) {
+      const fallback = await sb
+        .from("feedback_comments")
+        .select("feedback_id, created_at")
+        .in("feedback_id", entryIds);
+      commentRows = (fallback.data ?? []).map((row) => ({ ...row, hidden: false })) as typeof commentRows;
+      commentError = fallback.error;
+    } else {
+      commentRows = (result.data ?? []) as unknown as typeof commentRows;
+      commentError = result.error;
+    }
+    if (!commentError) {
+      for (const row of commentRows) {
+        if (!isAdmin && row.hidden) continue;
+        commentCounts[row.feedback_id] = (commentCounts[row.feedback_id] || 0) + 1;
+        if (!lastActivity[row.feedback_id] || new Date(row.created_at) > new Date(lastActivity[row.feedback_id])) {
+          lastActivity[row.feedback_id] = row.created_at;
+        }
+      }
+    }
+  }
+
+  const entriesWithCounts = entries.map((entry) => ({
+    ...entry,
+    comment_count: commentCounts[String(entry.id)] || 0,
+    last_activity: lastActivity[String(entry.id)] || entry.created_at,
+  }));
+
   const totalThreads = entries.length;
   const averageRating = totalThreads > 0
     ? Number((entries.reduce((sum, item) => sum + Number(item.rating || 0), 0) / totalThreads).toFixed(1))
     : 0;
 
-  return NextResponse.json({
-    entries,
-    isAdmin,
-    summary: {
-      totalThreads,
-      averageRating,
+  return NextResponse.json(
+    {
+      entries: entriesWithCounts,
+      isAdmin,
+      summary: {
+        totalThreads,
+        averageRating,
+      },
     },
-  });
+    {
+      headers: {
+        "Cache-Control": getBearerToken(request)
+          ? "private, no-store"
+          : "public, s-maxage=60, stale-while-revalidate=120",
+      },
+    },
+  );
 }
 
 export async function POST(request: Request) {

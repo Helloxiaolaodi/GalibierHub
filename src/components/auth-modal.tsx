@@ -28,6 +28,13 @@ export default function AuthModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
+  function friendlySignInError(message: string): string {
+    if (message.toLowerCase().includes("invalid login credentials")) {
+      return "Incorrect password. Please try again.";
+    }
+    return message;
+  }
+
   // Reset mode when modal opens with new initialMode
   useEffect(() => { if (open) { setMode(initialMode); setAuthError(null); setSignupSuccess(false); } }, [open, initialMode]);
 
@@ -110,7 +117,7 @@ export default function AuthModal({
       }
       const { data: signInData, error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
       if (error) {
-        setAuthError(error.message);
+        setAuthError(friendlySignInError(error.message));
       } else {
         const userId = signInData.session?.user?.id;
         const username = email.trim().split("@")[0] || "user";

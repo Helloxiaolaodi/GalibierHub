@@ -735,6 +735,7 @@ export default function DownloadCatalogPanel({
                   url={item.url}
                   label="Download"
                   sizeLabel={item.sizeLabel}
+                  initialSizeBytes={item.sizeBytes}
                   description={item.description}
                   showCli={item.showCli}
                   isAdmin={effectiveIsAdmin}
@@ -817,6 +818,7 @@ export default function DownloadCatalogPanel({
                         url={item.url}
                         label="Download"
                         sizeLabel={item.sizeLabel}
+                        initialSizeBytes={item.sizeBytes}
                         description={item.description}
                         showCli={item.showCli}
                         isAdmin={effectiveIsAdmin}

@@ -92,14 +92,17 @@ function TimelineSidebar({ items, currentIndex, onNavigate, onReply }: {
         <div className="absolute bottom-0 left-0 right-0 rounded-full bg-slate-700 transition-all duration-150" style={{height:((currentIndex+1)/Math.max(items.length,1))*100+"%"}}/>
         <div className="absolute left-1/2 w-3.5 h-3.5 -translate-x-1/2 rounded-full border-2 border-slate-600 bg-white shadow-sm transition-transform" style={{top:`calc(${((currentIndex+1)/Math.max(items.length,1))*100}% - 7px)`}}/>
       </div>
-      <div className="w-full max-h-60 space-y-1 overflow-y-auto pr-1">
+      <div className="w-full max-h-60 space-y-1.5 overflow-y-auto pr-1">
         {items.map((item,index)=>(
-          <button key={`${item.type}-${item.date}-${index}`} onClick={()=>scrollToIndex(index)}
-            className={"flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left transition-colors "+(index===currentIndex?"bg-slate-800 text-white":"text-gray-600 hover:bg-gray-100")}>
-            <span className={"h-1.5 w-1.5 flex-shrink-0 rounded-full "+(index===currentIndex?"bg-teal-300":"bg-gray-300")} />
-            <span className="min-w-0 flex-1 leading-tight">
-              <span className="block text-[9px] font-semibold uppercase tracking-normal">{item.type==="entry"?"Post":"Reply"}</span>
-              <span className="block text-[10px]">{formatDate(item.date)}</span>
+          <button
+            key={`${item.type}-${item.date}-${index}`}
+            onPointerDown={(e)=>{e.preventDefault(); e.stopPropagation(); scrollToIndex(index); handlePointer(e.clientY);}}
+            className={"flex w-auto flex-col justify-center self-start rounded-md px-3 py-1.5 text-left transition-colors "+(index===currentIndex?"bg-slate-900 text-white shadow-md":"bg-transparent text-slate-500 hover:bg-slate-100 cursor-pointer")}>
+            <span className={"text-[9px] font-bold tracking-wider uppercase leading-none mb-1 "+(index===currentIndex?"text-slate-300":"text-slate-400")}>
+              {item.type==="entry"?"Post":"Reply"}
+            </span>
+            <span className={"text-xs font-medium leading-none "+(index===currentIndex?"text-white":"text-slate-600")}>
+              {formatDate(item.date)}
             </span>
           </button>
         ))}

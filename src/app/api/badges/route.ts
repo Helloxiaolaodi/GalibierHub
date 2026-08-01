@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 import { getBearerToken, requireCreatorGithubAuth } from '@/lib/feedback-admin';
 import { getServiceSupabase, hasSupabaseServiceRole } from '@/utils/supabase';
+import { normalizeBadgeId } from '@/lib/badge-ids';
 
 export async function GET(request: NextRequest) {
   if (!isSupabaseConfigured) {
@@ -12,10 +13,10 @@ export async function GET(request: NextRequest) {
   const sb = getSupabase();
 
   if (userId) {
-    // Get badges for a specific user
-    const { data, error } = await sb
+    // Get badges for a specific user, normalizing legacy badge ids before joining definitions
+    const { data: rawBadges, error } = await sb
       .from('user_badges')
-      .select('badge_id, awarded_at, badge_definitions!inner(name, description, icon, tier, category)')
+      .select('badge_id, awarded_at, discussion_id')
       .eq('user_id', userId)
       .order('awarded_at', { ascending: false });
 
@@ -25,7 +26,23 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    return NextResponse.json({ badges: data || [] });
+
+    const canonicalIds = [...new Set((rawBadges || []).map((badge) => normalizeBadgeId(badge.badge_id)))].filter(Boolean);
+    let definitions: Array<Record<string, unknown>> = [];
+    if (canonicalIds.length > 0) {
+      const { data: defs } = await sb
+        .from('badge_definitions')
+        .select('id, name, description, icon, tier, category')
+        .in('id', canonicalIds);
+      definitions = defs || [];
+    }
+    const defMap = new Map(definitions.map((def) => [def.id, def]));
+    const badges = (rawBadges || []).map((badge) => ({
+      ...badge,
+      badge_id: normalizeBadgeId(badge.badge_id),
+      badge_definitions: defMap.get(normalizeBadgeId(badge.badge_id)) || null,
+    }));
+    return NextResponse.json({ badges });
   }
 
   // Get all badge definitions

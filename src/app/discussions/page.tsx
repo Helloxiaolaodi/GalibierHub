@@ -27,6 +27,8 @@ import { getBrowserSupabase } from "@/utils/supabase-browser";
 
 import { renderInlineText, renderMarkdown } from "@/lib/markdown";
 
+import { normalizeGithubLogin, resolveExpectedAdminGithubLogins } from "@/lib/admin-login";
+
 
 
 function getCategoryColor(c: string): string {
@@ -266,7 +268,7 @@ export default function DiscussionsPage() {
 
             if (avatar) setAvatarUrl(String(avatar));
 
-            if (login === "Helloxiaolaodi" || login === "xulab-admin") { setIsAdmin(true); }
+            if (resolveExpectedAdminGithubLogins().includes(normalizeGithubLogin(String(login)))) { setIsAdmin(true); }
 
           }
 
@@ -302,7 +304,7 @@ export default function DiscussionsPage() {
 
             if (avatar) setAvatarUrl(String(avatar));
 
-            if (login === "Helloxiaolaodi" || login === "xulab-admin") { setIsAdmin(true); }
+            if (resolveExpectedAdminGithubLogins().includes(normalizeGithubLogin(String(login)))) { setIsAdmin(true); }
 
           }
 
@@ -428,11 +430,21 @@ export default function DiscussionsPage() {
 
     if (session?.access_token) { authHeaders["Authorization"] = "Bearer " + session.access_token; }
 
+    if (modMode && !session?.access_token) {
+      setLoading(false);
+      setError("Please sign in with the Administrator GitHub account to access the Moderation Dashboard.");
+      return;
+    }
+
     try {
 
-      const res = await fetch("/api/feedback", { headers: authHeaders });
+      const [feedbackRes, reactionRes] = await Promise.all([
+        fetch("/api/feedback", { headers: authHeaders }).catch(() => null),
+        fetch("/api/reactions").catch(() => null),
+      ]);
+      const res = feedbackRes;
 
-      if (!res.ok) throw new Error("Failed to load discussions");
+      if (!res || !res.ok) throw new Error("Failed to load discussions");
 
       const data = await res.json() as {entries?:SiteFeedbackEntry[];isAdmin?:boolean};
 
@@ -444,49 +456,24 @@ export default function DiscussionsPage() {
 
       setEntries(visibleEntries);
 
-      // Fetch comment counts and like counts in parallel
+      // Use server-aggregated comment counts and fetch like counts separately
 
       const counts: Record<string,number>={};
-
       const activities: Record<string,string>={};
-
       const likes: Record<string,number>={};
 
-      await Promise.all(visibleEntries.map(async entry=>{
-
-        try {
-
-          const cr = await fetch("/api/feedback?feedback_id="+encodeURIComponent(entry.id), { headers: authHeaders });
-
-          if (cr.ok) {
-
-            const cd = await cr.json() as {comments?:FeedbackCommentEntry[]};
-
-            const cmts = cd.comments||[];
-
-            counts[entry.id]=cmts.length;
-
-            if (cmts.length>0) {
-
-              const latest = cmts.reduce((a,b)=>new Date(a.created_at)>new Date(b.created_at)?a:b);
-
-              activities[entry.id]=latest.created_at;
-
-            }
-
-          }
-
-        } catch{}
-
-      }));
+      for (const entry of visibleEntries as Array<SiteFeedbackEntry & { comment_count?: number; last_activity?: string }>) {
+        counts[entry.id] = typeof entry.comment_count === 'number' ? entry.comment_count : 0;
+        activities[entry.id] = entry.last_activity || entry.created_at;
+      }
 
       // Fetch like counts
 
       try {
 
-        const rr = await fetch("/api/reactions");
+        const rr = reactionRes;
 
-        if (rr.ok) {
+        if (rr && rr.ok) {
 
           const rd = await rr.json() as {entries?:Record<string,{like:number}>};
 
@@ -965,7 +952,7 @@ export default function DiscussionsPage() {
 
               return (
 
-                <div key={entry.id} role="link" tabIndex={0} onClick={()=>router.push("/discussions/"+entry.id)} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); router.push("/discussions/"+entry.id);}}}
+                <div key={entry.id} role="link" tabIndex={0} onClick={()=>router.push("/discussions/"+entry.id)} onMouseEnter={()=>router.prefetch("/discussions/"+entry.id)} onFocus={()=>router.prefetch("/discussions/"+entry.id)} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); router.push("/discussions/"+entry.id);}}}
                   className="block rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-gray-200 transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-teal-500">
 
                   <div className="flex items-start gap-4">
@@ -1005,8 +992,6 @@ export default function DiscussionsPage() {
 
                         <span>{formatTimeAgo(entry.created_at)}</span>
 
-                        {likeCounts[entry.id]>0&&<span> {likeCounts[entry.id]} likes</span>}
-
                       </div>
 
                     </div>
@@ -1024,6 +1009,14 @@ export default function DiscussionsPage() {
 
                       <span className="text-[10px] text-gray-400 uppercase tracking-wide">Views</span>
 
+                    </div>
+
+                    <div className="flex flex-col items-center min-w-[48px]">
+                      <svg className="h-4 w-4 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h8M8 14h4M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span className="text-lg font-bold text-gray-900">{commentCounts[entry.id]||0}</span>
+                      <span className="text-[10px] text-gray-400 uppercase tracking-wide">REPLIES</span>
                     </div>
 
                     </div>

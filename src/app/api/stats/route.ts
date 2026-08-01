@@ -16,6 +16,18 @@ const SCORE_BINS = [
 ] as const;
 
 async function computeSpeciesDistribution(sb: ReturnType<typeof getSupabase>) {
+  const { data: viewData, error: viewError } = await sb
+    .from("overview_species_stats")
+    .select("species, count");
+  if (!viewError && viewData) {
+    const speciesDistribution: Record<string, number> = {};
+    for (const row of viewData) {
+      const sp = row.species || "Unknown";
+      speciesDistribution[sp] = (speciesDistribution[sp] || 0) + Number(row.count || 0);
+    }
+    return { speciesDistribution };
+  }
+
   const { data: sampleData, error: sampleDataError } = await sb
     .from("genome_samples")
     .select("species, sample_id")
@@ -40,6 +52,17 @@ async function computeSpeciesDistribution(sb: ReturnType<typeof getSupabase>) {
 }
 
 async function computeScoreDistribution(sb: ReturnType<typeof getSupabase>) {
+  const { data: viewData, error: viewError } = await sb
+    .from("overview_score_stats")
+    .select("score_bucket, count");
+  if (!viewError && viewData) {
+    const scoreDistribution = viewData.map((row) => ({
+      range: row.score_bucket,
+      count: Number(row.count || 0),
+    }));
+    return { scoreDistribution };
+  }
+
   try {
     const { data, error } = await sb.rpc("compute_score_distribution", {
       exclusion_list: EXCLUDED_SAMPLE_IDS_FILTER,
@@ -170,6 +193,6 @@ export async function GET() {
       species_distribution: speciesResult.speciesDistribution,
       score_distribution: scoreResult.scoreDistribution,
     },
-    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
+    { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } },
   );
 }

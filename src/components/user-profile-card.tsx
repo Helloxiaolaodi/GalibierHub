@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import BadgeDisplay from "@/components/badge-display";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
 
@@ -332,17 +333,23 @@ export default function UserProfileCard({
   const statusColor = effectiveStatus === "online" ? "bg-emerald-500" : effectiveStatus === "away" ? "bg-amber-400" : effectiveStatus === "busy" ? "bg-red-400" : "bg-gray-300";
   const statusText = effectiveStatus === "online" ? "Online" : effectiveStatus === "away" ? "Away" : effectiveStatus === "busy" ? "Busy" : "Offline";
 
-  return (
-   <div className="fixed inset-0 z-50" onClick={onClose}>
-     <div
-        ref={cardRef}
-       className="absolute rounded-2xl border border-gray-200 bg-white shadow-2xl p-5 w-[300px]"
-        style={{
-          top: anchorEl ? anchorEl.getBoundingClientRect().top + window.scrollY : "50%",
-          left: anchorEl ? anchorEl.getBoundingClientRect().left + window.scrollX - 324 : "50%",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+  const cardWidth = 300;
+  const estimatedHeight = Math.min(window.innerHeight - 16, 460);
+  const anchorRect = anchorEl?.getBoundingClientRect();
+  let top = anchorRect ? anchorRect.bottom + 8 : Math.max(8, (window.innerHeight - estimatedHeight) / 2);
+  let left = anchorRect ? anchorRect.left + anchorRect.width - cardWidth : Math.max(8, (window.innerWidth - cardWidth) / 2);
+  if (anchorRect) {
+    top = Math.max(8, Math.min(top, window.innerHeight - estimatedHeight - 8));
+    left = Math.max(8, Math.min(left, window.innerWidth - cardWidth - 8));
+  }
+
+  return createPortal(
+    <div
+      ref={cardRef}
+      className="fixed z-[100] rounded-2xl border border-gray-200 bg-white shadow-2xl p-5"
+      style={{ top, left, width: cardWidth }}
+      onClick={(e) => e.stopPropagation()}
+    >
         <div className="flex flex-col items-center">
           {userId && (
            <div className="flex items-center gap-1.5 mb-2">
@@ -438,7 +445,7 @@ export default function UserProfileCard({
         {!isOwnCard && !userId && (
           <p className="mt-3 text-[10px] text-gray-400 text-center">Sign in to follow users</p>
         )}
-      </div>
-    </div>
+      </div>,
+    document.body,
   );
 }
