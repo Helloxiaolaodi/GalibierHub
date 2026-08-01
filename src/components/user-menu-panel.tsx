@@ -90,6 +90,8 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
   const [loadingLikes, setLoadingLikes] = useState(false);
   const [followingUsers, setFollowingUsers] = useState<FollowingItem[]>([]);
   const [loadingFollowing, setLoadingFollowing] = useState(false);
+  const [followersUsers, setFollowersUsers] = useState<FollowingItem[]>([]);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
   const [notifUnread, setNotifUnread] = useState(0);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const [loadingBadges, setLoadingBadges] = useState(false);
@@ -297,8 +299,28 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     }
   }, [userId]);
 
+  // Fetch users who follow this account
+  const fetchFollowers = useCallback(async () => {
+    if (!userId) return;
+    setLoadingFollowers(true);
+    try {
+      const sb = getBrowserSupabase();
+      if (!sb) { setLoadingFollowers(false); return; }
+      const { data: follows } = await sb.from("follows").select("follower_id").eq("following_id", userId);
+      const ids = [...new Set((follows || []).map((row) => String(row.follower_id)).filter(Boolean))];
+      if (ids.length === 0) { setFollowersUsers([]); setLoadingFollowers(false); return; }
+      const { data: profiles } = await sb.from("profiles").select("id, username, display_name, avatar_url").in("id", ids);
+      const profileMap = new Map((profiles || []).map((profile) => [String(profile.id), profile]));
+      setFollowersUsers(ids.map((id) => profileMap.get(id)).filter(Boolean) as FollowingItem[]);
+    } catch {
+      setFollowersUsers([]);
+    } finally {
+      setLoadingFollowers(false);
+    }
+  }, [userId]);
 
-  useEffect(() => { if (open && userId) { fetchNotifications(); fetchBadges(); fetchReplies(); fetchLikesReceived(); fetchFollowing(); } }, [open, userId, fetchNotifications, fetchBadges, fetchReplies, fetchLikesReceived, fetchFollowing]);
+
+  useEffect(() => { if (open && userId) { fetchNotifications(); fetchBadges(); fetchReplies(); fetchLikesReceived(); fetchFollowing(); fetchFollowers(); } }, [open, userId, fetchNotifications, fetchBadges, fetchReplies, fetchLikesReceived, fetchFollowing, fetchFollowers]);
 
   // Poll notifications as a fallback when Realtime is not available.
   useEffect(() => {
@@ -308,9 +330,10 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
       void fetchReplies();
       void fetchLikesReceived();
       void fetchFollowing();
+      void fetchFollowers();
     }, 15000);
     return () => clearInterval(timer);
-  }, [userId, fetchNotifications, fetchReplies, fetchLikesReceived, fetchFollowing]);
+  }, [userId, fetchNotifications, fetchReplies, fetchLikesReceived, fetchFollowing, fetchFollowers]);
 
   // Sync profile from Supabase on panel open (fallback when localStorage is empty)
   useEffect(() => {
@@ -387,11 +410,11 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'follows', filter: `follower_id=eq.${userId}` },
-        () => { fetchFollowing(); }
+        () => { fetchFollowing(); fetchFollowers(); }
       )
       .subscribe();
     return () => { sb.removeChannel(channel); };
-  }, [userId, fetchReplies, fetchLikesReceived, fetchNotifications, fetchFollowing]);
+  }, [userId, fetchReplies, fetchLikesReceived, fetchNotifications, fetchFollowing, fetchFollowers]);
 
   // Close on outside click
   useEffect(() => {
@@ -607,35 +630,60 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                   </>
                 )}
                 {activeTab === "following" && (
-                  <>
-                    {loadingFollowing ? (
-                      <div className="px-4 py-8 text-center text-sm text-gray-400">Loading...</div>
-                    ) : followingUsers.length === 0 ? (
-                      <div className="px-5 py-10 text-center">
-                        <svg className="mx-auto mb-3 h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                        <p className="text-sm font-medium text-gray-700">No followed users yet</p>
-                        <p className="mt-2 text-xs text-gray-500 leading-relaxed max-w-[260px] mx-auto">Users you follow will appear here after you follow them from profile cards or profile pages.</p>
-                      </div>
-                    ) : (
-                      <div className="p-3 space-y-2">
-                        {followingUsers.map(user => (
-                          <Link key={user.id} href={user.username ? `/user/${user.username}` : `/user/${user.id}`} className="flex items-center gap-3 rounded-xl border border-gray-100 p-3 hover:bg-gray-50 transition-colors">
-                            {user.avatar_url ? (
-                              <img src={user.avatar_url} alt={user.display_name || user.username || "User"} className="h-9 w-9 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} referrerPolicy="no-referrer" />
-                            ) : (
-                              <span className="h-9 w-9 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-xs font-semibold text-white">
-                                {(user.display_name || user.username || "?").substring(0, 1).toUpperCase()}
-                              </span>
-                            )}
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate">{user.display_name || user.username || "User"}</p>
-                              {user.username && <p className="text-xs text-gray-400 truncate">@{user.username}</p>}
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </>
+                  <div className="p-3 space-y-5">
+                    <section>
+                      <h5 className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Following</h5>
+                      {loadingFollowing ? (
+                        <div className="px-3 py-6 text-center text-sm text-gray-400">Loading...</div>
+                      ) : followingUsers.length === 0 ? (
+                        <p className="px-3 py-4 text-xs text-gray-500">No followed users yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {followingUsers.map(user => (
+                            <Link key={user.id} href={user.username ? `/user/${user.username}` : `/user/${user.id}`} className="flex items-center gap-3 rounded-xl border border-gray-100 p-3 hover:bg-gray-50 transition-colors">
+                              {user.avatar_url ? (
+                                <img src={user.avatar_url} alt={user.display_name || user.username || "User"} className="h-9 w-9 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} referrerPolicy="no-referrer" />
+                              ) : (
+                                <span className="h-9 w-9 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-xs font-semibold text-white">
+                                  {(user.display_name || user.username || "?").substring(0, 1).toUpperCase()}
+                                </span>
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 truncate">{user.display_name || user.username || "User"}</p>
+                                {user.username && <p className="text-xs text-gray-400 truncate">@{user.username}</p>}
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                    <section>
+                      <h5 className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Followers</h5>
+                      {loadingFollowers ? (
+                        <div className="px-3 py-6 text-center text-sm text-gray-400">Loading...</div>
+                      ) : followersUsers.length === 0 ? (
+                        <p className="px-3 py-4 text-xs text-gray-500">No followers yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {followersUsers.map(user => (
+                            <Link key={user.id} href={user.username ? `/user/${user.username}` : `/user/${user.id}`} className="flex items-center gap-3 rounded-xl border border-gray-100 p-3 hover:bg-gray-50 transition-colors">
+                              {user.avatar_url ? (
+                                <img src={user.avatar_url} alt={user.display_name || user.username || "User"} className="h-9 w-9 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} referrerPolicy="no-referrer" />
+                              ) : (
+                                <span className="h-9 w-9 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-xs font-semibold text-white">
+                                  {(user.display_name || user.username || "?").substring(0, 1).toUpperCase()}
+                                </span>
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 truncate">{user.display_name || user.username || "User"}</p>
+                                {user.username && <p className="text-xs text-gray-400 truncate">@{user.username}</p>}
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  </div>
                 )}
                 {activeTab === "badges" && (
                   <>
