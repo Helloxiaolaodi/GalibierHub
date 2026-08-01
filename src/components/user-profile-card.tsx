@@ -177,6 +177,35 @@ export default function UserProfileCard({
     };
   }, []);
 
+  // Listen for settings updates (e.g., from Settings/Preferences page)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const refreshProfile = () => {
+      if (!userId) return;
+      const aff = localStorage.getItem("galibierhub-affiliation") || "";
+      const rf = localStorage.getItem("galibierhub-research-field") || "";
+      const role = localStorage.getItem("galibierhub-role") || "";
+      const bio = localStorage.getItem("galibierhub-bio") || "";
+      const avatar = localStorage.getItem("galibierhub-custom-avatar") || "";
+      const displayName = localStorage.getItem("galibierhub-display-name") || "";
+      setProfile(prev => ({
+        ...prev,
+        displayName: displayName || prev.displayName,
+        affiliation: aff,
+        researchField: rf,
+        role,
+        bio,
+        avatarUrl: avatar || null,
+      }));
+    };
+    window.addEventListener("galibierhub-settings-updated", refreshProfile);
+    window.addEventListener("storage", refreshProfile);
+    return () => {
+      window.removeEventListener("galibierhub-settings-updated", refreshProfile);
+      window.removeEventListener("storage", refreshProfile);
+    };
+  }, [userId]);
+
   const toggleFollow = useCallback(async () => {
     if (!userId || followLoading) return;
     setFollowLoading(true);
@@ -309,8 +338,8 @@ export default function UserProfileCard({
         ref={cardRef}
        className="absolute rounded-2xl border border-gray-200 bg-white shadow-2xl p-5 w-[300px]"
         style={{
-          top: anchorEl ? anchorEl.getBoundingClientRect().bottom + 8 + window.scrollY : "50%",
-          left: anchorEl ? anchorEl.getBoundingClientRect().left + window.scrollX - 120 : "50%",
+          top: anchorEl ? anchorEl.getBoundingClientRect().top + window.scrollY : "50%",
+          left: anchorEl ? anchorEl.getBoundingClientRect().left + window.scrollX - 324 : "50%",
         }}
         onClick={(e) => e.stopPropagation()}
       >

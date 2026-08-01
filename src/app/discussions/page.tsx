@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 
 
@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import WorldClock from "@/components/world-clock";
+import NotificationBell from "@/components/notification-bell";
 
 import BadgeDisplay from "@/components/badge-display";
 
@@ -147,7 +148,7 @@ export default function DiscussionsPage() {
 
   const [showComposer, setShowComposer] = useState(false);
 
-  const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public",category:"tutorials"});
+  const [composerForm, setComposerForm] = useState({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public",category:"issue"});
 
   type MarkdownAction = "bold"|"italic"|"code"|"quote"|"link"|"image"|"list"|"ordered-list";
 
@@ -166,6 +167,10 @@ export default function DiscussionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+
+  const [modMode, setModMode] = useState(false);
+
+  const [modBusy, setModBusy] = useState<Record<string, boolean>>({});
 
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -227,6 +232,10 @@ export default function DiscussionsPage() {
     const tagParam = params.get("tag")?.toLowerCase();
     if (categoryParam === "tutorials" || tagParam === "tutorial") {
       setCategoryFilter("tutorials");
+    }
+
+    if (params.get("mod") === "1") {
+      setModMode(true);
     }
 
     const stored = localStorage.getItem("galibierhub-github-user");
@@ -359,6 +368,8 @@ export default function DiscussionsPage() {
 
         const draft = JSON.parse(saved);
 
+        const defaultCategory = isAdmin ? "tutorials" : "issue";
+
         if (draft.title || draft.message) {
 
           setComposerForm(p => ({
@@ -369,9 +380,13 @@ export default function DiscussionsPage() {
 
             message: draft.message || "",
 
-            category: draft.category || "general"
+            category: draft.category === "tutorials" && !isAdmin ? "issue" : draft.category || defaultCategory
 
           }));
+
+        } else {
+
+          setComposerForm(p => ({ ...p, category: defaultCategory }));
 
         }
 
@@ -379,7 +394,7 @@ export default function DiscussionsPage() {
 
     }
 
-  }, [showComposer]);
+  }, [showComposer, isAdmin]);
 
 
 
@@ -415,15 +430,19 @@ export default function DiscussionsPage() {
 
     try {
 
-      const res = await fetch("/api/feedback");
+      const res = await fetch("/api/feedback", { headers: authHeaders });
 
       if (!res.ok) throw new Error("Failed to load discussions");
 
-      const data = await res.json() as {entries?:SiteFeedbackEntry[]};
+      const data = await res.json() as {entries?:SiteFeedbackEntry[];isAdmin?:boolean};
 
-      const publicEntries = (data.entries||[]).filter(e=>e.visibility==="public");
+      if (modMode && !data.isAdmin) throw new Error("Admin access is required for the Moderation Dashboard.");
 
-      setEntries(publicEntries);
+      if (data.isAdmin) setIsAdmin(true);
+
+      const visibleEntries = (data.entries||[]).filter(e=>modMode || e.visibility==="public");
+
+      setEntries(visibleEntries);
 
       // Fetch comment counts and like counts in parallel
 
@@ -433,7 +452,7 @@ export default function DiscussionsPage() {
 
       const likes: Record<string,number>={};
 
-      await Promise.all(publicEntries.map(async entry=>{
+      await Promise.all(visibleEntries.map(async entry=>{
 
         try {
 
@@ -491,7 +510,7 @@ export default function DiscussionsPage() {
 
     finally { setLoading(false); }
 
-  }, []);
+  }, [modMode, session?.access_token]);
 
   useEffect(()=>{fetchData();},[fetchData]);
   useEffect(() => {
@@ -559,6 +578,43 @@ export default function DiscussionsPage() {
     }
   }, [likeBusy, githubUser]);
 
+  const handleToggleHidden = useCallback(async (entryId: string, nextHidden: boolean) => {
+    if (modBusy[entryId]) return;
+    setModBusy((current) => ({ ...current, [entryId]: true }));
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(session?.access_token ? { "Authorization": "Bearer " + session.access_token } : {}) },
+        body: JSON.stringify({ id: entryId, hidden: nextHidden }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Failed to update post");
+      setEntries((current) => current.map((e) => e.id === entryId ? { ...e, hidden: nextHidden } : e));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update post");
+    } finally {
+      setModBusy((current) => { const next = { ...current }; delete next[entryId]; return next; });
+    }
+  }, [modBusy, session?.access_token]);
+
+  const handleDeleteEntry = useCallback(async (entryId: string) => {
+    if (modBusy[entryId] || !window.confirm("Delete this discussion permanently?")) return;
+    setModBusy((current) => ({ ...current, [entryId]: true }));
+    try {
+      const res = await fetch("/api/feedback?id=" + encodeURIComponent(entryId), {
+        method: "DELETE",
+        headers: session?.access_token ? { "Authorization": "Bearer " + session.access_token } : {},
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Failed to delete post");
+      setEntries((current) => current.filter((e) => e.id !== entryId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete post");
+    } finally {
+      setModBusy((current) => { const next = { ...current }; delete next[entryId]; return next; });
+    }
+  }, [modBusy, session?.access_token]);
+
   // Load per-discussion view counts from localStorage
   useEffect(() => {
     try {
@@ -617,7 +673,7 @@ export default function DiscussionsPage() {
 
     try {
 
-      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,affiliation:composerForm.affiliation,visibility:composerForm.visibility,category:composerForm.category}) });
+      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json", ...(session?.access_token ? {"Authorization":"Bearer "+session.access_token} : {})}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,affiliation:composerForm.affiliation,visibility:composerForm.visibility,category:composerForm.category}) });
 
       if (!res.ok) { const d = await res.json() as {error?:string}; throw new Error(d.error||"Failed to submit"); }
 
@@ -625,7 +681,7 @@ export default function DiscussionsPage() {
 
       localStorage.removeItem("galibierhub-draft-new-post");
 
-     setComposerForm({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public",category:"tutorials"});
+     setComposerForm({title:"",displayName:"",visitorEmail:"",affiliation:"",message:"",visibility:"public",category:isAdmin?"tutorials":"issue"});
 
       await fetchData();
 
@@ -635,7 +691,7 @@ export default function DiscussionsPage() {
 
     finally { setComposerSubmitting(false); }
 
-  }, [composerForm, githubUser, fetchData]);
+  }, [composerForm, githubUser, session?.access_token, isAdmin, fetchData]);
 
 
 
@@ -718,9 +774,7 @@ export default function DiscussionsPage() {
                 <button onClick={() => { setAuthInitialMode("github"); setAuthModalOpen(true); }} className="rounded-lg border border-slate-200 bg-slate-800 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-slate-700">
                   Sign in
                 </button>
-                <button onClick={() => { setAuthInitialMode("email-signup"); setAuthModalOpen(true); }} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
-                  Sign up
-                </button>
+
               </>
             )}
 
@@ -728,7 +782,7 @@ export default function DiscussionsPage() {
 
             <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="rounded-lg bg-slate-800 px-4 py-1.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all">New Discussion</button>
 
-            <Link href="/" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">Back to Home</Link>
+            <NotificationBell session={session} />
 
           </div>
 
@@ -747,6 +801,16 @@ export default function DiscussionsPage() {
           <p className="mt-2 text-sm text-gray-600">Browse public discussions, share ideas, and collaborate with the community.</p>
 
         </div>
+
+        {modMode && (
+          <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <div className="flex items-center gap-2 font-semibold">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+              Moderation Dashboard
+            </div>
+            <p className="mt-1 text-xs leading-relaxed">Administrator mode: hidden and private discussions are visible here. Use the card controls to hide, unhide, or permanently delete content.</p>
+          </div>
+        )}
 
 
 
@@ -805,7 +869,6 @@ export default function DiscussionsPage() {
               className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 outline-none focus:border-slate-400 cursor-pointer">
 
               <option value="all">All Categories</option>
-              <option value="general">General</option>
               <option value="issue">Issue</option>
               <option value="tutorials">Tutorials</option>
 
@@ -920,6 +983,7 @@ export default function DiscussionsPage() {
                         {isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"><svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>Resolved</span>}
 
                         {!isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">In Progress</span>}
+                        {modMode&&entry.hidden&&<span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Hidden</span>}
 
                         
 
@@ -941,34 +1005,14 @@ export default function DiscussionsPage() {
 
                         <span>{formatTimeAgo(entry.created_at)}</span>
 
-                        {likeCounts[entry.id]>0&&<><svg className="h-4 w-4 inline-block text-red-500" fill="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg><span className="text-red-500 ml-1"> {likeCounts[entry.id]}</span></>}
+                        {likeCounts[entry.id]>0&&<span> {likeCounts[entry.id]} likes</span>}
 
                       </div>
 
                     </div>
 
                     <div className="flex-shrink-0 flex items-center gap-4 text-right">
-
-                   {/* Votes */}
-
-                   <div className="flex flex-col items-center min-w-[48px]">
-                     <button type="button" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); void handleToggleLike(entry.id);}} disabled={likeBusy[entry.id]} aria-label="Like discussion" className="group inline-flex flex-col items-center rounded-lg p-1.5 hover:bg-rose-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors">
-                       <svg className={"h-5 w-5 transition-colors "+(likeCounts[entry.id]>0?"text-red-500":"text-gray-400 group-hover:text-red-500")} fill={likeCounts[entry.id]>0?"currentColor":"none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                       <span className="text-lg font-bold text-gray-900">{likeCounts[entry.id]||0}</span>
-                     </button>
-                     <span className="text-[10px] text-gray-400 uppercase tracking-wide">Likes</span>
-                   </div>
-
-                    {/* Replies */}
-
-                    <div className="flex flex-col items-center min-w-[48px]">
-
-                      <span className="text-lg font-bold text-gray-900">{replyCount}</span>
-
-                      <span className="text-[10px] text-gray-400 uppercase tracking-wide">Replies</span>
-
-                    </div>
-
+                    <span className="text-lg font-bold text-gray-900">{likeCounts[entry.id]||0}</span>
                     {/* Views */}
 
                     <div className="flex flex-col items-center min-w-[48px]">
@@ -979,23 +1023,31 @@ export default function DiscussionsPage() {
 
                     </div>
 
-                    <div className="flex flex-col items-end gap-1">
-
-                      <div className="flex items-center gap-1 text-sm font-medium text-gray-700">
-
-                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-
-                        <span>{replyCount}</span>
-
-                      </div>
-
-                      <span className="text-xs text-gray-500">{formatTimeAgo(activityTime)}</span>
-
-                    </div>
-
                     </div>
 
                   </div>
+
+                  {modMode&&(
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3" onClick={(e)=>e.stopPropagation()} onKeyDown={(e)=>e.stopPropagation()}>
+                      <span className="text-xs text-gray-500">{entry.hidden ? "Private or hidden discussion" : "Public discussion"}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={()=>handleToggleHidden(entry.id, !entry.hidden)}
+                          disabled={modBusy[entry.id]}
+                          className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                        >
+                          {entry.hidden ? "Unhide" : "Hide"}
+                        </button>
+                        <button
+                          onClick={()=>handleDeleteEntry(entry.id)}
+                          disabled={modBusy[entry.id]}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
 
@@ -1127,11 +1179,9 @@ export default function DiscussionsPage() {
 
                     className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all">
 
-                    <option value="general">General</option>
-
                     <option value="issue">Issue</option>
 
-                    <option value="tutorials">Tutorials</option>
+                    {isAdmin && <option value="tutorials">Tutorials</option>}
 
                   </select>
 

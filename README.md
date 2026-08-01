@@ -43,13 +43,14 @@ GalibierHub currently ships with five main product surfaces:
 - **Overview**: StatsChart dashboard metrics and interactive hover-flip feature cards (Search & Discovery, Genome Browser, File Distribution, Community & Moderation).
 - **Records**: searchable promoter table with inline filtering, pagination, and record detail panel.
 - **Genome Browser**: standalone JBrowse 2 linear genome view with fullscreen zen mode, multi-track annotation, and locus navigation accessible via the top navigation bar.
-- **Downloads**: academic-grade file catalog with browser/CLI download, file preview (head 20 lines), SHA-256 checksum verification, citation export (BibTeX/RIS/DataCite), batch script generator (aria2c/wget/Python/R), and linked Discussions tutorials.
+- **Downloads**: academic-grade file catalog with browser/CLI download, file preview (head 20 lines), SHA-256 checksum verification, citation export (BibTeX/RIS/DataCite), batch script generator (aria2c/wget/Python/R), and a dedicated Download & CLI Usage Guide.
 - **Discussion**: public or Administrator-only discussions with image upload, likes, bookmarks, follow-up replies, and administrator moderation.
 - **World Clock**: global timezone command palette (Ctrl+K) with major research hub defaults and full city search, plus sidebar widget on discussion detail pages.
 - **Auth System**: dual GitHub OAuth and email/password authentication with Turnstile bot protection, split Log In / Sign Up flow, auto-saved drafts, forgot-password reset, and post-signup onboarding.
 - **User Profiles**: public profile pages at /user/[username] with research tags, activity dashboards (Profile & Threads & Replies tabs), follow/unfollow system persisted to Supabase, and online-status indicators (Online / Away / Busy).
 - **Notification Center**: In-app notification bell with real-time Supabase subscriptions for @mentions, replies, and likes.
 - **Badge System**: Gamification with 16+ badge types covering onboarding, engagement, tech, and milestone achievements, displayed as micro-badges next to usernames.
+- **Security.txt**: RFC 9116 vulnerability disclosure file at `/.well-known/security.txt`, with `/security` policy and `/acknowledgments` pages.
 - **Settings & Preferences**: Protected /settings/preferences page with avatar photo upload, profile editing, email notification opt-ins, and theme switching (Light / Dark / System).
 
 The current default schema and UI are still genomics-oriented. Template users can generalize the project later, but the repository in its present state still uses promoter- and genome-related naming in the main data surfaces.
@@ -84,24 +85,25 @@ The current default schema and UI are still genomics-oriented. Template users ca
 - View browser download, `wget`, `curl`, and `hf download` commands in the same file dialog.
  
 - See file name, type, size, created and updated time, download count, access mode, MD5, and SHA256 together.
-- Copy SHA256 with one click and use resume-capable CLI commands for large-file transfer.
+- Reveal SHA-256 and resume-capable CLI commands behind copy buttons for large-file transfer.
 - Generate `.sh` and `.bat` batch download scripts for public sample files.
 
 #### Community & Moderation
 
-*   **Authentication** -- GitHub OAuth, Google OAuth, or email/password with Cloudflare Turnstile bot protection.
+*   **Authentication** -- GitHub OAuth or email/password with Cloudflare Turnstile bot protection.
 *   **Onboarding** -- Guided profile setup after first login with research field, preferred tools, and affiliation.
 *   **User profiles** -- Public `/user/[username]` pages with badges, activity feeds, and follow/unfollow.
 *   **Badge system** -- Gamified reputation with bronze/silver/gold/platinum tiers earned through community contributions.
 *   **World clock** -- Timezone companion panel and command-palette global time search (unwanted timezone entry removed, click-outside close, `Clear` search button).
-*   **Real-time notifications** -- Instant alerts for replies, @mentions, and badge unlocks via Supabase Realtime WebSockets.
+*   **Real-time notifications** -- Realtime WebSocket delivery plus a polling fallback for replies, follows, likes, @mentions, and badge unlocks.
 *   **Password reset** -- Full self-service flow at `/update-password` with styled email templates via Resend.
 *   **Admin dashboard** -- Total registered users, weekly sign-up trend, GitHub vs email origin chart, recent joiners, discussion/download/visitor stats, and a Badges analytics tab.
 *   **View tracking** -- Per-discussion view counts synchronized to the server.
 *   **Profile sync** -- Profile data persisted to Supabase and restored across devices and sessions.
+*   **AI crawler controls** -- `robots.txt` blocks known AI training and SEO scrapers while allowing academic indexers; Cloudflare zone toggles are documented in `docs/cloudflare-security-configuration.md`.
 *   **Password visibility** -- Show/hide toggles for the sign-in and create-account password fields.
 *   **Consistent usernames** -- The same profile username appears across every page; email sign-ups default to the part of the email before `@`.
-*   **Comment reactions** -- Heart like buttons on individual discussion replies update counts in real time.
+*   **Comment reactions** -- Like counts on posts and individual replies update in real time without red heart icons.
 *   **Discussion views & profiles** -- Real per-post view counts, hover profile cards with online status and follow/unfollow, plus working `/user/[username]` profile and activity pages.
 *   **Notification events** -- Follows, unfollows, comment likes, and @mentions notify the target user through the in-app notification center.
 *   **Timeline interactions** -- The timeline rail is draggable, stays synchronized with browser scrolling, and shows the dates of the post and every reply.
@@ -111,10 +113,10 @@ The current default schema and UI are still genomics-oriented. Template users ca
 - Upload images via the toolbar and view them in a zoomable lightbox by clicking.
 - Sign in with the allowed GitHub Administrator account to publish official replies, hide/delete posts, and pin discussions.
 - Upload images in discussions and open posted images in a zoomable lightbox.
-- Like and unlike posts with toggle heart interaction, and share discussions via a modal with Twitter/X, Facebook, Email, LinkedIn, and copy-link options.
-- Like and unlike individual replies with heart buttons; every message count updates in real time.
+- Like and unlike posts with numeric like toggles, and share discussions via a modal with Twitter/X, Facebook, Email, LinkedIn, and copy-link options.
+- Like and unlike individual replies with numeric like controls; every message count updates in real time.
 - Use the ordered-list toolbar button to insert `1.` and cycle to `2.`, `3.` as you add list items.
-- Filter by `General`, `Issue`, or `Tutorials` categories; Downloads tutorial links route to the Discussions `Tutorials` category.
+- Filter by `All Categories`, `Issue`, or `Tutorials`; only administrators can post new `Tutorials`, and the Downloads guide is at `/docs/download-cli`.
 - Filter discussions by status (All, In Progress, Resolved) and sort by Newest, Oldest, or Most Liked.
 - Earn badges through community participation: Ice Breaker (first post), Nice Reply (10 likes), Markdown Master (code blocks), and 13+ more.
 - See a footer counter that shows live site uptime, cumulative unique visitors, views, links, and participants.
@@ -287,7 +289,7 @@ Cloudflare Pages:
 - Split single-file actions so browser download and CLI or details entry points are visibly separated instead of competing inside one oversized button.
 - Manifest export with stable machine-readable columns: `Directory_Path`, `File_Name`, `File_Type`, `Size_Bytes`, `Direct_URL`, and `SHA-256`.
 - Manifest CSV and CLI/checksum dialogs resolve real SHA-256 values from catalog metadata instead of exporting `NA` or showing `N/A`.
-- The top-level `All Discussions` shortcut is removed; one consolidated `Tutorials` menu exposes `View all Tutorials` and `Download & CLI Usage Guide`, and tutorial links route to the Discussions `Tutorials` category.
+- The top-level `All Discussions` shortcut is removed; one consolidated `Tutorials` menu exposes `View all Tutorials` and `Download & CLI Usage Guide`, with the guide at `/docs/download-cli`.
 - Pagination with 20 files per page, so large directories stay scannable.
 - Batch selection with checkboxes and a `Download Selected` button that shows browser download, `wget`, and `curl` commands for the selected files.
 - A README button that dynamically generates a directory overview listing all files with sizes and dates.
@@ -296,11 +298,13 @@ Cloudflare Pages:
 
 For public files with a stable raw URL, the `Download options` modal now uses a tabbed structure exposing:
 
-- **Download & CLI**: Browser download, copyable direct URL, Global (Official) resumable commands on `huggingface.co`, and Asia-Pacific (Mirror) resumable commands on `hf-mirror.com`.
+- **Download & CLI**: Browser download plus reveal-on-demand copy buttons for direct URLs and Global (Official) or Asia-Pacific (Mirror) resumable commands.
 - **File Preview**: Head preview (first 20 lines) for text-based files (FASTA, GFF3, CSV, TSV, R scripts) using HTTP Range Requests with syntax highlighting.
 - **Checksum**: SHA-256 hash display with a copyable terminal verification command.
-- **Linked Tutorials**: Direct link to related Discussion posts for pipeline integration tutorials (e.g. loading datasets into MaAsLin3 or QIIME 2).
 - **Cite Dataset**: BibTeX, RIS, DataCite, and Plain Text citation format export.
+- **Batch Script**: Generate `.sh` and `.bat` download scripts for public sample files.
+
+The old Linked Tutorials tab and Pipeline Integration Guide were removed. A static `/docs/download-cli` page now provides wget, curl, aria2c, checksum, and download-tool guidance.
 
 For the example file `scov2.fa`, that means the modal can show both the official route and the Asia-friendly mirror route without changing the dataset path itself.
 

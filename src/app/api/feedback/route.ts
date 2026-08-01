@@ -8,6 +8,9 @@ function normalizeCategory(value: string): string {
   if (value === "idea" || value === "data" || value === "collaboration") {
     return "tutorials";
   }
+  if (value === "general") {
+    return "issue";
+  }
   return value;
 }
 
@@ -488,10 +491,20 @@ export async function POST(request: Request) {
     }
   }
 
- if (!VALID_CATEGORIES.has(category)) {
-    category = "general";
- }
  category = normalizeCategory(category);
+ if (!VALID_CATEGORIES.has(category)) {
+    category = "issue";
+ }
+
+  if (category === "tutorials") {
+    const creatorAuth = await requireCreatorGithubAuth(getBearerToken(request));
+    if (!creatorAuth.ok) {
+      return NextResponse.json(
+        { error: "Only the site administrator can create Tutorials discussions." },
+        { status: 403 },
+      );
+    }
+  }
 
   if (!visibility) {
     return NextResponse.json({ error: "Visibility must be public or private." }, { status: 400 });

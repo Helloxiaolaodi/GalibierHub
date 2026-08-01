@@ -1,10 +1,11 @@
-Contact: https://github.com/Helloxiaolaodi/SeqEdge/security
-Contact: https://seq-edge.vercel.app
-Expires: 2027-07-28T00:00:00.000Z
-Encryption: https://keys.openpgp.org/
-Preferred-Languages: en, zh-CN
+Contact: mailto:yanglun2019@126.com
+Contact: https://github.com/Helloxiaolaodi/GalibierHub/security/advisories
 Canonical: https://seq-edge.vercel.app/.well-known/security.txt
+Canonical: https://galibierhub.org/.well-known/security.txt
+Expires: 2027-08-01T00:00:00Z
+Preferred-Languages: en, zh-CN
+Acknowledgments: https://seq-edge.vercel.app/acknowledgments
+Policy: https://seq-edge.vercel.app/security
 
-# SeqEdge Security Policy
-# Researchers: please report vulnerabilities via GitHub Security Advisories.
-# We follow coordinated disclosure (90-day remediation window).
+# GalibierHub security contact and coordinated disclosure policy.
+# Please report vulnerabilities privately and avoid public disclosure before a fix is available.

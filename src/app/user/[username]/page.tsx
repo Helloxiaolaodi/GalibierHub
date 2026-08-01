@@ -73,14 +73,67 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
         const sb = getBrowserSupabase();
         if (!sb) throw new Error("Supabase client not initialized.");
 
+        const sessionLookup = await sb.auth.getSession();
+        const sessionUserId = sessionLookup.data.session?.user?.id;
+        if (sessionUserId) {
+          localStorage.setItem("galibierhub-user-id", sessionUserId);
+        }
+
         let profileQuery = sb.from("profiles").select("*");
         profileQuery = UUID_RE.test(username)
           ? profileQuery.eq("id", username)
           : profileQuery.eq("username", username);
-        const { data, error: queryError } = await profileQuery.single();
+        const { data: profileQueryResult, error: queryError } = await profileQuery.single();
+        let data = profileQueryResult;
 
         if (queryError || !data) {
-          throw new Error("User not found.");
+          const storedId = typeof window !== "undefined" ? localStorage.getItem("galibierhub-user-id") : null;
+          const session = sessionLookup.data.session;
+          const isOwnProfile = UUID_RE.test(username) && (storedId === username || sessionUserId === username);
+          if (isOwnProfile && sessionUserId === username) {
+            const emailPrefix = session?.user?.email ? session.user.email.split("@")[0] : username.substring(0, 8);
+            const fullName = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || emailPrefix;
+            const { data: newProfile, error: createError } = await sb
+              .from("profiles")
+              .insert({
+                id: sessionUserId,
+                username: emailPrefix,
+                display_name: fullName,
+                full_name: fullName,
+                email: session?.user?.email || "",
+              })
+              .select("*")
+              .single();
+            if (createError || !newProfile) {
+              throw new Error("User not found.");
+            }
+            data = newProfile;
+          } else {
+            const { data: fallbackPosts } = UUID_RE.test(username)
+              ? await sb.from("site_feedback").select("display_name, created_at").eq("user_id", username).order("created_at", { ascending: false }).limit(1)
+              : await sb.from("site_feedback").select("user_id, display_name, created_at").eq("display_name", username).order("created_at", { ascending: false }).limit(1);
+            const { data: fallbackComments } = UUID_RE.test(username)
+              ? await sb.from("feedback_comments").select("author_name, created_at").eq("user_id", username).order("created_at", { ascending: false }).limit(1)
+              : await sb.from("feedback_comments").select("user_id, author_name, created_at").eq("author_name", username).order("created_at", { ascending: false }).limit(1);
+            const fallbackPost = fallbackPosts?.[0] as { user_id?: string | null; display_name?: string | null; created_at?: string } | undefined;
+            const fallbackComment = fallbackComments?.[0] as { user_id?: string | null; author_name?: string | null; created_at?: string } | undefined;
+            const fallbackUserId = UUID_RE.test(username) ? username : (fallbackPost?.user_id || fallbackComment?.user_id);
+            if (!fallbackUserId || (!fallbackPost && !fallbackComment)) {
+              throw new Error("User not found.");
+            }
+            data = {
+              id: fallbackUserId,
+              username: UUID_RE.test(username) ? "user-" + username.slice(0, 8) : username,
+              display_name: fallbackPost?.display_name || fallbackComment?.author_name || fallbackUserId.slice(0, 8),
+              bio: "",
+              affiliation: "",
+              research_field: "",
+              role: "",
+              avatar_url: null,
+              created_at: fallbackPost?.created_at || fallbackComment?.created_at || new Date().toISOString(),
+              reputation_score: 0,
+            } as ProfileData;
+          }
         }
 
         setProfile(data as ProfileData);
@@ -179,6 +232,29 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
       if (!sb) return;
       if (isFollowing) {
         await sb.from("follows").delete().eq("follower_id", currentUserId).eq("following_id", profile.id);
+        try {
+          const { data: { session } } = await sb.auth.getSession();
+          const actorName = session?.user?.user_metadata?.name
+            || session?.user?.user_metadata?.full_name
+            || session?.user?.user_metadata?.user_name
+            || session?.user?.user_metadata?.preferred_username
+            || session?.user?.user_metadata?.login
+            || (session?.user?.email ? session.user.email.split("@")[0] : null)
+            || "User";
+          await fetch("/api/notifications", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(session?.access_token ? { Authorization: "Bearer " + session.access_token } : {}),
+            },
+            body: JSON.stringify({
+              recipient_id: profile.id,
+              discussion_id: null,
+              actor_name: actorName,
+              preview_text: "stopped following you",
+            }),
+          });
+        } catch {}
         setIsFollowing(false);
       } else {
         await sb.from("follows").insert({ follower_id: currentUserId, following_id: profile.id });
