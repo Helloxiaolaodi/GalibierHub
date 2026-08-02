@@ -123,7 +123,7 @@ export default function DownloadActions({
   const [hfMeta, setHfMeta] = useState<FileMeta>({ size: null, sha256: null, loading: false });
   const [dbMeta, setDbMeta] = useState<DownloadMetadataPayload>(DEFAULT_DOWNLOAD_METADATA);
   const [resolvedInfo, setResolvedInfo] = useState<DownloadResolvedInfo | null>(null);
-    const [activeTab, setActiveTab] = useState<'download'|'preview'|'checksum'|'cite'|'script'>('download');
+    const [activeTab, setActiveTab] = useState<'preview'|'checksum'|'cite'|'script'>('preview');
   const [filePreview, setFilePreview] = useState<{loading:boolean;content:string|null;error:string|null}>({loading:false,content:null,error:null});
 const [unlocked, setUnlocked] = useState(false);
   const [pwInput, setPwInput] = useState('');
@@ -422,10 +422,10 @@ const [unlocked, setUnlocked] = useState(false);
               
               {/* Tab Navigation */}
               <div className="flex border-b border-gray-200 -mx-5 px-5">
-                {(['download','preview','checksum','cite','script'] as const).map(tab => (
+                {(['preview','checksum','cite','script'] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
                     className={"px-4 py-2 text-xs font-medium border-b-2 transition-colors " + (activeTab === tab ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")}>
-                    {tab === 'download' ? 'Download & CLI' : tab === 'preview' ? 'File Preview' : tab === 'checksum' ? 'Checksum' : tab === 'cite' ? 'Cite' : 'Batch Script'}
+                    {tab === 'preview' ? 'File Preview' : tab === 'checksum' ? 'Checksum' : tab === 'cite' ? 'Cite' : 'Batch Script'}
                   </button>
                 ))}
               </div></div>
@@ -445,7 +445,7 @@ const [unlocked, setUnlocked] = useState(false);
 
               {activeTab === "download" && (linksVisible || isAdmin) && (
                 <>
-                  <button type="button" onClick={handleBrowserDownload} disabled={downloading || directUrlInvalid} className="inline-flex w-full items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-900 disabled:opacity-50">{downloading ? 'Preparing...' : 'Download'}</button>
+
 
                   {directUrlInvalid && (
                     <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
@@ -453,7 +453,7 @@ const [unlocked, setUnlocked] = useState(false);
 
                   <div className="rounded border border-gray-100 bg-gray-50 p-3 space-y-3">
                     <div className="text-sm font-medium text-gray-800">Download options</div>
-                    <div className="text-xs text-gray-600">Browser download is always available. Public direct URLs also support resumable CLI transfers and download managers.</div>
+
                     {effectiveInfo.access_mode === 'supabase_private' ? (
                       <p className="text-xs text-amber-700">{effectiveInfo.access_note}</p>
                     ) : directUrlInvalid ? (
