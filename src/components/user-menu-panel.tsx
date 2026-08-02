@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -211,29 +211,57 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     } catch {}
     finally { setLoadingBadges(false); }
   }, [userId]);
-  // Fetch replies - comments made by this user
+  // Fetch replies – replies made to this user's discussions
   const fetchReplies = useCallback(async () => {
     if (!userId) return;
     setLoadingReplies(true);
     try {
       const sb = getBrowserSupabase();
       if (!sb) { setLoadingReplies(false); return; }
-      const { data: myPosts } = await sb.from("site_feedback").select("id, title").eq("user_id", userId);
-      const postIds = (myPosts || []).map((post: { id: string }) => post.id);
-      const titleMap = new Map((myPosts || []).map((post: { id: string; title: string }) => [post.id, post.title]));
-      if (postIds.length === 0) { setReplies([]); setLoadingReplies(false); return; }
-      const { data: comments } = await sb.from("feedback_comments")
-        .select("id, feedback_id, author_name, message, created_at")
-        .in("feedback_id", postIds)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      setReplies((comments || []).map((comment: { id: string; feedback_id: string; author_name?: string; message: string; created_at: string }) => ({
-        ...comment,
-        thread_title: titleMap.get(comment.feedback_id) || "Your discussion",
-      })));
+      // Try by user_id first
+      const { data: myPostsById } = await sb.from("site_feedback").select("id, title").eq("user_id", userId);
+      if (myPostsById && myPostsById.length > 0) {
+        const postIds = (myPostsById || []).map((post: { id: string }) => post.id);
+        const titleMap = new Map((myPostsById || []).map((post: { id: string; title: string }) => [post.id, post.title]));
+        const { data: comments } = await sb.from("feedback_comments")
+          .select("id, feedback_id, author_name, message, created_at")
+          .in("feedback_id", postIds)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        setReplies((comments || []).map((comment: { id: string; feedback_id: string; author_name?: string; message: string; created_at: string }) => ({
+          ...comment,
+          thread_title: titleMap.get(comment.feedback_id) || "Your discussion",
+        })));
+        setLoadingReplies(false);
+        return;
+      }
+      // Fallback: match by display_name
+      const displayName = session?.user?.user_metadata?.full_name
+        || session?.user?.user_metadata?.name
+        || session?.user?.user_metadata?.user_name
+        || session?.user?.email?.split("@")[0]
+        || githubUser
+        || "";
+      if (!displayName) { setReplies([]); setLoadingReplies(false); return; }
+      const { data: myPostsByName } = await sb.from("site_feedback").select("id, title").ilike("display_name", displayName);
+      if (myPostsByName && myPostsByName.length > 0) {
+        const postIds = myPostsByName.map((post: { id: string }) => post.id);
+        const titleMap = new Map(myPostsByName.map((post: { id: string; title: string }) => [post.id, post.title]));
+        const { data: comments } = await sb.from("feedback_comments")
+          .select("id, feedback_id, author_name, message, created_at")
+          .in("feedback_id", postIds)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        setReplies((comments || []).map((comment: { id: string; feedback_id: string; author_name?: string; message: string; created_at: string }) => ({
+          ...comment,
+          thread_title: titleMap.get(comment.feedback_id) || "Your discussion",
+        })));
+      } else {
+        setReplies([]);
+      }
     } catch { setReplies([]); }
     finally { setLoadingReplies(false); }
-  }, [userId]);
+  }, [userId, session, githubUser]);
 
   // Fetch likes received
   const fetchLikesReceived = useCallback(async () => {
@@ -279,45 +307,49 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     finally { setLoadingLikes(false); }
   }, [userId]);
 
-  // Fetch users this account follows
+  // Fetch users this account follows and followers via API
   const fetchFollowing = useCallback(async () => {
     if (!userId) return;
     setLoadingFollowing(true);
     try {
-      const sb = getBrowserSupabase();
-      if (!sb) { setLoadingFollowing(false); return; }
-      const { data: follows } = await sb.from("follows").select("following_id").eq("follower_id", userId);
-      const ids = [...new Set((follows || []).map((row) => String(row.following_id)).filter(Boolean))];
-      if (ids.length === 0) { setFollowingUsers([]); setLoadingFollowing(false); return; }
-      const { data: profiles } = await sb.from("profiles").select("id, username, display_name, avatar_url").in("id", ids);
-      const profileMap = new Map((profiles || []).map((profile) => [String(profile.id), profile]));
-      setFollowingUsers(ids.map((id) => profileMap.get(id)).filter(Boolean) as FollowingItem[]);
+      const token = session?.access_token || "";
+      const res = await fetch("/api/follows?type=following", {
+        headers: token ? { Authorization: "Bearer " + token } : {},
+      });
+      if (res.ok) {
+        const data = await res.json() as { following?: FollowingItem[] };
+        setFollowingUsers(data.following || []);
+      } else {
+        setFollowingUsers([]);
+      }
     } catch {
       setFollowingUsers([]);
     } finally {
       setLoadingFollowing(false);
     }
-  }, [userId]);
+  }, [userId, session]);
 
   // Fetch users who follow this account
   const fetchFollowers = useCallback(async () => {
     if (!userId) return;
     setLoadingFollowers(true);
     try {
-      const sb = getBrowserSupabase();
-      if (!sb) { setLoadingFollowers(false); return; }
-      const { data: follows } = await sb.from("follows").select("follower_id").eq("following_id", userId);
-      const ids = [...new Set((follows || []).map((row) => String(row.follower_id)).filter(Boolean))];
-      if (ids.length === 0) { setFollowersUsers([]); setLoadingFollowers(false); return; }
-      const { data: profiles } = await sb.from("profiles").select("id, username, display_name, avatar_url").in("id", ids);
-      const profileMap = new Map((profiles || []).map((profile) => [String(profile.id), profile]));
-      setFollowersUsers(ids.map((id) => profileMap.get(id)).filter(Boolean) as FollowingItem[]);
+      const token = session?.access_token || "";
+      const res = await fetch("/api/follows?type=followers", {
+        headers: token ? { Authorization: "Bearer " + token } : {},
+      });
+      if (res.ok) {
+        const data = await res.json() as { followers?: FollowingItem[] };
+        setFollowersUsers(data.followers || []);
+      } else {
+        setFollowersUsers([]);
+      }
     } catch {
       setFollowersUsers([]);
     } finally {
       setLoadingFollowers(false);
     }
-  }, [userId]);
+  }, [userId, session]);
 
 
   useEffect(() => { if (open && userId) { fetchNotifications(); fetchBadges(); fetchReplies(); fetchLikesReceived(); fetchFollowing(); fetchFollowers(); } }, [open, userId, fetchNotifications, fetchBadges, fetchReplies, fetchLikesReceived, fetchFollowing, fetchFollowers]);

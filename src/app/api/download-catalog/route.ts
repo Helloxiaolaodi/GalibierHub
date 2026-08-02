@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { SiteConfig } from '@/site-config';
 import { getDirectDownloadUrl, validateDirectFileUrl } from '@/lib/storage';
 import { listHuggingFaceDatasetFiles } from '@/lib/hf-tree';
@@ -291,13 +291,13 @@ export async function GET(request: NextRequest) {
           : item.sizeBytes,
         updatedAt: typeof metadataMap.get(item.id)?.updated_at === 'string'
           ? metadataMap.get(item.id)?.updated_at ?? null
-          : null,
+          : item.updatedAt,
         sha256Checksum: typeof metadataMap.get(item.id)?.sha256_checksum === 'string'
           ? metadataMap.get(item.id)?.sha256_checksum ?? null
-          : null,
+          : item.sha256Checksum,
         md5Checksum: typeof metadataMap.get(item.id)?.md5_checksum === 'string'
           ? metadataMap.get(item.id)?.md5_checksum ?? null
-          : null,
+          : item.md5Checksum,
       }));
 
       if (!isAdmin && hiddenKeys.size > 0) {

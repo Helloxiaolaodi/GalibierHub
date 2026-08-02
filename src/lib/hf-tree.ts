@@ -1,4 +1,4 @@
-import { STORAGE_BASE_URL } from "@/lib/storage";
+﻿import { STORAGE_BASE_URL } from "@/lib/storage";
 
 type HfTreeEntry = {
   type?: string;
@@ -158,7 +158,7 @@ export async function listHuggingFaceDatasetFiles(
           url: new URL(path, base).toString(),
           size: typeof entry.size === "number" ? entry.size : null,
           sha256Checksum: entry.lfs?.oid ?? entry.oid ?? null,
-          updatedAt: null,
+          updatedAt: (() => { const lc = entry.lastCommit; if (lc && typeof lc === 'object') { const d = (lc as Record<string,unknown>).date; if (typeof d === 'string') return d; } if (typeof lc === 'string') return lc; return null; })(),
         });
       }
 
