@@ -14,6 +14,22 @@ type NotificationItem = {
   created_at: string;
 };
 
+type NotificationKind = "general" | "replies" | "likes";
+
+function notificationKind(notification: NotificationItem): NotificationKind {
+  const id = (notification.id || "").toLowerCase();
+  const text = (notification.preview_text || "").toLowerCase();
+  if (id.startsWith("like-") || text.includes("liked your")) return "likes";
+  if (
+    id.startsWith("reply-") ||
+    text.includes("mention") ||
+    (notification.discussion_id && !text.includes("badge") && !text.includes("follow"))
+  ) {
+    return "replies";
+  }
+  return "general";
+}
+
 function getNotificationLabel(previewText: string): string {
   const t = (previewText || "").toLowerCase();
   if (t.includes("started following")) return "started following you";
@@ -54,32 +70,35 @@ export default function NotificationBell({ session }: { session: Session | null 
     setLoading(true);
     try {
       const token = session?.access_token || "";
-      const res = await fetch("/api/notifications", {
+      const res = await fetch("/api/notifications?type=general", {
         headers: token ? { Authorization: "Bearer " + token } : {},
       });
       if (res.ok) {
         const data = await res.json() as { notifications?: NotificationItem[] };
         const items = data.notifications || [];
         // Merge with localStorage notifications
-        const localNotifs = JSON.parse(localStorage.getItem("galibierhub-local-notifs") || "[]") as NotificationItem[];
+        const localNotifs = (JSON.parse(localStorage.getItem("galibierhub-local-notifs") || "[]") as NotificationItem[])
+          .filter((n) => notificationKind(n) === "general");
         const merged = [...localNotifs.filter((n: NotificationItem) => n.is_read === false), ...items];
         const unique = merged.filter((n: NotificationItem, i: number, arr: NotificationItem[]) => arr.findIndex(x => x.id === n.id) === i);
         setNotifications(unique);
         setUnreadCount(unique.filter(n => !n.is_read).length);
       } else {
         // Fallback to localStorage only
-        const localNotifs = JSON.parse(localStorage.getItem("galibierhub-local-notifs") || "[]") as NotificationItem[];
+        const localNotifs = (JSON.parse(localStorage.getItem("galibierhub-local-notifs") || "[]") as NotificationItem[])
+          .filter((n) => notificationKind(n) === "general");
         setNotifications(localNotifs);
         setUnreadCount(localNotifs.filter((n: NotificationItem) => !n.is_read).length);
       }
     } catch {
       // Fallback to localStorage only
-      const localNotifs = JSON.parse(localStorage.getItem("galibierhub-local-notifs") || "[]") as NotificationItem[];
+      const localNotifs = (JSON.parse(localStorage.getItem("galibierhub-local-notifs") || "[]") as NotificationItem[])
+        .filter((n) => notificationKind(n) === "general");
       setNotifications(localNotifs);
       setUnreadCount(localNotifs.filter((n: NotificationItem) => !n.is_read).length);
     }
     finally { setLoading(false); }
-  }, [userId]);
+  }, [userId, session?.access_token]);
 
   // Initial fetch
   useEffect(() => {

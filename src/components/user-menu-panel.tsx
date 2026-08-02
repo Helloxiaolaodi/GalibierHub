@@ -16,6 +16,10 @@ type NotificationItem = {
   preview_text: string;
   is_read: boolean;
   created_at: string;
+  kind?: "general" | "replies" | "likes";
+  message?: string;
+  title?: string;
+  comment_id?: string;
 };
 
 function getNotificationLabel(previewText: string): string {
@@ -49,12 +53,18 @@ type ReplyItem = {
   message: string;
   created_at: string;
   thread_title?: string;
+  comment_id?: string;
+  is_read?: boolean;
 };
 type LikeItem = {
+  id: string;
   entry_id: string;
-  title: string;
-  like_count: number;
   comment_id?: string;
+  actor_name: string;
+  title: string;
+  preview_text: string;
+  created_at: string;
+  is_read: boolean;
 };
 type FollowingItem = {
   id: string;
@@ -69,6 +79,32 @@ const TIER_COLORS: Record<string, string> = {
   gold: "bg-yellow-50 border-yellow-300 text-yellow-700",
   platinum: "bg-indigo-50 border-indigo-300 text-indigo-700",
 };
+
+function replyItemFromNotification(n: NotificationItem): ReplyItem {
+  return {
+    id: n.id,
+    feedback_id: n.discussion_id,
+    author_name: n.actor_name,
+    message: n.message || n.preview_text || "Replied to your discussion",
+    created_at: n.created_at,
+    thread_title: n.title || "Discussion reply",
+    comment_id: n.comment_id,
+    is_read: n.is_read,
+  };
+}
+
+function likeItemFromNotification(n: NotificationItem): LikeItem {
+  return {
+    id: n.id,
+    entry_id: n.discussion_id,
+    comment_id: n.comment_id,
+    actor_name: n.actor_name,
+    title: n.title || "Your contribution",
+    preview_text: n.preview_text || "liked your contribution",
+    created_at: n.created_at,
+    is_read: n.is_read,
+  };
+}
 
 function formatTimeAgo(d: string): string {
   const diff = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
@@ -179,7 +215,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     setLoadingNotifs(true);
     try {
       const token = session?.access_token || "";
-      const res = await fetch("/api/notifications", {
+      const res = await fetch("/api/notifications?type=general", {
         headers: token ? { Authorization: "Bearer " + token } : {},
       });
       if (res.ok) {
@@ -190,7 +226,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
       }
     } catch {}
     finally { setLoadingNotifs(false); }
-  }, [userId]);
+  }, [userId, session?.access_token]);
 
   // Fetch badges
   const fetchBadges = useCallback(async () => {
@@ -216,96 +252,38 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     if (!userId) return;
     setLoadingReplies(true);
     try {
-      const sb = getBrowserSupabase();
-      if (!sb) { setLoadingReplies(false); return; }
-      // Try by user_id first
-      const { data: myPostsById } = await sb.from("site_feedback").select("id, title").eq("user_id", userId);
-      if (myPostsById && myPostsById.length > 0) {
-        const postIds = (myPostsById || []).map((post: { id: string }) => post.id);
-        const titleMap = new Map((myPostsById || []).map((post: { id: string; title: string }) => [post.id, post.title]));
-        const { data: comments } = await sb.from("feedback_comments")
-          .select("id, feedback_id, author_name, message, created_at")
-          .in("feedback_id", postIds)
-          .order("created_at", { ascending: false })
-          .limit(50);
-        setReplies((comments || []).map((comment: { id: string; feedback_id: string; author_name?: string; message: string; created_at: string }) => ({
-          ...comment,
-          thread_title: titleMap.get(comment.feedback_id) || "Your discussion",
-        })));
-        setLoadingReplies(false);
-        return;
-      }
-      // Fallback: match by display_name
-      const displayName = session?.user?.user_metadata?.full_name
-        || session?.user?.user_metadata?.name
-        || session?.user?.user_metadata?.user_name
-        || session?.user?.email?.split("@")[0]
-        || githubUser
-        || "";
-      if (!displayName) { setReplies([]); setLoadingReplies(false); return; }
-      const { data: myPostsByName } = await sb.from("site_feedback").select("id, title").ilike("display_name", displayName);
-      if (myPostsByName && myPostsByName.length > 0) {
-        const postIds = myPostsByName.map((post: { id: string }) => post.id);
-        const titleMap = new Map(myPostsByName.map((post: { id: string; title: string }) => [post.id, post.title]));
-        const { data: comments } = await sb.from("feedback_comments")
-          .select("id, feedback_id, author_name, message, created_at")
-          .in("feedback_id", postIds)
-          .order("created_at", { ascending: false })
-          .limit(50);
-        setReplies((comments || []).map((comment: { id: string; feedback_id: string; author_name?: string; message: string; created_at: string }) => ({
-          ...comment,
-          thread_title: titleMap.get(comment.feedback_id) || "Your discussion",
-        })));
+      const token = session?.access_token || "";
+      const res = await fetch("/api/notifications?type=replies", {
+        headers: token ? { Authorization: "Bearer " + token } : {},
+      });
+      if (res.ok) {
+        const data = await res.json() as { notifications?: NotificationItem[] };
+        setReplies((data.notifications || []).map(replyItemFromNotification));
       } else {
         setReplies([]);
       }
     } catch { setReplies([]); }
     finally { setLoadingReplies(false); }
-  }, [userId, session, githubUser]);
+  }, [userId, session?.access_token]);
 
   // Fetch likes received
   const fetchLikesReceived = useCallback(async () => {
     if (!userId) return;
     setLoadingLikes(true);
     try {
-      const sb = getBrowserSupabase();
-      if (!sb) { setLoadingLikes(false); return; }
-      const { data: myEntries } = await sb.from("site_feedback").select("id, title").eq("user_id", userId);
-      const entryIds = (myEntries || []).map((e: { id: string }) => e.id);
-      const entryLikes: LikeItem[] = [];
-      if (entryIds.length > 0) {
-        const { data: reactions } = await sb.from("site_reactions").select("entry_id").eq("reaction_type", "like").in("entry_id", entryIds);
-        const countMap: Record<string, number> = {};
-        (reactions || []).forEach((r: { entry_id: string }) => { countMap[r.entry_id] = (countMap[r.entry_id] || 0) + 1; });
-        entryLikes.push(...(myEntries || [])
-          .filter((e: { id: string }) => countMap[e.id])
-          .map((e: { id: string; title: string }) => ({ entry_id: e.id, title: e.title, like_count: countMap[e.id] })));
+      const token = session?.access_token || "";
+      const res = await fetch("/api/notifications?type=likes", {
+        headers: token ? { Authorization: "Bearer " + token } : {},
+      });
+      if (res.ok) {
+        const data = await res.json() as { notifications?: NotificationItem[] };
+        setLikesReceived((data.notifications || []).map(likeItemFromNotification));
+      } else {
+        setLikesReceived([]);
       }
-
-      const { data: myComments } = await sb.from("feedback_comments").select("id, feedback_id").eq("user_id", userId);
-      const commentIds = (myComments || []).map((c: { id: string }) => c.id);
-      const commentLikes: LikeItem[] = [];
-      if (commentIds.length > 0) {
-        const { data: reactions } = await sb.from("site_reactions").select("comment_id").eq("reaction_type", "like").in("comment_id", commentIds);
-        const countMap: Record<string, number> = {};
-        (reactions || []).forEach((r: { comment_id: string }) => { countMap[r.comment_id] = (countMap[r.comment_id] || 0) + 1; });
-        const feedbackIds = [...new Set((myComments || []).map((c: { feedback_id: string }) => c.feedback_id))];
-        const { data: threads } = await sb.from("site_feedback").select("id, title").in("id", feedbackIds);
-        const titleMap = new Map((threads || []).map((t: { id: string; title: string }) => [t.id, t.title]));
-        commentLikes.push(...(myComments || [])
-          .filter((c: { id: string }) => countMap[c.id])
-          .map((c: { id: string; feedback_id: string }) => ({
-            entry_id: c.feedback_id,
-            comment_id: c.id,
-            title: titleMap.get(c.feedback_id) || "Your reply",
-            like_count: countMap[c.id],
-          })));
-      }
-
-      setLikesReceived([...entryLikes, ...commentLikes].sort((a, b) => b.like_count - a.like_count));
     } catch { setLikesReceived([]); }
     finally { setLoadingLikes(false); }
-  }, [userId]);
+  }, [userId, session?.access_token]);
 
   // Fetch users this account follows and followers via API
   const fetchFollowing = useCallback(async () => {
@@ -327,7 +305,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     } finally {
       setLoadingFollowing(false);
     }
-  }, [userId, session]);
+  }, [userId, session?.access_token]);
 
   // Fetch users who follow this account
   const fetchFollowers = useCallback(async () => {
@@ -349,7 +327,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     } finally {
       setLoadingFollowers(false);
     }
-  }, [userId, session]);
+  }, [userId, session?.access_token]);
 
 
   useEffect(() => { if (open && userId) { fetchNotifications(); fetchBadges(); fetchReplies(); fetchLikesReceived(); fetchFollowing(); fetchFollowers(); } }, [open, userId, fetchNotifications, fetchBadges, fetchReplies, fetchLikesReceived, fetchFollowing, fetchFollowers]);
@@ -411,16 +389,11 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'site_notifications', filter: `recipient_id=eq.${userId}` },
-        (payload: { new: NotificationItem }) => {
-          if (payload.new) {
-            setNotifications((prev) => [payload.new, ...prev]);
-            setNotifUnread((count) => count + 1);
-          }
-        }
+        () => { fetchNotifications(); fetchReplies(); fetchLikesReceived(); }
       )
       .subscribe();
     return () => { sb.removeChannel(channel); };
-  }, [userId]);
+  }, [userId, fetchNotifications, fetchReplies, fetchLikesReceived]);
 
   // Realtime refresh for replies and likes received
   useEffect(() => {
@@ -474,11 +447,14 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
   }, [open]);
 
   const markAsRead = async (notifId: string) => {
+    const wasUnreadGeneral = notifications.some(n => n.id === notifId && !n.is_read);
     try {
       const token = session?.access_token || "";
       await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: JSON.stringify({ id: notifId, is_read: true }) });
       setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
-      setNotifUnread(prev => Math.max(0, prev - 1));
+      setReplies(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
+      setLikesReceived(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
+      if (wasUnreadGeneral) setNotifUnread(prev => Math.max(0, prev - 1));
     } catch {}
   };
 
@@ -486,8 +462,19 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     try {
       const token = session?.access_token || "";
       await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: JSON.stringify({ mark_all_read: true }) });
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setReplies(prev => prev.map(n => ({ ...n, is_read: true })));
+      setLikesReceived(prev => prev.map(n => ({ ...n, is_read: true })));
       setNotifUnread(0);
     } catch {}
+  };
+
+  const replyUnread = replies.filter(n => !n.is_read).length;
+  const likeUnread = likesReceived.filter(n => !n.is_read).length;
+  const tabUnread: Partial<Record<TabId, number>> = {
+    notifications: notifUnread,
+    replies: replyUnread,
+    likes: likeUnread,
   };
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
@@ -573,9 +560,9 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                   title={tab.label}
                 >
                   {tab.icon}
-                  {tab.id === "notifications" && notifUnread > 0 && (
+                  {(tabUnread[tab.id] || 0) > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-red-500 text-[8px] font-bold text-white flex items-center justify-center">
-                      {notifUnread > 9 ? "" : notifUnread}
+                      {tab.id === "notifications" && (tabUnread[tab.id] || 0) > 9 ? "" : tabUnread[tab.id]}
                     </span>
                   )}
                 </button>
@@ -636,9 +623,9 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                       </div>
                     ) : (
                       replies.map(r => (
-                        <Link key={r.id} href={"/discussions/" + r.feedback_id + "?reply=" + encodeURIComponent(r.id)} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
-                          <svg className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                          <div className="flex-1 min-w-0">
+                        <Link key={r.id} href={"/discussions/" + r.feedback_id + (r.comment_id ? "?reply=" + encodeURIComponent(r.comment_id) : "")} onClick={() => { if (!r.is_read) markAsRead(r.id); }} className={"flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 " + (!r.is_read ? "bg-teal-50/50" : "")}>
+                          {!r.is_read && <div className="mt-1.5 h-2 w-2 rounded-full bg-slate-700 flex-shrink-0" />}
+                          <div className={`flex-1 min-w-0 ${r.is_read ? "ml-5" : ""}`}>
                             <p className="text-xs font-medium text-gray-900 truncate">{r.thread_title}</p>
                             {r.author_name && <p className="text-xs text-gray-500 truncate mt-0.5">{r.author_name}</p>}
                             <p className="text-xs text-gray-500 truncate mt-0.5">{r.message.substring(0, 60)}{r.message.length>60?"...":""}</p>
@@ -661,13 +648,12 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                       </div>
                     ) : (
                       likesReceived.map(item => (
-                        <Link key={item.entry_id + (item.comment_id || "")} href={"/discussions/" + item.entry_id + (item.comment_id ? "?reply=" + encodeURIComponent(item.comment_id) : "")} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
-                          <span className="h-5 w-5 flex-shrink-0 flex items-center justify-center rounded-full bg-red-50 text-red-500 text-[10px]">
-                            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-gray-900 truncate">{item.title}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{item.like_count} {item.like_count === 1 ? "like" : "likes"} received</p>
+                        <Link key={item.id || item.entry_id + (item.comment_id || "")} href={"/discussions/" + item.entry_id + (item.comment_id ? "?reply=" + encodeURIComponent(item.comment_id) : "")} onClick={() => { if (!item.is_read) markAsRead(item.id); }} className={"flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 " + (!item.is_read ? "bg-teal-50/50" : "")}>
+                          {!item.is_read && <div className="mt-1.5 h-2 w-2 rounded-full bg-slate-700 flex-shrink-0" />}
+                          <div className={`flex-1 min-w-0 ${item.is_read ? "ml-5" : ""}`}>
+                            <p className="text-sm text-gray-900"><span className="font-semibold">{item.actor_name}</span> {item.preview_text}</p>
+                            <p className="text-xs font-medium text-gray-900 truncate mt-0.5">{item.title}</p>
+                            <p className="text-xs text-gray-400 mt-1">{formatTimeAgo(item.created_at)}</p>
                           </div>
                         </Link>
                       ))

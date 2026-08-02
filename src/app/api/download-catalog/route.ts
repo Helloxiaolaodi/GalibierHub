@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
 
   let hfTreeWarning: string | null = null;
   try {
-    const hfFiles = await listHuggingFaceDatasetFiles();
+    const hfFiles = await listHuggingFaceDatasetFiles(undefined, forceRefresh);
     for (const hfFile of hfFiles) {
       let fileName = hfFile.path.split('/').filter(Boolean).pop() || hfFile.path;
       try {
@@ -351,7 +351,16 @@ export async function GET(request: NextRequest) {
 
   const payload = { items: result, warning: metadataWarning, isAdmin };
   catalogCache.set(cacheKey, { expiresAt: Date.now() + CATALOG_CACHE_MS, payload });
+  const responseHeaders: Record<string, string> = forceRefresh
+    ? {
+        "Cache-Control": "private, no-store, max-age=0",
+        "CDN-Cache-Control": "no-store",
+        "Surrogate-Control": "no-store",
+      }
+    : {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      };
   return NextResponse.json(payload, {
-    headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
+    headers: responseHeaders,
   });
 }
