@@ -87,6 +87,7 @@ function extractNextUrl(linkHeader: string | null, currentUrl: URL): string | nu
 
 export async function listHuggingFaceDatasetFiles(
   baseUrl: string = STORAGE_BASE_URL,
+  forceRefresh = false,
 ): Promise<HuggingFaceDatasetFile[]> {
   const ref = parseHuggingFaceDatasetRef(baseUrl);
   if (!ref) return [];
@@ -110,6 +111,9 @@ export async function listHuggingFaceDatasetFiles(
       ref.apiTreeUrl + (directory ? `/${encodePathSegments(directory)}` : ""),
     );
     apiUrl.searchParams.set("recursive", "false");
+    if (forceRefresh) {
+      apiUrl.searchParams.set("_", Date.now().toString());
+    }
     let pageUrl: string | null = apiUrl.toString();
 
     while (pageUrl) {

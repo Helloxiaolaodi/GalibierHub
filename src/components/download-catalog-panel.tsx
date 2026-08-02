@@ -287,8 +287,8 @@ export default function DownloadCatalogPanel({
       ? { Authorization: `Bearer ${accessToken}` }
       : {};
     try {
-      const url = '/api/download-catalog' + (nocache ? '?nocache=1' : '');
-      const res = await fetch(url, { headers });
+      const url = '/api/download-catalog' + (nocache ? `?nocache=1&ts=${Date.now()}` : '');
+      const res = await fetch(url, { headers, cache: 'no-store' });
       const data = await res.json();
       if (!active) return () => {
         active = false;

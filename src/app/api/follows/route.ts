@@ -1,5 +1,10 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
+import {
+  getServiceSupabase,
+  getSupabaseWithAuth,
+  hasSupabaseServiceRole,
+  isSupabaseConfigured,
+} from "@/utils/supabase";
 import { getBearerToken } from "@/lib/feedback-admin";
 
 export async function GET(request: NextRequest) {
@@ -12,7 +17,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const sb = getSupabase();
+  const sb = hasSupabaseServiceRole ? getServiceSupabase() : getSupabaseWithAuth(token);
   const { data: { user }, error: userError } = await sb.auth.getUser(token);
   if (userError || !user) {
     return NextResponse.json({ error: "Invalid session" }, { status: 401 });
