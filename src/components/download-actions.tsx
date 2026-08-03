@@ -187,6 +187,9 @@ const [unlocked, setUnlocked] = useState(false);
   const activeWgetCommand = downloadRegion === 'apac' ? (effectiveInfo.mirror_wget_command || effectiveInfo.wget_command) : effectiveInfo.wget_command;
   const activeCurlCommand = downloadRegion === 'apac' ? (effectiveInfo.mirror_curl_command || effectiveInfo.curl_command) : effectiveInfo.curl_command;
   const activeHfCliCommand = downloadRegion === 'apac' ? (effectiveInfo.mirror_hf_cli_command || effectiveInfo.hf_cli_command) : effectiveInfo.hf_cli_command;
+  const activeHfCliCommandWithoutEndpoint = activeHfCliCommand?.replace(/^HF_ENDPOINT=\S+\s+/, '') || null;
+  const mirrorEnvCommand = 'export HF_ENDPOINT=https://hf-mirror.com';
+  const windowsMirrorEnvCommand = '$env:HF_ENDPOINT = "https://hf-mirror.com"';
   const activeRegionHint = downloadRegion === 'apac' ? (effectiveInfo.mirror_region_hint || effectiveInfo.region_hint) : effectiveInfo.region_hint;
   const cliOptionsVisible = publicRouteAvailable && (showCli || effectiveInfo.cli_supported);
 
@@ -513,11 +516,38 @@ const [unlocked, setUnlocked] = useState(false);
                             onCopy={handleCopy}
                           />
                         )}
-                        {cliOptionsVisible && activeHfCliCommand && (
+                        {cliOptionsVisible && downloadRegion === 'apac' && (
+                          <>
+                            <RevealRow
+                              rowKey="hf-env-linux"
+                              label="Linux/macOS: set mirror endpoint"
+                              value={mirrorEnvCommand}
+                              copied={copied}
+                              onCopy={handleCopy}
+                            />
+                            <RevealRow
+                              rowKey="hf-env-windows"
+                              label="Windows PowerShell: set mirror endpoint"
+                              value={windowsMirrorEnvCommand}
+                              copied={copied}
+                              onCopy={handleCopy}
+                            />
+                          </>
+                        )}
+                        {cliOptionsVisible && activeHfCliCommandWithoutEndpoint && (
                           <RevealRow
                             rowKey="hf"
-                            label={downloadRegion === 'apac' ? 'CLI (mirror endpoint)' : 'CLI (recommended)'}
-                            value={activeHfCliCommand}
+                            label={downloadRegion === 'apac' ? 'Linux/macOS: hf CLI (mirror endpoint)' : 'Linux/macOS: hf CLI (recommended)'}
+                            value={activeHfCliCommandWithoutEndpoint}
+                            copied={copied}
+                            onCopy={handleCopy}
+                          />
+                        )}
+                        {cliOptionsVisible && activeHfCliCommandWithoutEndpoint && (
+                          <RevealRow
+                            rowKey="hf-windows"
+                            label="Windows PowerShell: hf CLI"
+                            value={activeHfCliCommandWithoutEndpoint}
                             copied={copied}
                             onCopy={handleCopy}
                           />
@@ -527,52 +557,51 @@ const [unlocked, setUnlocked] = useState(false);
                             <div>
                               <div className="text-sm font-medium text-emerald-900">Method 3: Use hfd</div>
                               <p className="mt-1 text-xs text-emerald-800">
-                                hfd is a Hugging Face download tool developed by this site. It is built on the mature aria2 engine for stable high-speed downloads without disconnects.
+                                hfd is a Hugging Face download tool developed by hf-mirror.com site. It is built on the mature aria2 engine for stable high-speed downloads without disconnects.
                               </p>
                             </div>
-                            <div className="rounded-md border border-emerald-200 bg-white p-3">
-                              <div className="mb-1 flex items-center justify-between gap-3">
-                                <span className="text-xs font-medium text-gray-800">1. Download hfd</span>
-                                <button type="button" onClick={() => void handleCopy('hfd-install', 'wget https://hf-mirror.com/hfd/hfd.sh\nchmod a+x hfd.sh')} className="text-xs text-teal-600 hover:underline">
-                                  {copied === 'hfd-install' ? 'Copied' : 'Copy'}
-                                </button>
-                              </div>
-                              <pre className="whitespace-pre-wrap break-all rounded bg-slate-50 px-3 py-2 font-mono text-xs text-gray-800 ring-1 ring-slate-200">wget https://hf-mirror.com/hfd/hfd.sh
-chmod a+x hfd.sh</pre>
-                            </div>
-                            <div className="rounded-md border border-emerald-200 bg-white p-3">
-                              <div className="mb-1 flex items-center justify-between gap-3">
-                                <span className="text-xs font-medium text-gray-800">2. Set environment variables</span>
-                                <button type="button" onClick={() => void handleCopy('hfd-env-linux', 'export HF_ENDPOINT=https://hf-mirror.com')} className="text-xs text-teal-600 hover:underline">
-                                  {copied === 'hfd-env-linux' ? 'Copied' : 'Copy Linux'}
-                                </button>
-                                <button type="button" onClick={() => void handleCopy('hfd-env-windows', '$env:HF_ENDPOINT = "https://hf-mirror.com"')} className="text-xs text-teal-600 hover:underline">
-                                  {copied === 'hfd-env-windows' ? 'Copied' : 'Copy Windows'}
-                                </button>
-                              </div>
-                              <div className="space-y-2">
-                                <pre className="whitespace-pre-wrap break-all rounded bg-slate-50 px-3 py-2 font-mono text-xs text-gray-800 ring-1 ring-slate-200">Linux
-export HF_ENDPOINT=https://hf-mirror.com</pre>
-                                <pre className="whitespace-pre-wrap break-all rounded bg-slate-50 px-3 py-2 font-mono text-xs text-gray-800 ring-1 ring-slate-200">Windows PowerShell
- $env:HF_ENDPOINT = &quot;https://hf-mirror.com&quot;</pre>
-                              </div>
-                            </div>
-                            <div className="rounded-md border border-emerald-200 bg-white p-3">
-                              <div className="mb-1 flex items-center justify-between gap-3">
-                                <span className="text-xs font-medium text-gray-800">3. Download models / datasets</span>
-                                <button type="button" onClick={() => void handleCopy('hfd-download-model', './hfd.sh gpt2')} className="text-xs text-teal-600 hover:underline">
-                                  {copied === 'hfd-download-model' ? 'Copied' : 'Copy Model'}
-                                </button>
-                                <button type="button" onClick={() => void handleCopy('hfd-download-dataset', './hfd.sh wikitext --dataset')} className="text-xs text-teal-600 hover:underline">
-                                  {copied === 'hfd-download-dataset' ? 'Copied' : 'Copy Dataset'}
-                                </button>
-                              </div>
-<pre className="whitespace-pre-wrap break-all rounded bg-slate-50 px-3 py-2 font-mono text-xs text-gray-800 ring-1 ring-slate-200"># Download model
-./hfd.sh gpt2
-
-# Download dataset
-./hfd.sh wikitext --dataset</pre>
-                            </div>
+                            <RevealRow
+                              rowKey="hfd-install-linux"
+                              label="Linux/macOS: download hfd"
+                              value={"wget https://hf-mirror.com/hfd/hfd.sh\nchmod a+x hfd.sh"}
+                              copied={copied}
+                              onCopy={handleCopy}
+                            />
+                            <RevealRow
+                              rowKey="hfd-install-windows"
+                              label="Windows PowerShell: download hfd"
+                              value={"Invoke-WebRequest -Uri https://hf-mirror.com/hfd/hfd.sh -OutFile hfd.sh\n# Run hfd.sh in Git Bash or WSL"}
+                              copied={copied}
+                              onCopy={handleCopy}
+                            />
+                            <RevealRow
+                              rowKey="hfd-env-linux"
+                              label="Linux/macOS: set mirror endpoint"
+                              value={mirrorEnvCommand}
+                              copied={copied}
+                              onCopy={handleCopy}
+                            />
+                            <RevealRow
+                              rowKey="hfd-env-windows"
+                              label="Windows PowerShell: set mirror endpoint"
+                              value={windowsMirrorEnvCommand}
+                              copied={copied}
+                              onCopy={handleCopy}
+                            />
+                            <RevealRow
+                              rowKey="hfd-model"
+                              label="Download model"
+                              value="./hfd.sh gpt2"
+                              copied={copied}
+                              onCopy={handleCopy}
+                            />
+                            <RevealRow
+                              rowKey="hfd-dataset"
+                              label="Download dataset"
+                              value="./hfd.sh wikitext --dataset"
+                              copied={copied}
+                              onCopy={handleCopy}
+                            />
                           </div>
                         )}
                         {activeRegionHint && <p className="text-xs text-gray-500">{activeRegionHint}</p>}
