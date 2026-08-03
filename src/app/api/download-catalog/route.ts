@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
       upsertItem(items, {
         url: hfFile.url,
         label: fileName,
-        description: `Public file from the Hugging Face dataset (${hfFile.path}).`,
+        description: '',
         sizeBytes: hfFile.size,
         sizeLabel: '',
         showCli: true,

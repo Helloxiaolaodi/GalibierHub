@@ -85,6 +85,14 @@ function extractNextUrl(linkHeader: string | null, currentUrl: URL): string | nu
   return null;
 }
 
+function parseUpdatedAt(value: string | { date?: string | null } | null | undefined): string | null {
+  if (!value) return null;
+  const raw = typeof value === "string" ? value : value.date;
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 export async function listHuggingFaceDatasetFiles(
   baseUrl: string = STORAGE_BASE_URL,
   forceRefresh = false,
@@ -111,6 +119,7 @@ export async function listHuggingFaceDatasetFiles(
       ref.apiTreeUrl + (directory ? `/${encodePathSegments(directory)}` : ""),
     );
     apiUrl.searchParams.set("recursive", "false");
+    apiUrl.searchParams.set("expand", "true");
     if (forceRefresh) {
       apiUrl.searchParams.set("_", Date.now().toString());
     }
@@ -124,8 +133,9 @@ export async function listHuggingFaceDatasetFiles(
         redirect: "follow",
       });
 
-      if (!response.ok && response.status === 400 && url.searchParams.has("recursive")) {
-        url.searchParams.delete("recursive");
+      if (!response.ok && response.status === 400) {
+        if (url.searchParams.has("recursive")) url.searchParams.delete("recursive");
+        if (url.searchParams.has("expand")) url.searchParams.delete("expand");
         response = await fetch(url, {
           headers: { "User-Agent": "GalibierHub/1.0", Accept: "application/json" },
           cache: "no-store",
@@ -162,7 +172,7 @@ export async function listHuggingFaceDatasetFiles(
           url: new URL(path, base).toString(),
           size: typeof entry.size === "number" ? entry.size : null,
           sha256Checksum: entry.lfs?.oid ?? entry.oid ?? null,
-          updatedAt: (() => { const lc = entry.lastCommit; if (lc && typeof lc === 'object') { const d = (lc as Record<string,unknown>).date; if (typeof d === 'string') return d; } if (typeof lc === 'string') return lc; return null; })(),
+          updatedAt: parseUpdatedAt(entry.lastCommit),
         });
       }
 
