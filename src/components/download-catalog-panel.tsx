@@ -541,6 +541,7 @@ export default function DownloadCatalogPanel({
   const clusterFolderPattern = currentPath ? `${currentPath}/*` : '*';
   const clusterRepoId = deriveHfRepoId(currentFolderItems);
   const clusterSuffix = downloadRegion === 'apac' ? 'mirror' : 'official';
+  const clusterVerifyDir = currentPath ? `downloads/${currentPath}/` : `downloads/${rootLabel}/`;
   const clusterPythonFileName = `GalibierHub-download-${clusterSuffix}-folder.py`;
   const clusterSlurmFileName = `GalibierHub-download-${clusterSuffix}-folder.sh`;
   const clusterPythonScript = normalizeScriptSpaces(buildClusterPythonScript(clusterRepoId, clusterFolderPattern, downloadRegion));
@@ -921,6 +922,7 @@ export default function DownloadCatalogPanel({
                   label="Download to Browser"
                   sizeLabel={item.sizeLabel}
                   initialSizeBytes={item.sizeBytes}
+                  initialUpdatedAt={item.updatedAt}
                   description={item.description}
                   showCli={item.showCli}
                   isAdmin={effectiveIsAdmin}
@@ -999,6 +1001,7 @@ export default function DownloadCatalogPanel({
                         label="Download to Browser"
                         sizeLabel={item.sizeLabel}
                         initialSizeBytes={item.sizeBytes}
+                        initialUpdatedAt={item.updatedAt}
                         description={item.description}
                         showCli={item.showCli}
                         isAdmin={effectiveIsAdmin}
@@ -1148,6 +1151,11 @@ export default function DownloadCatalogPanel({
                   <li>Submit with:</li>
                 </ol>
                 <pre className="mt-2 rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-emerald-200">sbatch {clusterSlurmFileName}</pre>
+                <div className="mt-2">
+                  <span className="font-medium">5. Verify Folder Integrity (Optional):</span> After the job completes, navigate to your download directory and check file integrity using sha256sum.
+                </div>
+                <pre className="mt-2 rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-emerald-200">cd {clusterVerifyDir}
+ echo &quot;43337ffb77551e53f00a59c2b954e683a95b87d86b937332e7345508fa961901  rrnDB-5.10_16S_rRNA.fasta&quot; | sha256sum -c -</pre>
               </div>
             </div>
           </div>

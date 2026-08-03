@@ -101,7 +101,10 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
             </div>
             <ul className="space-y-2.5">
               <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Navigate the directory tree with breadcrumbs and switch between Grid / Table views.</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Use Cluster Batch Download to generate Python and SLURM scripts for recursive folder downloads.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Use Download to Browser for a direct local download that preserves the original filename.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Open CLI to choose Linux/macOS or Windows PowerShell and copy complete command blocks for hf CLI, wget/curl, hfd, or direct URL.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Use Checksum to copy a Linux sha256sum verification command, or open Cite to reveal hidden citation formats with Show.</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Use Cluster Batch Download to generate Python and SLURM scripts for recursive folder downloads, including a folder integrity verification step.</li>
               <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Export manifests (TSV, CSV) or checksum files for bulk verification.</li>
               <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />For batch scripts, select samples in Records and click Batch download.</li>
               <li className="flex items-start gap-2"><span className="mt-1.5 block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />Large files support resumable downloads via wget -c or hf download.</li>
