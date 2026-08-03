@@ -411,7 +411,12 @@ export default function DownloadCatalogPanel({
   const [downloadRegion, setDownloadRegion] = useState<DownloadRegion>(() => getPreferredDownloadRegion());
   const [batchBrowserDownloading, setBatchBrowserDownloading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 20;
+  const [pageSize, setPageSize] = useState(20);
+  const [pageInput, setPageInput] = useState('1');
+
+  useEffect(() => {
+    setPageInput(String(currentPage));
+  }, [currentPage]);
 
   const loadCatalog = useCallback(async (nocache?: boolean) => {
     let active = true;
@@ -580,6 +585,21 @@ export default function DownloadCatalogPanel({
     const start = (currentPage - 1) * pageSize;
     return visibleFiles.slice(start, start + pageSize);
   }, [visibleFiles, currentPage, pageSize]);
+
+  const handleJump = () => {
+    const parsed = Number.parseInt(pageInput, 10);
+    if (Number.isNaN(parsed)) {
+      setPageInput(String(currentPage));
+      return;
+    }
+    setCurrentPage(Math.min(Math.max(parsed, 1), totalPages));
+  };
+
+  const handlePageSizeChange = (nextSize: number) => {
+    setPageSize(nextSize);
+    setCurrentPage(1);
+    setPageInput('1');
+  };
 
   const handleMetadataSaved = (itemId: string, hidden: boolean) => {
     setItems((current) => current.map((item) => (item.id === itemId ? { ...item, hidden } : item)));
@@ -1024,37 +1044,79 @@ export default function DownloadCatalogPanel({
 
 
       {/* Pagination controls */}
-      {visibleFiles.length > pageSize && (
-        <nav className="mt-4 flex items-center justify-between border-t border-gray-200 px-4 py-3">
-          <div className="text-sm text-gray-700">
+      {visibleFiles.length > 0 && (
+        <nav className="mt-4 flex flex-col gap-3 border-t border-gray-200 px-4 py-3 text-sm text-gray-700 lg:flex-row lg:items-center lg:justify-between">
+          <div>
             Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-medium">{Math.min(currentPage * pageSize, visibleFiles.length)}</span> of <span className="font-medium">{visibleFiles.length}</span> files
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              First
+            </button>
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Previous
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                type="button"
-                onClick={() => setCurrentPage(page)}
-                className={`inline-flex items-center rounded px-3 py-1.5 text-sm font-medium ${page === currentPage ? 'bg-slate-800 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-              >
-                {page}
-              </button>
-            ))}
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Last
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+            <label className="flex items-center gap-2">
+              <span>Page size</span>
+              <select
+                value={pageSize}
+                onChange={(event) => handlePageSizeChange(Number.parseInt(event.target.value, 10))}
+                className="rounded border bg-white px-2 py-1"
+              >
+                {[20, 50, 100].map((size) => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+            </label>
+            <span>Page {currentPage} of {totalPages}</span>
+            <label className="flex items-center gap-2">
+              <span>Page</span>
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={pageInput}
+                onChange={(event) => setPageInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') handleJump();
+                }}
+                className="w-20 rounded border bg-white px-2 py-1"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleJump}
+              className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100"
+            >
+              Go
             </button>
           </div>
         </nav>
