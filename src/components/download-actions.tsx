@@ -11,6 +11,12 @@ import {
   type DownloadStorageProvider,
 } from '@/lib/download-info';
 import { NOT_DIRECT_FILE_URL_MESSAGE } from '@/lib/storage';
+import {
+  getPreferredDownloadRegion,
+  resolveBrowserDownload,
+  triggerBrowserDownload,
+  type DownloadRegion,
+} from '@/lib/download-region';
 
 interface DownloadActionsProps {
   url: string;
@@ -123,7 +129,7 @@ export default function DownloadActions({
   const [hfMeta, setHfMeta] = useState<FileMeta>({ size: null, sha256: null, loading: false });
   const [dbMeta, setDbMeta] = useState<DownloadMetadataPayload>(DEFAULT_DOWNLOAD_METADATA);
   const [resolvedInfo, setResolvedInfo] = useState<DownloadResolvedInfo | null>(null);
-    const [activeTab, setActiveTab] = useState<'preview'|'checksum'|'cite'|'script'>('preview');
+    const [activeTab, setActiveTab] = useState<'download'|'preview'|'checksum'|'cite'|'script'>('download');
   const [filePreview, setFilePreview] = useState<{loading:boolean;content:string|null;error:string|null}>({loading:false,content:null,error:null});
 const [unlocked, setUnlocked] = useState(false);
   const [pwInput, setPwInput] = useState('');
@@ -132,7 +138,7 @@ const [unlocked, setUnlocked] = useState(false);
   const [draft, setDraft] = useState<EditDraft | null>(null);
   const [saveState, setSaveState] = useState<{ ok: boolean; text: string } | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const [downloadRegion, setDownloadRegion] = useState<'global' | 'apac'>('global');
+  const [downloadRegion, setDownloadRegion] = useState<DownloadRegion>(() => getPreferredDownloadRegion());
 
   const key = normalizeDownloadKey(url);
 
@@ -147,7 +153,7 @@ const [unlocked, setUnlocked] = useState(false);
     setEditing(false);
     setDraft(null);
     setSaveState(null);
-    setDownloadRegion('global');
+    setDownloadRegion(getPreferredDownloadRegion());
     readDbMeta(key, url).then((meta) => {
       if (!active) return;
       setDbMeta(meta);
@@ -232,24 +238,21 @@ const [unlocked, setUnlocked] = useState(false);
     setDownloading(true);
     setPwError(null);
     try {
-      const res = await fetch('/api/download-metadata/resolve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ download_key: key, password: pwInput || undefined, label, description }),
+      const { url: downloadUrl, filename } = await resolveBrowserDownload({
+        download_key: key,
+        password: pwInput || undefined,
+        label,
+        description,
+        region: downloadRegion,
       });
-      const data = await res.json();
-      if (!res.ok || !data?.url) {
-        setPwError(data?.error || 'Failed to prepare download URL.');
-        return;
-      }
       await recordDownload();
-      window.open(data.url, '_blank', 'noopener,noreferrer');
+      triggerBrowserDownload(downloadUrl, filename);
     } catch {
       setPwError('Failed to prepare download URL.');
     } finally {
       setDownloading(false);
     }
-  }, [key, pwInput, label, description, recordDownload]);
+  }, [key, pwInput, label, description, downloadRegion, recordDownload]);
 
   const startEdit = () => {
     setEditing(true);
@@ -422,10 +425,10 @@ const [unlocked, setUnlocked] = useState(false);
               
               {/* Tab Navigation */}
               <div className="flex border-b border-gray-200 -mx-5 px-5">
-                {(['preview','checksum','cite','script'] as const).map(tab => (
+                {(['download','preview','checksum','cite','script'] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
                     className={"px-4 py-2 text-xs font-medium border-b-2 transition-colors " + (activeTab === tab ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")}>
-                    {tab === 'preview' ? 'File Preview' : tab === 'checksum' ? 'Checksum' : tab === 'cite' ? 'Cite' : 'Batch Script'}
+                    {tab === 'download' ? 'Download' : tab === 'preview' ? 'File Preview' : tab === 'checksum' ? 'Checksum' : tab === 'cite' ? 'Cite' : 'Batch Script'}
                   </button>
                 ))}
               </div></div>
@@ -444,6 +447,101 @@ const [unlocked, setUnlocked] = useState(false);
               )}
 
               {/* File Preview Tab */}
+              {activeTab === "download" && (linksVisible || isAdmin) && (
+                <div className="space-y-4">
+                  {directUrlInvalid && (
+                    <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
+                  )}
+                  <div className="rounded border border-gray-100 bg-gray-50 p-3 space-y-3">
+                    <div className="text-sm font-medium text-gray-800">Download options</div>
+                    {effectiveInfo.access_mode === 'supabase_private' ? (
+                      <p className="text-xs text-amber-700">{effectiveInfo.access_note}</p>
+                    ) : directUrlInvalid ? (
+                      <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
+                    ) : publicRouteAvailable ? (
+                      <div className="space-y-3">
+                        {(effectiveInfo.public_url || effectiveInfo.mirror_public_url) && (
+                          <div className="space-y-3 rounded-md border border-slate-200 bg-white px-3 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-medium text-slate-800">Regional download routing</div>
+                                <div className="text-xs text-slate-800">
+                                  Automatically selected from your timezone; override it for this transfer if needed.
+                                </div>
+                              </div>
+                              <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setDownloadRegion('global')}
+                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
+                                >
+                                  Global (Official)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDownloadRegion('apac')}
+                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'apac' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-50'}`}
+                                >
+                                  Asia-Pacific (Mirror)
+                                </button>
+                              </div>
+                            </div>
+                            <RevealRow
+                              rowKey="public-url"
+                              label={downloadRegion === 'apac' ? 'Mirror direct URL for Free Download Manager and similar tools' : 'Official direct URL for Free Download Manager and similar tools'}
+                              value={activePublicUrl}
+                              copied={copied}
+                              onCopy={handleCopy}
+                            />
+                          </div>
+                        )}
+                        {cliOptionsVisible && activeWgetCommand && (
+                          <RevealRow
+                            rowKey="wget"
+                            label="Linux/macOS: wget (resume)"
+                            value={activeWgetCommand}
+                            copied={copied}
+                            onCopy={handleCopy}
+                          />
+                        )}
+                        {cliOptionsVisible && activeCurlCommand && (
+                          <RevealRow
+                            rowKey="curl"
+                            label="Windows/Linux/macOS: curl (resume)"
+                            value={activeCurlCommand}
+                            copied={copied}
+                            onCopy={handleCopy}
+                          />
+                        )}
+                        {cliOptionsVisible && activeHfCliCommand && (
+                          <RevealRow
+                            rowKey="hf"
+                            label={downloadRegion === 'apac' ? 'CLI (mirror endpoint)' : 'CLI (recommended)'}
+                            value={activeHfCliCommand}
+                            copied={copied}
+                            onCopy={handleCopy}
+                          />
+                        )}
+                        {activeRegionHint && <p className="text-xs text-gray-500">{activeRegionHint}</p>}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">CLI download is not available for this file.</p>
+                    )}
+                    <div className="border-t border-gray-200 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => void handleBrowserDownload()}
+                        disabled={downloading}
+                        className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all disabled:opacity-50"
+                      >
+                        {downloading ? 'Preparing...' : 'Download to browser'}
+                      </button>
+                      <p className="mt-2 text-xs text-gray-500">Uses the selected region and keeps the original file name.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {activeTab === "preview" && (linksVisible || isAdmin) && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600">Preview the first ~2KB of this file (text-based formats only).</p>
