@@ -7,7 +7,7 @@
 GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整合了可检索元数据、嵌入式基因组浏览器、图表、讨论区工作流，以及大文件与前端解耦的部署方式。
 
 **主站：** [https://seq-edge.vercel.app](https://seq-edge.vercel.app)  
-**镜像：** [https://galibierhub.pages.dev](https://galibierhub.pages.dev)  
+**镜像：** [https://galibierhub.pages.dev](https://seqedge.pages.dev)  
 **GitHub：** [https://github.com/Helloxiaolaodi/GalibierHub](https://github.com/Helloxiaolaodi/GalibierHub)
 
 语言：**简体中文** | [English](./README.md) | [问题反馈](https://github.com/Helloxiaolaodi/GalibierHub/issues)

@@ -5,7 +5,7 @@
 Edge-Native Genomics Database Template
 
 **Primary:** [https://seq-edge.vercel.app](https://seq-edge.vercel.app)  
-**Mirror:** [https://galibierhub.pages.dev](https://galibierhub.pages.dev)  
+**Mirror:** [https://galibierhub.pages.dev](https://seqedge.pages.dev/)  
 **GitHub:** [https://github.com/Helloxiaolaodi/GalibierHub](https://github.com/Helloxiaolaodi/GalibierHub)
 
 Language: **English** | [简体中文](./README.zh-CN.md) | [Issues](https://github.com/Helloxiaolaodi/GalibierHub/issues)
