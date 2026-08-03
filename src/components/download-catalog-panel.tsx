@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import DownloadActions from '@/components/download-actions';
-import { formatDownloadBytes } from '@/lib/download-info';
+import { buildHfMirrorUrl, formatDownloadBytes, normalizeDownloadKey } from '@/lib/download-info';
+import { getPreferredDownloadRegion, resolveBrowserDownload, triggerBrowserDownload, type DownloadRegion } from '@/lib/download-region';
 
 type DownloadCatalogItem = {
   id: string;
@@ -194,9 +195,14 @@ function downloadText(filename: string, text: string, mime = 'text/plain;charset
   URL.revokeObjectURL(url);
 }
 
-function buildFolderCommands(folderItems: FileRow[], rootLabel: string, path: string): { wget: string; curl: string; hf: string } {
+function buildFolderCommands(folderItems: FileRow[], rootLabel: string, path: string, useMirror = false): { wget: string; curl: string; hf: string } {
   const scopeLabelValue = path ? `${rootLabel}/${path}` : rootLabel;
-  const publicItems = folderItems.filter((item) => item.url);
+  const publicItems = folderItems
+    .filter((item) => item.url)
+    .map((item) => {
+      const cliUrl = useMirror ? buildHfMirrorUrl(item.url) || item.url : item.url;
+      return { ...item, url: cliUrl, fileName: deriveFileName(cliUrl) };
+    });
   const header = `# GalibierHub directory download\n# Scope: ${scopeLabelValue}\n# Files: ${publicItems.length}\n`;
   const wget = `${header}${publicItems.map((item) => `wget -c -O "${item.fileName}" "${item.url}"`).join('\n')}`;
   const curl = `${header}${publicItems.map((item) => `curl -L -C - -o "${item.fileName}" "${item.url}"`).join('\n')}`;
@@ -276,6 +282,8 @@ export default function DownloadCatalogPanel({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [readmeOpen, setReadmeOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [downloadRegion, setDownloadRegion] = useState<DownloadRegion>(() => getPreferredDownloadRegion());
+  const [batchBrowserDownloading, setBatchBrowserDownloading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
@@ -406,8 +414,8 @@ export default function DownloadCatalogPanel({
   const currentFolderSummary = useMemo(() => folderSummary(currentNode), [currentNode]);
 
   const folderCommands = useMemo(
-    () => buildFolderCommands(currentFolderItems, rootLabel, currentPath),
-    [currentFolderItems, currentPath, rootLabel],
+    () => buildFolderCommands(currentFolderItems, rootLabel, currentPath, downloadRegion === 'apac'),
+    [currentFolderItems, currentPath, rootLabel, downloadRegion],
   );
 
   const showBlockingLoader = loading && items.length === 0;
@@ -467,6 +475,10 @@ export default function DownloadCatalogPanel({
   };
 
   const selectedFiles = visibleFiles.filter((item) => selectedIds.has(item.id));
+  const batchCliFiles = selectedFiles.map((item) => {
+    const cliUrl = downloadRegion === 'apac' ? buildHfMirrorUrl(item.url) || item.url : item.url;
+    return { ...item, url: cliUrl, fileName: deriveFileName(cliUrl) };
+  });
 
   const toggleSort = (nextKey: SortKey) => {
     if (sortKey === nextKey) {
@@ -508,6 +520,37 @@ export default function DownloadCatalogPanel({
       setFolderCliCopied(null);
     }
   }, []);
+
+  const handleBatchBrowserDownload = useCallback(async () => {
+    if (selectedFiles.length === 0) return;
+    setBatchBrowserDownloading(true);
+    setStatusMessage(null);
+    const region = downloadRegion;
+    let failed = 0;
+    try {
+      for (const item of selectedFiles) {
+        try {
+          const resolved = await resolveBrowserDownload({
+            download_key: normalizeDownloadKey(item.url),
+            label: item.label,
+            description: item.description,
+            region,
+          });
+          triggerBrowserDownload(resolved.url, resolved.filename);
+          await new Promise((resolve) => window.setTimeout(resolve, 1200));
+        } catch {
+          failed += 1;
+        }
+      }
+      setStatusMessage(
+        failed === 0
+          ? `Started browser downloads for ${selectedFiles.length} file(s).`
+          : `Started ${selectedFiles.length - failed} browser download(s); ${failed} could not be prepared.`,
+      );
+    } finally {
+      setBatchBrowserDownloading(false);
+    }
+  }, [selectedFiles, downloadRegion]);
 
   return (
     <section className="space-y-4">
@@ -948,18 +991,19 @@ export default function DownloadCatalogPanel({
                   <span className="text-sm font-medium text-gray-800">Browser download</span>
                 </div>
                 <p className="mb-3 text-xs text-gray-600">Downloads each file directly in your browser. Multiple files will download sequentially.</p>
-                <button
-                  type="button"
-                  onClick={() => { selectedFiles.forEach((item) => { const a = document.createElement('a'); a.href = item.url; a.download = item.fileName || ''; a.click(); }); }}
-                  className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all"
-                >
-                  Start Browser Download
-                </button>
-              </div>
-              {[
-                { key: 'wget', title: 'wget', cmd: selectedFiles.map((item) => `wget -c "${item.url}"`).join('\n') },
-                { key: 'curl', title: 'curl', cmd: selectedFiles.map((item) => `curl -L -C - -O "${item.url}"`).join('\n') },
-              ].map((block) => (
+                  <button
+                    type="button"
+                    onClick={() => void handleBatchBrowserDownload()}
+                    disabled={batchBrowserDownloading}
+                    className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all disabled:opacity-50"
+                  >
+                    {batchBrowserDownloading ? 'Preparing downloads...' : 'Start Browser Download'}
+                  </button>
+                </div>
+                {[
+                  { key: 'wget', title: 'wget (Linux/macOS, resume)', cmd: batchCliFiles.map((item) => `wget -c -O "${item.fileName}" "${item.url}"`).join('\n') },
+                  { key: 'curl', title: 'curl (Windows/Linux/macOS, resume)', cmd: batchCliFiles.map((item) => `curl -L -C - -o "${item.fileName}" "${item.url}"`).join('\n') },
+                ].map((block) => (
                 <div key={block.key} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <span className="text-sm font-medium text-gray-800">{block.title}</span>
