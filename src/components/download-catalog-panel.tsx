@@ -282,7 +282,7 @@ export default function DownloadCatalogPanel({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [readmeOpen, setReadmeOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
-  const [downloadRegion, setDownloadRegion] = useState<DownloadRegion>(() => getPreferredDownloadRegion());
+  const [downloadRegion] = useState<DownloadRegion>(() => getPreferredDownloadRegion());
   const [batchBrowserDownloading, setBatchBrowserDownloading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;

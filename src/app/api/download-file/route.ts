@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server';
 import { extractDownloadFileName } from '@/lib/download-info';
 import { HF_PROXY_BASE_URL, STORAGE_BASE_URL } from '@/lib/storage';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 const ALLOWED_HOST_SUFFIXES = [
