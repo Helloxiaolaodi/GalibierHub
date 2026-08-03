@@ -546,6 +546,18 @@ export default function DownloadCatalogPanel({
   const clusterSlurmFileName = `GalibierHub-download-${clusterSuffix}-folder.sh`;
   const clusterPythonScript = normalizeScriptSpaces(buildClusterPythonScript(clusterRepoId, clusterFolderPattern, downloadRegion));
   const clusterSlurmScript = normalizeScriptSpaces(buildClusterSlurmScript(clusterRepoId, clusterFolderPattern, downloadRegion));
+  const clusterChecksumLines = currentFolderItems
+    .map((item) => {
+      const checksum = cleanChecksum(item.sha256_checksum || item.sha256Checksum || item.sha256 || item.oid || item.cksum);
+      if (!checksum) return '';
+      const relative = item.directoryPath ? `${item.directoryPath}/${item.fileName}` : item.fileName;
+      return `${checksum}  ${relative}`;
+    })
+    .filter(Boolean)
+    .join('\n');
+  const clusterVerifyCommand = clusterChecksumLines
+    ? `cd ${clusterVerifyDir}\ncat <<'EOF' > SHA256SUMS\n${clusterChecksumLines}\nEOF\nsha256sum -c SHA256SUMS`
+    : `cd ${clusterVerifyDir}\nfind . -type f -exec sha256sum {} + > SHA256SUMS\nsha256sum -c SHA256SUMS`;
 
   const showBlockingLoader = loading && items.length === 0;
 
@@ -1154,8 +1166,7 @@ export default function DownloadCatalogPanel({
                 <div className="mt-2">
                   <span className="font-medium">5. Verify Folder Integrity (Optional):</span> After the job completes, navigate to your download directory and check file integrity using sha256sum.
                 </div>
-                <pre className="mt-2 rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-emerald-200">cd {clusterVerifyDir}
- echo &quot;43337ffb77551e53f00a59c2b954e683a95b87d86b937332e7345508fa961901  rrnDB-5.10_16S_rRNA.fasta&quot; | sha256sum -c -</pre>
+                <pre className="mt-2 rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-emerald-200">{clusterVerifyCommand}</pre>
               </div>
             </div>
           </div>
