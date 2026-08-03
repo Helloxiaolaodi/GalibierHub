@@ -345,6 +345,10 @@ cp -r "\${LOCAL_SCRATCH}/output/"* "\${NET_OUT_DIR}/"
 `;
 }
 
+function normalizeScriptSpaces(script: string): string {
+  return script.replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, ' ');
+}
+
 function buildManifestRows(folderItems: FileRow[], rootLabel: string): Array<Record<string, string>> {
   return folderItems.map((item) => ({
     Directory_Path: item.directoryPath ? `${rootLabel}/${item.directoryPath}` : rootLabel,
@@ -399,7 +403,7 @@ export default function DownloadCatalogPanel({
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [folderCliOpen, setFolderCliOpen] = useState(false);
   const [folderCliCopied, setFolderCliCopied] = useState<string | null>(null);
-  const [clusterScriptOpen, setClusterScriptOpen] = useState<'python' | 'slurm' | null>('python');
+  const [clusterScriptOpen, setClusterScriptOpen] = useState<'python' | 'slurm' | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [readmeOpen, setReadmeOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
@@ -539,8 +543,8 @@ export default function DownloadCatalogPanel({
   const clusterSuffix = downloadRegion === 'apac' ? 'mirror' : 'official';
   const clusterPythonFileName = `GalibierHub-download-${clusterSuffix}-folder.py`;
   const clusterSlurmFileName = `GalibierHub-download-${clusterSuffix}-folder.sh`;
-  const clusterPythonScript = buildClusterPythonScript(clusterRepoId, clusterFolderPattern, downloadRegion);
-  const clusterSlurmScript = buildClusterSlurmScript(clusterRepoId, clusterFolderPattern, downloadRegion);
+  const clusterPythonScript = normalizeScriptSpaces(buildClusterPythonScript(clusterRepoId, clusterFolderPattern, downloadRegion));
+  const clusterSlurmScript = normalizeScriptSpaces(buildClusterSlurmScript(clusterRepoId, clusterFolderPattern, downloadRegion));
 
   const showBlockingLoader = loading && items.length === 0;
 
