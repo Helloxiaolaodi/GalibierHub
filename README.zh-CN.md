@@ -38,6 +38,13 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 10. [致谢](#致谢)
 11. [许可证](#许可证)
 
+## 最近更新
+
+- Downloads 新增 `Cluster Batch Download` 集群批量下载工作流，可基于 Python 与 SLURM 脚本递归下载整个文件夹，并提供 `Global (Official)` 与 `Asia-Pacific (Mirror)` 模板。
+- Downloads CLI 弹窗新增 Linux/macOS 与 Windows PowerShell 系统切换、一键复制完整命令，以及 `hfd` 镜像加速选项。
+- 浏览器下载会保留原始文件名，并自动为亚太地区访客切换到 Hugging Face 镜像。
+- Downloads 表格现在显示真实 `Updated` 日期，`Name` 与 `Actions` 列保持简洁，Actions 仅保留 `Download to Browser` 与 `CLI`。
+
 ## 项目概览
 
 GalibierHub 当前主要包含五个核心界面：
