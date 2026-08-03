@@ -195,34 +195,154 @@ function downloadText(filename: string, text: string, mime = 'text/plain;charset
   URL.revokeObjectURL(url);
 }
 
-function buildFolderCommands(folderItems: FileRow[], rootLabel: string, path: string, useMirror = false): { wget: string; curl: string; hf: string } {
-  const scopeLabelValue = path ? `${rootLabel}/${path}` : rootLabel;
-  const publicItems = folderItems
-    .filter((item) => item.url)
-    .map((item) => {
-      const cliUrl = useMirror ? buildHfMirrorUrl(item.url) || item.url : item.url;
-      return { ...item, url: cliUrl, fileName: deriveFileName(cliUrl) };
-    });
-  const header = `# GalibierHub directory download\n# Scope: ${scopeLabelValue}\n# Files: ${publicItems.length}\n`;
-  const wget = `${header}${publicItems.map((item) => `wget -c -O "${item.fileName}" "${item.url}"`).join('\n')}`;
-  const curl = `${header}${publicItems.map((item) => `curl -L -C - -o "${item.fileName}" "${item.url}"`).join('\n')}`;
-  const hf = `${header}${publicItems
-    .map((item) => {
-      const marker = '/resolve/main/';
+function deriveHfRepoId(folderItems: FileRow[]): string {
+  for (const item of folderItems) {
+    if (!item.url) continue;
+    try {
       const parsed = new URL(item.url);
       const parts = parsed.pathname.split('/').filter(Boolean);
       const datasetsIndex = parts.indexOf('datasets');
-      const repo = datasetsIndex !== -1 && parts.length > datasetsIndex + 2
-        ? `${parts[datasetsIndex + 1]}/${parts[datasetsIndex + 2]}`
-        : null;
-      const markerIndex = parsed.pathname.indexOf(marker);
-      const relative = markerIndex >= 0 ? parsed.pathname.slice(markerIndex + marker.length) : '';
-      if (!repo || !relative) return '';
-      return `hf download ${repo} ${relative} --repo-type dataset --local-dir .`;
-    })
-    .filter(Boolean)
-    .join('\n')}`;
-  return { wget, curl, hf };
+      if (datasetsIndex !== -1 && parts.length > datasetsIndex + 2) {
+        return `${parts[datasetsIndex + 1]}/${parts[datasetsIndex + 2]}`;
+      }
+    } catch {
+      // Continue to the next item.
+    }
+  }
+  return 'Helloxiaolaodi/seqedge-data';
+}
+
+function buildClusterPythonScript(repoId: string, folderPattern: string, region: DownloadRegion): string {
+  if (region === 'apac') {
+    return `import os
+from huggingface_hub import snapshot_download
+
+# ==========================================
+# 1. Environment Variables: Mirror Routing & Acceleration
+# ==========================================
+# Force routing to the Asia-Pacific mirror node
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+os.environ["HF_HUB_DISABLE_XET"] = "1"
+
+# ==========================================
+# 2. Initialization and Download
+# ==========================================
+# <-- [USER MODIFICATION REQUIRED] Change to your target Hugging Face repository
+repo_id = "${repoId}"
+
+# <-- [USER MODIFICATION REQUIRED] Define the folder path you want to download recursively.
+# Use 'folder_name/*' to grab all contents inside the target folder.
+target_folder_pattern = "${folderPattern}"
+
+# We will instruct the script to download to the current working directory
+download_dir = "./"
+
+print("\\nInitializing recursive folder download via Asia-Pacific (Mirror) Node...")
+
+try:
+    print(f"Fetching contents of '{target_folder_pattern}' from '{repo_id}'...")
+    folder_path = snapshot_download(
+        repo_id=repo_id,
+        repo_type="dataset",
+        allow_patterns=target_folder_pattern,
+        local_dir=download_dir,
+        local_dir_use_symlinks=False
+    )
+    print(f"\\nDownload successful! Folder contents safely downloaded to: {folder_path}")
+except Exception as e:
+    print(f"\\nDownload failed: {e}")
+`;
+  }
+
+  return `import os
+from huggingface_hub import snapshot_download
+
+# ==========================================
+# 1. Environment Variables: Official Node & Acceleration
+# ==========================================
+# Ensure no mirror endpoint is set in the environment for official routing
+if "HF_ENDPOINT" in os.environ:
+    del os.environ["HF_ENDPOINT"]
+
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+os.environ["HF_HUB_DISABLE_XET"] = "1"
+
+# ==========================================
+# 2. Initialization and Download
+# ==========================================
+# <-- [USER MODIFICATION REQUIRED] Change to your target Hugging Face repository
+repo_id = "${repoId}"
+
+# <-- [USER MODIFICATION REQUIRED] Define the folder path you want to download recursively.
+# Use 'folder_name/*' to grab all contents inside the target folder.
+target_folder_pattern = "${folderPattern}"
+
+# We will instruct the script to download to the current working directory
+download_dir = "./"
+
+print("\\nInitializing recursive folder download via Global (Official) Node...")
+
+try:
+    print(f"Fetching contents of '{target_folder_pattern}' from '{repo_id}'...")
+    folder_path = snapshot_download(
+        repo_id=repo_id,
+        repo_type="dataset",
+        allow_patterns=target_folder_pattern,
+        local_dir=download_dir,
+        local_dir_use_symlinks=False
+    )
+    print(f"\\nDownload successful! Folder contents safely downloaded to: {folder_path}")
+except Exception as e:
+    print(f"\\nDownload failed: {e}")
+`;
+}
+
+function buildClusterSlurmScript(repoId: string, folderPattern: string, region: DownloadRegion): string {
+  const route = region === 'apac' ? 'mirror' : 'official';
+  const envBlock = region === 'apac'
+    ? `export HF_ENDPOINT="https://hf-mirror.com"
+export HF_HUB_ENABLE_HF_TRANSFER="1"
+export HF_HUB_DISABLE_XET="1"`
+    : `unset HF_ENDPOINT
+export HF_HUB_ENABLE_HF_TRANSFER="1"
+export HF_HUB_DISABLE_XET="1"`;
+
+  return `#!/bin/bash
+#SBATCH --job-name=GalibierHub-dl-${route}-folder
+#SBATCH --partition=cu             # <-- [USER MODIFICATION REQUIRED] Change to your cluster's specific partition/queue name
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=16G
+#SBATCH --time=12:00:00
+#SBATCH --output=/home/user/GalibierHub/logs/GalibierHub-dl-${route}-folder_%j.out # <-- [USER MODIFICATION REQUIRED] Update path if needed
+#SBATCH --error=/home/user/GalibierHub/logs/GalibierHub-dl-${route}-folder_%j.err  # <-- [USER MODIFICATION REQUIRED] Update path if needed
+#SBATCH --exclude=cu01             # <-- [USER MODIFICATION REQUIRED] Modify or remove based on your cluster's node status
+
+set -euo pipefail
+
+# <-- [USER MODIFICATION REQUIRED] Change to your project's absolute main directory path
+PROJ_DIR="/home/user/GalibierHub"
+NET_SCRIPT="\${PROJ_DIR}/GalibierHub-download-${route}-folder.py"
+NET_OUT_DIR="\${PROJ_DIR}/downloads"
+
+LOCAL_SCRATCH="/tmp/yanglun_job_\${SLURM_JOB_ID}"
+trap 'rm -rf "\${LOCAL_SCRATCH}"' EXIT
+
+mkdir -p "\${LOCAL_SCRATCH}/input" "\${LOCAL_SCRATCH}/output" "\${NET_OUT_DIR}" "\${PROJ_DIR}/logs"
+
+cp "\${NET_SCRIPT}" "\${LOCAL_SCRATCH}/input/"
+
+# <-- [USER MODIFICATION REQUIRED] Change to your specific conda installation path and environment name
+source /home/user/miniconda3/bin/activate python3.9-env
+
+${envBlock}
+
+cd "\${LOCAL_SCRATCH}/output"
+python "\${LOCAL_SCRATCH}/input/GalibierHub-download-${route}-folder.py" | tee "download_task.log" 2>&1
+
+cp -r "\${LOCAL_SCRATCH}/output/"* "\${NET_OUT_DIR}/"
+`;
 }
 
 function buildManifestRows(folderItems: FileRow[], rootLabel: string): Array<Record<string, string>> {
@@ -279,10 +399,11 @@ export default function DownloadCatalogPanel({
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [folderCliOpen, setFolderCliOpen] = useState(false);
   const [folderCliCopied, setFolderCliCopied] = useState<string | null>(null);
+  const [clusterScriptOpen, setClusterScriptOpen] = useState<'python' | 'slurm' | null>('python');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [readmeOpen, setReadmeOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
-  const [downloadRegion] = useState<DownloadRegion>(() => getPreferredDownloadRegion());
+  const [downloadRegion, setDownloadRegion] = useState<DownloadRegion>(() => getPreferredDownloadRegion());
   const [batchBrowserDownloading, setBatchBrowserDownloading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
@@ -413,10 +534,13 @@ export default function DownloadCatalogPanel({
 
   const currentFolderSummary = useMemo(() => folderSummary(currentNode), [currentNode]);
 
-  const folderCommands = useMemo(
-    () => buildFolderCommands(currentFolderItems, rootLabel, currentPath, downloadRegion === 'apac'),
-    [currentFolderItems, currentPath, rootLabel, downloadRegion],
-  );
+  const clusterFolderPattern = currentPath ? `${currentPath}/*` : '*';
+  const clusterRepoId = deriveHfRepoId(currentFolderItems);
+  const clusterSuffix = downloadRegion === 'apac' ? 'mirror' : 'official';
+  const clusterPythonFileName = `GalibierHub-download-${clusterSuffix}-folder.py`;
+  const clusterSlurmFileName = `GalibierHub-download-${clusterSuffix}-folder.sh`;
+  const clusterPythonScript = buildClusterPythonScript(clusterRepoId, clusterFolderPattern, downloadRegion);
+  const clusterSlurmScript = buildClusterSlurmScript(clusterRepoId, clusterFolderPattern, downloadRegion);
 
   const showBlockingLoader = loading && items.length === 0;
 
@@ -681,9 +805,10 @@ export default function DownloadCatalogPanel({
                 <button
                   type="button"
                   onClick={() => setFolderCliOpen(true)}
-                  className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all"
                 >
-                  Copy Folder CLI
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+                  Cluster Batch Download
                 </button>
                 <button
                   type="button"
@@ -930,7 +1055,7 @@ export default function DownloadCatalogPanel({
           <div className="my-8 w-full max-w-4xl rounded-lg border border-gray-200 bg-white shadow-xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between border-b border-gray-200 px-5 py-3">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Directory CLI</h3>
+                <h3 className="text-base font-semibold text-gray-900">Cluster Batch Download</h3>
                 <p className="mt-1 text-sm text-gray-600">{currentPath ? `${rootLabel}/${currentPath}` : rootLabel}</p>
               </div>
               <button type="button" onClick={() => setFolderCliOpen(false)} aria-label="Close" className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
@@ -938,28 +1063,87 @@ export default function DownloadCatalogPanel({
               </button>
             </div>
             <div className="space-y-4 px-5 py-4">
-              <p className="text-sm text-gray-600">
-                Export commands for the current directory and all nested files. Use the manifest TSV/CSV when you need downstream pipeline input tables.
-              </p>
-              {[
-                { key: 'wget', title: 'wget -c', content: folderCommands.wget },
-                { key: 'curl', title: 'curl -L -C -', content: folderCommands.curl },
-                { key: 'hf', title: 'hf download', content: folderCommands.hf },
-              ].map((block) => (
-                <div key={block.key} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium text-gray-800">{block.title}</span>
-                    <button type="button" onClick={() => void handleCopyFolderCommand(block.key, block.content)} className="text-xs text-teal-600 hover:underline">
-                      {folderCliCopied === block.key ? 'Copied' : 'Copy'}
+              <div className="rounded-md border border-slate-200 bg-white p-3">
+                <div className="text-xs font-medium text-gray-700">Network Routing</div>
+                <div className="mt-2 inline-flex rounded-lg border border-slate-200 bg-gray-50 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setDownloadRegion('global')}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
+                  >
+                    Global (Official)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDownloadRegion('apac')}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'apac' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-50'}`}
+                  >
+                    Asia-Pacific (Mirror)
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                <button
+                  type="button"
+                  onClick={() => setClusterScriptOpen(current => current === 'python' ? null : 'python')}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-100"
+                >
+                  <span className="min-w-0">
+                    <span className="text-sm font-medium text-gray-800">Python Core Script</span>
+                    <span className="ml-2 font-mono text-xs text-gray-500">{clusterPythonFileName}</span>
+                  </span>
+                  <span className="text-xs text-slate-500">{clusterScriptOpen === 'python' ? 'Hide' : 'Show'}</span>
+                </button>
+                {clusterScriptOpen === 'python' && (
+                  <div className="border-t border-gray-200 px-4 py-3">
+                    <pre className="whitespace-pre-wrap break-all rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{clusterPythonScript}</pre>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyFolderCommand('python', clusterPythonScript)}
+                      className="mt-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      {folderCliCopied === 'python' ? 'Copied' : 'Copy All'}
                     </button>
                   </div>
-                  <code className="block whitespace-pre-wrap break-all rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">
-                    {block.content || '# No command available for this directory.'}
-                  </code>
-                </div>
-              ))}
+                )}
+              </div>
+
+              <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                <button
+                  type="button"
+                  onClick={() => setClusterScriptOpen(current => current === 'slurm' ? null : 'slurm')}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-100"
+                >
+                  <span className="min-w-0">
+                    <span className="text-sm font-medium text-gray-800">SLURM Scheduler Script</span>
+                    <span className="ml-2 font-mono text-xs text-gray-500">{clusterSlurmFileName}</span>
+                  </span>
+                  <span className="text-xs text-slate-500">{clusterScriptOpen === 'slurm' ? 'Hide' : 'Show'}</span>
+                </button>
+                {clusterScriptOpen === 'slurm' && (
+                  <div className="border-t border-gray-200 px-4 py-3">
+                    <pre className="whitespace-pre-wrap break-all rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{clusterSlurmScript}</pre>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyFolderCommand('slurm', clusterSlurmScript)}
+                      className="mt-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      {folderCliCopied === 'slurm' ? 'Copied' : 'Copy All'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
-                For reproducibility, pair these commands with <code>sha256sum.txt</code> and the manifest export from the same directory.
+                <div className="text-sm font-medium text-emerald-900">How to use Cluster Batch Download</div>
+                <ol className="mt-2 list-decimal space-y-1 pl-5">
+                  <li>Choose the network environment: use Asia-Pacific (Mirror) for mainland or restricted networks; use Global (Official) for direct overseas access.</li>
+                  <li>Open Show Python Script and Show SLURM Script, then copy both scripts to your cluster.</li>
+                  <li>Update every {'<-- [USER MODIFICATION REQUIRED]'} marker for repository, folder pattern, cluster partition, project paths, and conda environment.</li>
+                  <li>Submit with:</li>
+                </ol>
+                <pre className="mt-2 rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-emerald-200">sbatch {clusterSlurmFileName}</pre>
               </div>
             </div>
           </div>

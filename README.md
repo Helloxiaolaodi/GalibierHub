@@ -36,6 +36,13 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 10. [Acknowledgements](#acknowledgements)
 11. [License](#license)
 
+## Recent Updates
+
+- Downloads now includes a `Cluster Batch Download` workflow for recursively downloading an entire folder through Python and SLURM scripts, with `Global (Official)` and `Asia-Pacific (Mirror)` templates.
+- The Downloads CLI modal now has Linux/macOS and Windows PowerShell tabs, one-click all-in-one command copying, and a dedicated `hfd` mirror accelerator option.
+- Browser downloads preserve the original filename and automatically route Asia-Pacific visitors through the Hugging Face mirror.
+- The Downloads table now shows real `Updated` dates and keeps the `Name` and `Actions` columns focused on file identity and `Download to Browser` / `CLI` actions.
+
 ## Overview
 
 GalibierHub currently ships with five main product surfaces:
