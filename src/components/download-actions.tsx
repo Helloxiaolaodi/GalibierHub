@@ -23,6 +23,7 @@ interface DownloadActionsProps {
   label: string;
   sizeLabel?: string | null;
   initialSizeBytes?: number | null;
+  initialUpdatedAt?: string | null;
   description?: string | null;
   showCli?: boolean;
   isAdmin?: boolean;
@@ -195,6 +196,7 @@ export default function DownloadActions({
   label,
   sizeLabel,
   initialSizeBytes,
+  initialUpdatedAt,
   description,
   isAdmin = false,
   accessToken = null,
@@ -208,10 +210,9 @@ export default function DownloadActions({
   const [hfMeta, setHfMeta] = useState<FileMeta>({ size: null, sha256: null, loading: false });
   const [dbMeta, setDbMeta] = useState<DownloadMetadataPayload>(DEFAULT_DOWNLOAD_METADATA);
   const [resolvedInfo, setResolvedInfo] = useState<DownloadResolvedInfo | null>(null);
-    const [activeTab, setActiveTab] = useState<'download'|'preview'|'checksum'|'cite'|'script'>('download');
+    const [activeTab, setActiveTab] = useState<'download'|'checksum'|'cite'>('download');
   const [cliOs, setCliOs] = useState<'linux' | 'windows'>('linux');
-  const [expandedCliSection, setExpandedCliSection] = useState<'hf' | 'basic' | 'hfd' | 'url' | null>('hf');
-  const [filePreview, setFilePreview] = useState<{loading:boolean;content:string|null;error:string|null}>({loading:false,content:null,error:null});
+  const [expandedCliSection, setExpandedCliSection] = useState<'hf' | 'basic' | 'hfd' | 'url' | null>(null);
 const [unlocked, setUnlocked] = useState(false);
   const [pwInput, setPwInput] = useState('');
   const [pwError, setPwError] = useState<string | null>(null);
@@ -236,7 +237,7 @@ const [unlocked, setUnlocked] = useState(false);
     setSaveState(null);
     setDownloadRegion(getPreferredDownloadRegion());
     setCliOs('linux');
-    setExpandedCliSection('hf');
+    setExpandedCliSection(null);
     readDbMeta(key, url).then((meta) => {
       if (!active) return;
       setDbMeta(meta);
@@ -245,7 +246,7 @@ const [unlocked, setUnlocked] = useState(false);
     return () => {
       active = false;
     };
-  }, [open, key, url, label, description, initialSizeBytes]);
+  }, [open, key, url, label, description, initialSizeBytes, initialUpdatedAt]);
 
   useEffect(() => {
     setDbMeta((current) => (current.hidden === initialHidden ? current : { ...current, hidden: initialHidden ?? false }));
@@ -257,10 +258,15 @@ const [unlocked, setUnlocked] = useState(false);
       ...base,
       size_bytes: dbMeta.custom_size_bytes ?? hfMeta.size ?? base.size_bytes ?? initialSizeBytes ?? null,
       sha256_checksum: dbMeta.sha256_checksum ?? hfMeta.sha256 ?? base.sha256_checksum,
+      created_at: dbMeta.created_at ?? initialUpdatedAt ?? base.created_at,
+      updated_at: dbMeta.updated_at ?? initialUpdatedAt ?? base.updated_at,
     };
-  }, [resolvedInfo, key, dbMeta, label, description, initialSizeBytes, hfMeta.size, hfMeta.sha256]);
+  }, [resolvedInfo, key, dbMeta, label, description, initialSizeBytes, initialUpdatedAt, hfMeta.size, hfMeta.sha256]);
 
   const displaySize = hfMeta.loading ? 'Loading...' : formatDownloadBytes(effectiveInfo.size_bytes) || sizeLabel || '';
+  const linuxVerifyCommand = effectiveInfo.sha256_checksum && effectiveInfo.file_name
+    ? `echo "${effectiveInfo.sha256_checksum}  ${effectiveInfo.file_name}" | sha256sum -c -`
+    : '';
   const hidden = dbMeta.hidden ?? initialHidden ?? false;
   const passwordProtected = dbMeta.password_protected;
   const linksVisible = isAdmin || (!hidden && (!passwordProtected || unlocked));
@@ -529,10 +535,10 @@ const [unlocked, setUnlocked] = useState(false);
               
               {/* Tab Navigation */}
               <div className="flex border-b border-gray-200 -mx-5 px-5">
-                {(['download','preview','checksum','cite','script'] as const).map(tab => (
+                {(['download','checksum','cite'] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
                     className={"px-4 py-2 text-xs font-medium border-b-2 transition-colors " + (activeTab === tab ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")}>
-                    {tab === 'download' ? 'Download' : tab === 'preview' ? 'File Preview' : tab === 'checksum' ? 'Checksum' : tab === 'cite' ? 'Cite' : 'Batch Script'}
+                    {tab === 'download' ? 'Download' : tab === 'checksum' ? 'Checksum' : 'Cite'}
                   </button>
                 ))}
               </div></div>
@@ -698,31 +704,7 @@ const [unlocked, setUnlocked] = useState(false);
                   )}
                 </div>
               )}
-{activeTab === "preview" && (linksVisible || isAdmin) && (
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-600">Preview the first ~2KB of this file (text-based formats only).</p>
-                  <button type="button" onClick={async () => {
-                    setFilePreview({loading:true,content:null,error:null});
-                    try {
-                      const resp = await fetch(effectiveInfo.public_url || effectiveInfo.mirror_public_url || url, { headers: { Range: "bytes=0-2047" } });
-                      if (!resp.ok) throw new Error("Preview not available");
-                      const text = await resp.text();
-                      setFilePreview({loading:false,content:text.slice(0,2048),error:null});
-                    } catch (e) {
-                      setFilePreview({loading:false,content:null,error: e instanceof Error ? e.message : "Preview failed"});
-                    }
-                  }} disabled={filePreview.loading} className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50">
-                    {filePreview.loading ? "Loading..." : "Fetch Preview"}
-                  </button>
-                  {filePreview.error && <p className="text-xs text-red-600">{filePreview.error}</p>}
-                  {filePreview.content && (
-                    <pre className="max-h-64 overflow-auto rounded-lg border border-gray-200 bg-slate-50 p-3 text-xs font-mono text-gray-700 whitespace-pre-wrap">{filePreview.content}</pre>
-                  )}
-                  <p className="text-xs text-gray-400">Transfers only the first 2KB via HTTP Range request. Large binary files (.bam, .h5ad, .zip) will not preview correctly.</p>
-                </div>
-              )}
-
-              {/* Checksum Tab */}
+                            {/* Checksum Tab */}
               {activeTab === "checksum" && (linksVisible || isAdmin) && (
                 <div className="space-y-4">
                   <h4 className="text-sm font-semibold text-gray-800">File Integrity Verification</h4>
@@ -731,12 +713,17 @@ const [unlocked, setUnlocked] = useState(false);
                       <span className="text-xs font-medium text-gray-600">SHA-256:</span>
                       <code className="ml-2 block max-w-full break-all rounded px-2 py-1 font-mono text-xs bg-slate-50 text-slate-800 ring-1 ring-slate-200">{hfMeta.loading ? "Loading..." : (effectiveInfo.sha256_checksum || "Not available yet")}</code>
                     </div>
-                    <div>
-                      <span className="text-xs font-medium text-gray-600">MD5:</span>
-                      <code className="ml-2 block max-w-full break-all rounded px-2 py-1 font-mono text-xs bg-slate-50 text-slate-800 ring-1 ring-slate-200">{dbMeta.md5_checksum || "Not available yet"}</code>
-                    </div>
                   </div>
-                  <p className="text-xs text-gray-400">Use the verification commands in the Download tab to confirm file integrity after transfer.</p>
+                  <div className="rounded-md border border-slate-200 bg-white p-3">
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <span className="text-xs font-semibold text-gray-700">Linux Terminal Quick Verify</span>
+                      <button type="button" onClick={() => handleCopy('checksum-verify', linuxVerifyCommand)} disabled={!linuxVerifyCommand} className="text-xs text-teal-600 hover:underline disabled:opacity-50">
+                        {copied === 'checksum-verify' ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <pre className="whitespace-pre-wrap break-all rounded bg-slate-50 px-3 py-2 font-mono text-xs text-gray-800 ring-1 ring-slate-200">{linuxVerifyCommand || '# SHA-256 checksum is not available yet.'}</pre>
+                  </div>
+                  <p className="text-xs text-gray-400">Download the file to a Linux server, then copy and run the command above. If the output shows OK, the file is 100% complete.</p>
                 </div>
               )}
 
@@ -744,86 +731,11 @@ const [unlocked, setUnlocked] = useState(false);
               {activeTab === "cite" && (linksVisible || isAdmin) && (
                 <div className="space-y-4">
                   <h4 className="text-sm font-semibold text-gray-800">Cite this Dataset</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-600">BibTeX</span>
-                        <button type="button" onClick={() => handleCopy('cite-bibtex', `@dataset{${effectiveInfo.file_name.replace(/[^a-zA-Z0-9]/g,'_')},\n  author = {GalibierHub},\n  title = {${effectiveInfo.file_name}},\n  year = {${new Date().getFullYear()}},\n  publisher = {GalibierHub},\n  url = {${url}}\n}`)} className="text-xs text-teal-600 hover:underline">{copied === 'cite-bibtex' ? 'Copied' : 'Copy'}</button>
-                      </div>
-                      <pre className="rounded bg-slate-50 p-2 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap">@dataset{"{"}{effectiveInfo.file_name.replace(/[^a-zA-Z0-9]/g,"_")},{"\n"}  author = {"{"}GalibierHub{"}"},{"\n"}  title = {"{"}{effectiveInfo.file_name}{"}"},{"\n"}  year = {"{"}{new Date().getFullYear()}{"}"},{"\n"}  publisher = {"{"}GalibierHub{"}"},{"\n"}  url = {"{"}{url}{"}"},{"\n"}{"}"}</pre>
-                    </div>
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-600">APA</span>
-                        <button type="button" onClick={() => handleCopy('cite-apa', `GalibierHub. (${new Date().getFullYear()}). ${effectiveInfo.file_name} [Data set]. ${url}`)} className="text-xs text-teal-600 hover:underline">{copied === 'cite-apa' ? 'Copied' : 'Copy'}</button>
-                      </div>
-                      <pre className="rounded bg-slate-50 p-2 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap">GalibierHub. ({new Date().getFullYear()}). {effectiveInfo.file_name} [Data set]. {url}</pre>
-                    </div>
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-600">Plain Text</span>
-                        <button type="button" onClick={() => handleCopy('cite-plain', `${effectiveInfo.file_name} - GalibierHub (${new Date().getFullYear()}). Available at: ${url}`)} className="text-xs text-teal-600 hover:underline">{copied === 'cite-plain' ? 'Copied' : 'Copy'}</button>
-                      </div>
-                      <pre className="rounded bg-slate-50 p-2 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap">{effectiveInfo.file_name} - GalibierHub ({new Date().getFullYear()}). Available at: {url}</pre>
-                    </div>
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-600">RIS</span>
-                        <button type="button" onClick={() => handleCopy('cite-ris', `TY  - DATA\nTI  - ${effectiveInfo.file_name}\nAU  - GalibierHub\nPY  - ${new Date().getFullYear()}\nPB  - GalibierHub\nUR  - ${url}\nER  - `)} className="text-xs text-teal-600 hover:underline">{copied === 'cite-ris' ? 'Copied' : 'Copy'}</button>
-                      </div>
-                      <pre className="rounded bg-slate-50 p-2 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap">{`TY  - DATA\nTI  - ${effectiveInfo.file_name}\nAU  - GalibierHub\nPY  - ${new Date().getFullYear()}\nPB  - GalibierHub\nUR  - ${url}\nER  - `}</pre>
-                    </div>
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-600">DataCite</span>
-                        <button type="button" onClick={() => handleCopy('cite-datacite', `<?xml version="1.0" encoding="UTF-8"?>\n<resource xmlns="http://datacite.org/schema/kernel-4">\n  <identifier identifierType="URL">${url}</identifier>\n  <titles><title>${effectiveInfo.file_name}</title></titles>\n  <publisher>GalibierHub</publisher>\n  <publicationYear>${new Date().getFullYear()}</publicationYear>\n</resource>`)} className="text-xs text-teal-600 hover:underline">{copied === 'cite-datacite' ? 'Copied' : 'Copy'}</button>
-                      </div>
-                      <pre className="rounded bg-slate-50 p-2 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap">{`<?xml version="1.0" encoding="UTF-8"?>\n<resource xmlns="http://datacite.org/schema/kernel-4">\n  <identifier identifierType="URL">${url}</identifier>\n  <titles><title>${effectiveInfo.file_name}</title></titles>\n  <publisher>GalibierHub</publisher>\n  <publicationYear>${new Date().getFullYear()}</publicationYear>\n</resource>`}</pre>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Batch Script Tab */}
-              {activeTab === "script" && (linksVisible || isAdmin) && (
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-gray-800">Batch Download Script Generator</h4>
-                  <p className="text-sm text-gray-600">Generate optimized download scripts for high-performance computing and cluster environments.</p>
-                  <div className="space-y-4">
-                    {/* aria2c */}
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-700">aria2c (multi-threaded)</span>
-                        <button type="button" onClick={() => handleCopy('script-aria2c', `aria2c -x 16 -s 16 -c "${activePublicUrl}" -o "${effectiveInfo.file_name}"\n# -x 16: max 16 connections per server\n# -s 16: split file into 16 chunks\n# -c : continue/resume partial download`)} className="text-xs text-teal-600 hover:underline">{copied === 'script-aria2c' ? 'Copied!' : 'Copy'}</button>
-                      </div>
-                      <pre className="rounded bg-slate-50 p-3 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap overflow-x-auto">{`aria2c -x 16 -s 16 -c "${activePublicUrl}" -o "${effectiveInfo.file_name}"\n# -x 16: max 16 connections per server\n# -s 16: split file into 16 chunks\n# -c : continue/resume partial download`}</pre>
-                    </div>
-                    {/* wget batch */}
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-700">wget -i batch list</span>
-                        <button type="button" onClick={() => handleCopy('script-wget', `# Save URL list to urls.txt:\necho "${activePublicUrl}" > urls.txt\n# Download all files in list:\nwget -c -i urls.txt`)} className="text-xs text-teal-600 hover:underline">{copied === 'script-wget' ? 'Copied!' : 'Copy'}</button>
-                      </div>
-                      <pre className="rounded bg-slate-50 p-3 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap overflow-x-auto">{`# Save URL list to urls.txt:\necho "${activePublicUrl}" > urls.txt\n# Download all files in list:\nwget -c -i urls.txt`}</pre>
-                    </div>
-                    {/* Python requests */}
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-700">Python (requests)</span>
-                        <button type="button" onClick={() => handleCopy('script-python', `import requests\n\nurl = "${activePublicUrl}"\noutput = "${effectiveInfo.file_name}"\n\nwith requests.get(url, stream=True) as r:\n    r.raise_for_status()\n    with open(output, 'wb') as f:\n        for chunk in r.iter_content(chunk_size=8192):\n            f.write(chunk)\n\nprint(f"Downloaded: {output}")`)} className="text-xs text-teal-600 hover:underline">{copied === 'script-python' ? 'Copied!' : 'Copy'}</button>
-                      </div>
-                      <pre className="rounded bg-slate-50 p-3 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap overflow-x-auto">{`import requests\n\nurl = "${activePublicUrl}"\noutput = "${effectiveInfo.file_name}"\n\nwith requests.get(url, stream=True) as r:\n    r.raise_for_status()\n    with open(output, 'wb') as f:\n        for chunk in r.iter_content(chunk_size=8192):\n            f.write(chunk)\n\nprint(f"Downloaded: {output}")`}</pre>
-                    </div>
-                    {/* R download.file */}
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-700">R (download.file)</span>
-                        <button type="button" onClick={() => handleCopy('script-r', `url <- "${activePublicUrl}"\noutput <- "${effectiveInfo.file_name}"\n\ndownload.file(url, destfile = output, method = "auto", mode = "wb")\ncat("Downloaded:", output, "\\n")`)} className="text-xs text-teal-600 hover:underline">{copied === 'script-r' ? 'Copied!' : 'Copy'}</button>
-                      </div>
-                      <pre className="rounded bg-slate-50 p-3 text-xs font-mono text-gray-700 ring-1 ring-slate-200 whitespace-pre-wrap overflow-x-auto">{`url <- "${activePublicUrl}"\noutput <- "${effectiveInfo.file_name}"\n\ndownload.file(url, destfile = output, method = "auto", mode = "wb")\ncat("Downloaded:", output, "\\n")`}</pre>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400">These scripts are generated from the current URL. For batch downloading multiple files, open the Download &amp; CLI Usage Guide at /docs/download-cli.</p>
+                  <RevealRow rowKey="cite-bibtex" label="BibTeX" value={`@dataset{${effectiveInfo.file_name.replace(/[^a-zA-Z0-9]/g,'_')},\n  author = {GalibierHub},\n  title = {${effectiveInfo.file_name}},\n  year = {${new Date().getFullYear()}},\n  publisher = {GalibierHub},\n  url = {${url}}\n}`} copied={copied} onCopy={handleCopy} />
+                  <RevealRow rowKey="cite-apa" label="APA" value={`GalibierHub. (${new Date().getFullYear()}). ${effectiveInfo.file_name} [Data set]. ${url}`} copied={copied} onCopy={handleCopy} />
+                  <RevealRow rowKey="cite-plain" label="Plain Text" value={`${effectiveInfo.file_name} - GalibierHub (${new Date().getFullYear()}). Available at: ${url}`} copied={copied} onCopy={handleCopy} />
+                  <RevealRow rowKey="cite-ris" label="RIS" value={`TY  - DATA\nTI  - ${effectiveInfo.file_name}\nAU  - GalibierHub\nPY  - ${new Date().getFullYear()}\nPB  - GalibierHub\nUR  - ${url}\nER  - `} copied={copied} onCopy={handleCopy} />
+                  <RevealRow rowKey="cite-datacite" label="DataCite" value={`<?xml version="1.0" encoding="UTF-8"?>\n<resource xmlns="http://datacite.org/schema/kernel-4">\n  <identifier identifierType="URL">${url}</identifier>\n  <titles><title>${effectiveInfo.file_name}</title></titles>\n  <publisher>GalibierHub</publisher>\n  <publicationYear>${new Date().getFullYear()}</publicationYear>\n</resource>`} copied={copied} onCopy={handleCopy} />
                 </div>
               )}
 {isAdmin && (
