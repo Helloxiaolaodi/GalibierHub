@@ -789,7 +789,7 @@ export default function DownloadCatalogPanel({
                 </div>
                 <DownloadActions
                   url={item.url}
-                  label="Download"
+                  label="Download to Browser"
                   sizeLabel={item.sizeLabel}
                   initialSizeBytes={item.sizeBytes}
                   description={item.description}
@@ -867,7 +867,7 @@ export default function DownloadCatalogPanel({
                     <td className="px-4 py-3">
                       <DownloadActions
                         url={item.url}
-                        label="Download"
+                        label="Download to Browser"
                         sizeLabel={item.sizeLabel}
                         initialSizeBytes={item.sizeBytes}
                         description={item.description}

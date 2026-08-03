@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -110,13 +110,92 @@ function RevealRow({ rowKey, label, value, copied, onCopy, loading, unavailable 
   );
 }
 
+function parseHfRepoAndPath(
+  url: string | null | undefined,
+  fallbackFileName: string,
+): { repo: string; filePath: string } {
+  if (!url) return { repo: 'Helloxiaolaodi/seqedge-data', filePath: fallbackFileName || 'download.file' };
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    const datasetsIndex = parts.indexOf('datasets');
+    const marker = '/resolve/main/';
+    const markerIndex = parsed.pathname.indexOf(marker);
+    if (datasetsIndex !== -1 && parts.length > datasetsIndex + 2 && markerIndex !== -1) {
+      let filePath = parsed.pathname.slice(markerIndex + marker.length);
+      try {
+        filePath = decodeURIComponent(filePath);
+      } catch {
+        // Keep the raw path when Hugging Face returns invalid escaping.
+      }
+      return {
+        repo: `${parts[datasetsIndex + 1]}/${parts[datasetsIndex + 2]}`,
+        filePath: filePath || fallbackFileName || 'download.file',
+      };
+    }
+  } catch {
+    // Fall through to defaults.
+  }
+  return { repo: 'Helloxiaolaodi/seqedge-data', filePath: fallbackFileName || 'download.file' };
+}
+
+function CliSection({
+  title,
+  badge,
+  description,
+  code,
+  expanded,
+  onToggle,
+  copyKey,
+  copied,
+  onCopy,
+}: {
+  title: string;
+  badge?: string;
+  description?: string;
+  code: string;
+  expanded: boolean;
+  onToggle: () => void;
+  copyKey: string;
+  copied: string | null;
+  onCopy: (key: string, text: string) => void;
+}) {
+  return (
+    <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-start justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-slate-50"
+      >
+        <span className="min-w-0">
+          <span className="text-sm font-medium text-slate-800">{title}</span>
+          {badge && <span className="ml-2 rounded bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">{badge}</span>}
+          {description && <span className="mt-0.5 block text-xs text-gray-500">{description}</span>}
+        </span>
+        <span className="flex-shrink-0 text-xs text-slate-500">{expanded ? 'Hide' : 'Show'}</span>
+      </button>
+      {expanded && (
+        <div className="border-t border-slate-100 px-3 py-3">
+          <pre className="whitespace-pre-wrap break-all rounded bg-slate-50 px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-slate-200">{code}</pre>
+          <button
+            type="button"
+            onClick={() => onCopy(copyKey, code)}
+            className="mt-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            {copied === copyKey ? 'Copied' : 'Copy All'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DownloadActions({
   url,
   label,
   sizeLabel,
   initialSizeBytes,
   description,
-  showCli = false,
   isAdmin = false,
   accessToken = null,
   className = '',
@@ -130,6 +209,8 @@ export default function DownloadActions({
   const [dbMeta, setDbMeta] = useState<DownloadMetadataPayload>(DEFAULT_DOWNLOAD_METADATA);
   const [resolvedInfo, setResolvedInfo] = useState<DownloadResolvedInfo | null>(null);
     const [activeTab, setActiveTab] = useState<'download'|'preview'|'checksum'|'cite'|'script'>('download');
+  const [cliOs, setCliOs] = useState<'linux' | 'windows'>('linux');
+  const [expandedCliSection, setExpandedCliSection] = useState<'hf' | 'basic' | 'hfd' | 'url' | null>('hf');
   const [filePreview, setFilePreview] = useState<{loading:boolean;content:string|null;error:string|null}>({loading:false,content:null,error:null});
 const [unlocked, setUnlocked] = useState(false);
   const [pwInput, setPwInput] = useState('');
@@ -154,6 +235,8 @@ const [unlocked, setUnlocked] = useState(false);
     setDraft(null);
     setSaveState(null);
     setDownloadRegion(getPreferredDownloadRegion());
+    setCliOs('linux');
+    setExpandedCliSection('hf');
     readDbMeta(key, url).then((meta) => {
       if (!active) return;
       setDbMeta(meta);
@@ -187,11 +270,29 @@ const [unlocked, setUnlocked] = useState(false);
   const activeWgetCommand = downloadRegion === 'apac' ? (effectiveInfo.mirror_wget_command || effectiveInfo.wget_command) : effectiveInfo.wget_command;
   const activeCurlCommand = downloadRegion === 'apac' ? (effectiveInfo.mirror_curl_command || effectiveInfo.curl_command) : effectiveInfo.curl_command;
   const activeHfCliCommand = downloadRegion === 'apac' ? (effectiveInfo.mirror_hf_cli_command || effectiveInfo.hf_cli_command) : effectiveInfo.hf_cli_command;
-  const activeHfCliCommandWithoutEndpoint = activeHfCliCommand?.replace(/^HF_ENDPOINT=\S+\s+/, '') || null;
-  const mirrorEnvCommand = 'export HF_ENDPOINT=https://hf-mirror.com';
-  const windowsMirrorEnvCommand = '$env:HF_ENDPOINT = "https://hf-mirror.com"';
   const activeRegionHint = downloadRegion === 'apac' ? (effectiveInfo.mirror_region_hint || effectiveInfo.region_hint) : effectiveInfo.region_hint;
-  const cliOptionsVisible = publicRouteAvailable && (showCli || effectiveInfo.cli_supported);
+  const hfRepoInfo = parseHfRepoAndPath(effectiveInfo.public_url || effectiveInfo.mirror_public_url, effectiveInfo.file_name);
+  const hfEndpoint = 'https://hf-mirror.com';
+  const hfCliBaseCommand = activeHfCliCommand?.replace(/^HF_ENDPOINT=\S+\s+/, '') || null;
+  const hfLinuxCommand = hfCliBaseCommand
+    ? (downloadRegion === 'apac' ? `export HF_ENDPOINT="${hfEndpoint}"\n${hfCliBaseCommand}` : hfCliBaseCommand)
+    : null;
+  const hfWindowsCommand = hfCliBaseCommand
+    ? (downloadRegion === 'apac' ? `$env:HF_ENDPOINT = "${hfEndpoint}"\n${hfCliBaseCommand}` : hfCliBaseCommand)
+    : null;
+  const windowsCurlCommand = activeCurlCommand?.replace(/^curl /, 'curl.exe ') || null;
+  const basicLinuxCommand = [
+    activeWgetCommand ? `# Using wget\n${activeWgetCommand}` : '',
+    activeCurlCommand ? `# Using curl\n${activeCurlCommand}` : '',
+  ].filter(Boolean).join('\n\n') || null;
+  const basicWindowsCommand = windowsCurlCommand
+    ? `# Using curl.exe (bundled with Windows 10+)\n${windowsCurlCommand}`
+    : null;
+  const hfdInstall = 'wget https://hf-mirror.com/hfd/hfd.sh && chmod a+x hfd.sh';
+  const hfdEnvLine = downloadRegion === 'apac' ? `export HF_ENDPOINT="${hfEndpoint}"` : '';
+  const hfdRun = `./hfd.sh ${hfRepoInfo.repo} --dataset --include ${hfRepoInfo.filePath}`;
+  const hfdLinuxCommand = hfdEnvLine ? `${hfdInstall}\n${hfdEnvLine}\n${hfdRun}` : `${hfdInstall}\n${hfdRun}`;
+  const hfdWindowsCommand = `# Run the lines below in Git Bash or WSL\n${hfdInstall}\n${hfdEnvLine ? `${hfdEnvLine}\n` : ''}${hfdRun}`;
 
   const handleCopy = useCallback(async (copyKey: string, text: string | null | undefined) => {
     if (!text) return;
@@ -449,182 +550,155 @@ const [unlocked, setUnlocked] = useState(false);
                 </div>
               )}
 
-              {/* File Preview Tab */}
-              {activeTab === "download" && (linksVisible || isAdmin) && (
+              {/* Download Tab */}
+                            {activeTab === "download" && (linksVisible || isAdmin) && (
                 <div className="space-y-4">
-                  {directUrlInvalid && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">Download options for {effectiveInfo.display_name || effectiveInfo.file_name}</h4>
+                    <p className="mt-1 text-xs text-gray-500">Copy the complete command block for your operating system and network route.</p>
+                  </div>
+                  {effectiveInfo.access_mode === 'supabase_private' ? (
+                    <p className="text-xs text-amber-700">{effectiveInfo.access_note}</p>
+                  ) : directUrlInvalid ? (
                     <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
-                  )}
-                  <div className="rounded border border-gray-100 bg-gray-50 p-3 space-y-3">
-                    <div className="text-sm font-medium text-gray-800">Download options</div>
-                    {effectiveInfo.access_mode === 'supabase_private' ? (
-                      <p className="text-xs text-amber-700">{effectiveInfo.access_note}</p>
-                    ) : directUrlInvalid ? (
-                      <p className="text-xs text-amber-700">{effectiveInfo.invalid_reason || NOT_DIRECT_FILE_URL_MESSAGE}</p>
-                    ) : publicRouteAvailable ? (
+                  ) : publicRouteAvailable ? (
+                    <>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-md border border-slate-200 bg-white p-3">
+                          <div className="text-xs font-medium text-gray-700">Network Routing</div>
+                          <div className="mt-2 inline-flex rounded-lg border border-slate-200 bg-gray-50 p-1">
+                            <button
+                              type="button"
+                              onClick={() => setDownloadRegion('global')}
+                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
+                            >
+                              Global (Official)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDownloadRegion('apac')}
+                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'apac' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-50'}`}
+                            >
+                              Asia-Pacific (Mirror)
+                            </button>
+                          </div>
+                        </div>
+                        <div className="rounded-md border border-slate-200 bg-white p-3">
+                          <div className="text-xs font-medium text-gray-700">Operating System</div>
+                          <div className="mt-2 inline-flex rounded-lg border border-slate-200 bg-gray-50 p-1">
+                            <button
+                              type="button"
+                              onClick={() => setCliOs('linux')}
+                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${cliOs === 'linux' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
+                            >
+                              Linux / macOS
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCliOs('windows')}
+                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${cliOs === 'windows' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
+                            >
+                              Windows (PowerShell)
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                       <div className="space-y-3">
-                        {(effectiveInfo.public_url || effectiveInfo.mirror_public_url) && (
-                          <div className="space-y-3 rounded-md border border-slate-200 bg-white px-3 py-3">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div>
-                                <div className="text-sm font-medium text-slate-800">Regional download routing</div>
-                                <div className="text-xs text-slate-800">
-                                  Automatically selected from your timezone; override it for this transfer if needed.
-                                </div>
-                              </div>
-                              <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
-                                <button
-                                  type="button"
-                                  onClick={() => setDownloadRegion('global')}
-                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
-                                >
-                                  Global (Official)
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDownloadRegion('apac')}
-                                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'apac' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-50'}`}
-                                >
-                                  Asia-Pacific (Mirror)
-                                </button>
-                              </div>
-                            </div>
-                            <RevealRow
-                              rowKey="public-url"
-                              label={downloadRegion === 'apac' ? 'Mirror direct URL for Free Download Manager and similar tools' : 'Official direct URL for Free Download Manager and similar tools'}
-                              value={activePublicUrl}
-                              copied={copied}
-                              onCopy={handleCopy}
-                            />
-                          </div>
-                        )}
-                        {cliOptionsVisible && activeWgetCommand && (
-                          <RevealRow
-                            rowKey="wget"
-                            label="Linux/macOS: wget (resume)"
-                            value={activeWgetCommand}
+                        {cliOs === 'linux' && hfLinuxCommand && (
+                          <CliSection
+                            title="Hugging Face CLI (Recommended)"
+                            badge="Recommended"
+                            description="Supports resume and multi-thread acceleration; suitable for large files and stable transfers."
+                            code={hfLinuxCommand}
+                            expanded={expandedCliSection === 'hf'}
+                            onToggle={() => setExpandedCliSection(current => current === 'hf' ? null : 'hf')}
+                            copyKey="hf-linux"
                             copied={copied}
                             onCopy={handleCopy}
                           />
                         )}
-                        {cliOptionsVisible && activeCurlCommand && (
-                          <RevealRow
-                            rowKey="curl"
-                            label="Windows/Linux/macOS: curl (resume)"
-                            value={activeCurlCommand}
+                        {cliOs === 'windows' && hfWindowsCommand && (
+                          <CliSection
+                            title="Hugging Face CLI (Recommended)"
+                            badge="Recommended"
+                            description="Supports resume and multi-thread acceleration; suitable for large files and stable transfers."
+                            code={hfWindowsCommand}
+                            expanded={expandedCliSection === 'hf'}
+                            onToggle={() => setExpandedCliSection(current => current === 'hf' ? null : 'hf')}
+                            copyKey="hf-windows"
                             copied={copied}
                             onCopy={handleCopy}
                           />
                         )}
-                        {cliOptionsVisible && downloadRegion === 'apac' && (
-                          <>
-                            <RevealRow
-                              rowKey="hf-env-linux"
-                              label="Linux/macOS: set mirror endpoint"
-                              value={mirrorEnvCommand}
-                              copied={copied}
-                              onCopy={handleCopy}
-                            />
-                            <RevealRow
-                              rowKey="hf-env-windows"
-                              label="Windows PowerShell: set mirror endpoint"
-                              value={windowsMirrorEnvCommand}
-                              copied={copied}
-                              onCopy={handleCopy}
-                            />
-                          </>
-                        )}
-                        {cliOptionsVisible && activeHfCliCommandWithoutEndpoint && (
-                          <RevealRow
-                            rowKey="hf"
-                            label={downloadRegion === 'apac' ? 'Linux/macOS: hf CLI (mirror endpoint)' : 'Linux/macOS: hf CLI (recommended)'}
-                            value={activeHfCliCommandWithoutEndpoint}
+                        {cliOs === 'linux' && basicLinuxCommand && (
+                          <CliSection
+                            title="Basic Tools (wget / curl)"
+                            description="Lightweight single-file download without installing extra libraries."
+                            code={basicLinuxCommand}
+                            expanded={expandedCliSection === 'basic'}
+                            onToggle={() => setExpandedCliSection(current => current === 'basic' ? null : 'basic')}
+                            copyKey="basic-linux"
                             copied={copied}
                             onCopy={handleCopy}
                           />
                         )}
-                        {cliOptionsVisible && activeHfCliCommandWithoutEndpoint && (
-                          <RevealRow
-                            rowKey="hf-windows"
-                            label="Windows PowerShell: hf CLI"
-                            value={activeHfCliCommandWithoutEndpoint}
+                        {cliOs === 'windows' && basicWindowsCommand && (
+                          <CliSection
+                            title="Basic Tools (curl.exe)"
+                            description="Lightweight single-file download using the curl.exe bundled with Windows 10+."
+                            code={basicWindowsCommand}
+                            expanded={expandedCliSection === 'basic'}
+                            onToggle={() => setExpandedCliSection(current => current === 'basic' ? null : 'basic')}
+                            copyKey="basic-windows"
                             copied={copied}
                             onCopy={handleCopy}
                           />
                         )}
-                        {downloadRegion === 'apac' && (
-                          <div className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3">
-                            <div>
-                              <div className="text-sm font-medium text-emerald-900">Method 3: Use hfd</div>
-                              <p className="mt-1 text-xs text-emerald-800">
-                                hfd is a Hugging Face download tool developed by hf-mirror.com site. It is built on the mature aria2 engine for stable high-speed downloads without disconnects.
-                              </p>
-                            </div>
-                            <RevealRow
-                              rowKey="hfd-install-linux"
-                              label="Linux/macOS: download hfd"
-                              value={"wget https://hf-mirror.com/hfd/hfd.sh\nchmod a+x hfd.sh"}
-                              copied={copied}
-                              onCopy={handleCopy}
-                            />
-                            <RevealRow
-                              rowKey="hfd-install-windows"
-                              label="Windows PowerShell: download hfd"
-                              value={"Invoke-WebRequest -Uri https://hf-mirror.com/hfd/hfd.sh -OutFile hfd.sh\n# Run hfd.sh in Git Bash or WSL"}
-                              copied={copied}
-                              onCopy={handleCopy}
-                            />
-                            <RevealRow
-                              rowKey="hfd-env-linux"
-                              label="Linux/macOS: set mirror endpoint"
-                              value={mirrorEnvCommand}
-                              copied={copied}
-                              onCopy={handleCopy}
-                            />
-                            <RevealRow
-                              rowKey="hfd-env-windows"
-                              label="Windows PowerShell: set mirror endpoint"
-                              value={windowsMirrorEnvCommand}
-                              copied={copied}
-                              onCopy={handleCopy}
-                            />
-                            <RevealRow
-                              rowKey="hfd-model"
-                              label="Download model"
-                              value="./hfd.sh gpt2"
-                              copied={copied}
-                              onCopy={handleCopy}
-                            />
-                            <RevealRow
-                              rowKey="hfd-dataset"
-                              label="Download dataset"
-                              value="./hfd.sh wikitext --dataset"
-                              copied={copied}
-                              onCopy={handleCopy}
-                            />
-                          </div>
+                        {cliOs === 'linux' && hfdLinuxCommand && (
+                          <CliSection
+                            title="Advanced Tool: hfd accelerator"
+                            description="Third-party accelerator built on the aria2 engine; useful for highly unstable networks."
+                            code={hfdLinuxCommand}
+                            expanded={expandedCliSection === 'hfd'}
+                            onToggle={() => setExpandedCliSection(current => current === 'hfd' ? null : 'hfd')}
+                            copyKey="hfd-linux"
+                            copied={copied}
+                            onCopy={handleCopy}
+                          />
+                        )}
+                        {cliOs === 'windows' && hfdWindowsCommand && (
+                          <CliSection
+                            title="Advanced Tool: hfd accelerator"
+                            description="Third-party accelerator built on the aria2 engine; useful for highly unstable networks."
+                            code={hfdWindowsCommand}
+                            expanded={expandedCliSection === 'hfd'}
+                            onToggle={() => setExpandedCliSection(current => current === 'hfd' ? null : 'hfd')}
+                            copyKey="hfd-windows"
+                            copied={copied}
+                            onCopy={handleCopy}
+                          />
+                        )}
+                        {activePublicUrl && (
+                          <CliSection
+                            title={downloadRegion === 'apac' ? 'Mirror Direct URL' : 'Official Direct URL'}
+                            description="For Free Download Manager (FDM), IDM, and similar graphical download tools."
+                            code={activePublicUrl}
+                            expanded={expandedCliSection === 'url'}
+                            onToggle={() => setExpandedCliSection(current => current === 'url' ? null : 'url')}
+                            copyKey="direct-url"
+                            copied={copied}
+                            onCopy={handleCopy}
+                          />
                         )}
                         {activeRegionHint && <p className="text-xs text-gray-500">{activeRegionHint}</p>}
                       </div>
-                    ) : (
-                      <p className="text-xs text-gray-500">CLI download is not available for this file.</p>
-                    )}
-                    <div className="border-t border-gray-200 pt-3">
-                      <button
-                        type="button"
-                        onClick={() => void handleBrowserDownload()}
-                        disabled={downloading}
-                        className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all disabled:opacity-50"
-                      >
-                        {downloading ? 'Preparing...' : 'Download to browser'}
-                      </button>
-                      <p className="mt-2 text-xs text-gray-500">Uses the selected region and keeps the original file name.</p>
-                    </div>
-                  </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-500">CLI download is not available for this file.</p>
+                  )}
                 </div>
               )}
-
-              {activeTab === "preview" && (linksVisible || isAdmin) && (
+{activeTab === "preview" && (linksVisible || isAdmin) && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600">Preview the first ~2KB of this file (text-based formats only).</p>
                   <button type="button" onClick={async () => {
