@@ -347,7 +347,7 @@ const [unlocked, setUnlocked] = useState(false);
 
   return (
     <div className={`space-y-2 ${className}`.trim()}>
-      {(!open && !hidden) && (description || sizeLabel) && (
+      {(!open && !hidden && !compact) && (description || sizeLabel) && (
         <div className="space-y-1">
           {description && <p className="text-sm text-gray-600">{description}</p>}
           {sizeLabel && (
