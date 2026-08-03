@@ -404,6 +404,7 @@ export default function DownloadCatalogPanel({
   const [folderCliOpen, setFolderCliOpen] = useState(false);
   const [folderCliCopied, setFolderCliCopied] = useState<string | null>(null);
   const [clusterScriptOpen, setClusterScriptOpen] = useState<'python' | 'slurm' | null>(null);
+  const [clusterVerifyOpen, setClusterVerifyOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [readmeOpen, setReadmeOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
@@ -701,16 +702,6 @@ export default function DownloadCatalogPanel({
             <h2 className="text-lg font-semibold text-gray-900">Downloads</h2>
             <p className="mt-1 text-sm text-gray-600">
               Browse files by directory, export manifests, and choose browser or CLI delivery.
-              <button
-                type="button"
-                onClick={() => { loadCatalog(true); }}
-                className="ml-3 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
               <span className="rounded bg-teal-50 px-2 py-1 text-teal-700">Files: {totals.all}</span>
@@ -1116,7 +1107,7 @@ export default function DownloadCatalogPanel({
                 </button>
                 {clusterScriptOpen === 'python' && (
                   <div className="border-t border-gray-200 px-4 py-3">
-                    <pre className="whitespace-pre-wrap break-all rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{clusterPythonScript}</pre>
+                    <pre className="max-h-[28rem] overflow-auto whitespace-pre rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{clusterPythonScript}</pre>
                     <button
                       type="button"
                       onClick={() => void handleCopyFolderCommand('python', clusterPythonScript)}
@@ -1142,7 +1133,7 @@ export default function DownloadCatalogPanel({
                 </button>
                 {clusterScriptOpen === 'slurm' && (
                   <div className="border-t border-gray-200 px-4 py-3">
-                    <pre className="whitespace-pre-wrap break-all rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{clusterSlurmScript}</pre>
+                    <pre className="max-h-[28rem] overflow-auto whitespace-pre rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{clusterSlurmScript}</pre>
                     <button
                       type="button"
                       onClick={() => void handleCopyFolderCommand('slurm', clusterSlurmScript)}
@@ -1163,10 +1154,29 @@ export default function DownloadCatalogPanel({
                   <li>Submit with:</li>
                 </ol>
                 <pre className="mt-2 rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-emerald-200">sbatch {clusterSlurmFileName}</pre>
-                <div className="mt-2">
-                  <span className="font-medium">5. Verify Folder Integrity (Optional):</span> After the job completes, navigate to your download directory and check file integrity using sha256sum.
+                <div className="mt-2 overflow-hidden rounded-lg border border-emerald-200 bg-emerald-50">
+                  <button
+                    type="button"
+                    onClick={() => setClusterVerifyOpen(current => !current)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-emerald-100/60"
+                  >
+                    <span className="text-sm font-medium text-emerald-900">5. Verify Folder Integrity (Optional)</span>
+                    <span className="text-xs text-slate-500">{clusterVerifyOpen ? 'Hide' : 'Show'}</span>
+                  </button>
+                  {clusterVerifyOpen && (
+                    <div className="border-t border-emerald-200 px-4 py-3">
+                      <p className="text-xs text-emerald-800">After the job completes, navigate to your download directory and check file integrity using sha256sum.</p>
+                      <pre className="mt-2 whitespace-pre-wrap break-all rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-emerald-200">{clusterVerifyCommand}</pre>
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyFolderCommand('verify', clusterVerifyCommand)}
+                        className="mt-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        {folderCliCopied === 'verify' ? 'Copied' : 'Copy All'}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <pre className="mt-2 rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-emerald-200">{clusterVerifyCommand}</pre>
               </div>
             </div>
           </div>
