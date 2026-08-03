@@ -775,13 +775,11 @@ export default function DownloadCatalogPanel({
                     />
                     <div className="min-w-0 flex-1">
                       <div className="text-base font-semibold text-gray-900 break-all leading-snug">{item.fileName}</div>
-                      <div className="mt-1 text-xs text-gray-500 break-all">{rootLabel}/{item.directoryPath || ''}</div>
                     </div>
                     {item.hidden && effectiveIsAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Hidden</span>}
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px] text-gray-600">
                     <span className="rounded bg-gray-100 px-2 py-0.5 text-gray-700">{item.fileType}</span>
-                    <span className="rounded bg-slate-100 px-2 py-0.5 text-slate-700">{item.sourceLabel}</span>
                     {item.sampleCount > 0 && <span className="rounded bg-emerald-50 px-2 py-0.5 text-emerald-700">Samples: {item.sampleCount}</span>}
                   </div>
                   <div className="grid gap-1 text-xs text-gray-500 sm:grid-cols-2">
@@ -860,11 +858,6 @@ export default function DownloadCatalogPanel({
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium text-gray-900 break-all">{item.fileName}</span>
                             {item.hidden && effectiveIsAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Hidden</span>}
-                          </div>
-                          <div className="mt-1 text-xs text-gray-500 break-all">{rootLabel}/{item.directoryPath || ''}</div>
-                          <div className="mt-1 text-xs text-gray-400">
-                            {item.sourceLabel}
-                            {item.sampleCount > 0 ? ` | Samples: ${item.sampleCount}` : ''}
                           </div>
                         </div>
                       </div>
