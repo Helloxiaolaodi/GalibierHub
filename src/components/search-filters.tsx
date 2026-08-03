@@ -92,7 +92,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
       {/* Promoter-level filters */}
       <div className="px-4 pt-2 pb-4">
         <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1">
-          Promoter locus
+          Locus
         </div>
         <p className="text-xs text-gray-500 mb-2">
           Query records directly by coordinate window, feature label, score cutoff, or sample ID.
