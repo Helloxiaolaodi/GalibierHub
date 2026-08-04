@@ -22,10 +22,6 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 ![Supabase](https://img.shields.io/badge/Supabase-2.110.7-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=flat-square&logo=vercel)
 
-> **A brief showcase video of the GalibierHub website** — [Watch the demo (MP4)](https://github.com/Helloxiaolaodi/GalibierHub/raw/main/assets/galibierhub-demo.mp4)
-
-<video src="https://github.com/Helloxiaolaodi/GalibierHub/raw/main/assets/galibierhub-demo.mp4" controls autoplay muted loop playsinline style="max-width:100%;border-radius:8px;border:1px solid #e1e4e8;margin:8px 0;"></video>
-
 ## Contents
 
 1. [Overview](#overview)

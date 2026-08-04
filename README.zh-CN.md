@@ -24,10 +24,6 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 ![Supabase](https://img.shields.io/badge/Supabase-2.110.7-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=flat-square&logo=vercel)
 
-> **GalibierHub 网站简要展示视频** — [观看演示（MP4）](https://github.com/Helloxiaolaodi/GalibierHub/raw/main/assets/galibierhub-demo.mp4)
-
-<video src="https://github.com/Helloxiaolaodi/GalibierHub/raw/main/assets/galibierhub-demo.mp4" controls autoplay muted loop playsinline style="max-width:100%;border-radius:8px;border:1px solid #e1e4e8;margin:8px 0;"></video>
-
 ## 目录
 
 1. [项目概览](#项目概览)
