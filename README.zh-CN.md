@@ -26,7 +26,7 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 
 > **GalibierHub 网站简要展示视频** — [观看演示（MP4）](https://github.com/Helloxiaolaodi/GalibierHub/raw/main/assets/galibierhub-demo.mp4)
 
-<video src="https://github.com/Helloxiaolaodi/GalibierHub/raw/main/assets/galibierhub-demo.mp4" controls muted style="max-width:100%;border-radius:8px;border:1px solid #e1e4e8;margin:8px 0;"></video>
+<video src="https://github.com/Helloxiaolaodi/GalibierHub/raw/main/assets/galibierhub-demo.mp4" controls autoplay muted loop playsinline style="max-width:100%;border-radius:8px;border:1px solid #e1e4e8;margin:8px 0;"></video>
 
 ## 目录
 
@@ -843,4 +843,5 @@ GalibierHub 基于一组开源工具构建，用于完成界面渲染、数据�
 本项目基于 [MIT 许可证](LICENSE) 授权。
 
 [返回顶部](#readme-top)
+
 

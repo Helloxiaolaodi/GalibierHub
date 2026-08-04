@@ -24,7 +24,7 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 
 > **A brief showcase video of the GalibierHub website** — [Watch the demo (MP4)](https://github.com/Helloxiaolaodi/GalibierHub/raw/main/assets/galibierhub-demo.mp4)
 
-<video src="https://github.com/Helloxiaolaodi/GalibierHub/raw/main/assets/galibierhub-demo.mp4" controls muted style="max-width:100%;border-radius:8px;border:1px solid #e1e4e8;margin:8px 0;"></video>
+<video src="https://github.com/Helloxiaolaodi/GalibierHub/raw/main/assets/galibierhub-demo.mp4" controls autoplay muted loop playsinline style="max-width:100%;border-radius:8px;border:1px solid #e1e4e8;margin:8px 0;"></video>
 
 ## Contents
 
@@ -831,5 +831,6 @@ GalibierHub has also been developed with support from the following AI tools dur
 This project is licensed under the [MIT License](LICENSE).
 
 [Back to top](#readme-top)
+
 
 
