@@ -350,7 +350,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7]">
+    <div className="min-h-screen bg-[#F5F5F7] flex flex-col">
       <header className="bg-white/70 backdrop-blur-xl saturate-150 border-b border-white/20 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <Logo />

@@ -176,7 +176,7 @@ export default function DiscussionsPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
@@ -1047,50 +1047,62 @@ export default function DiscussionsPage() {
 
           </div>
 
-          {/* Pagination footer with page size toggle */}
 
-          {sortedEntries.length > pageSize && (
-
-            <div className="flex items-center justify-between border-t border-gray-100 bg-white rounded-b-2xl px-4 py-3 mt-3">
-
-              <div className="text-xs text-gray-500">
-
-                <div className="flex items-center gap-3"><span className="text-xs text-gray-500">Show:</span><select value={pageSize} onChange={e=>{setPageSize(Number(e.target.value));setCurrentPage(1);}} className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-slate-400"><option value={20}>20</option><option value={50}>50</option></select></div>
-
-              <div className="text-xs text-gray-500">
-
-                Showing {((currentPage-1)*pageSize)+1}-{Math.min(currentPage*pageSize, sortedEntries.length)} of {sortedEntries.length} discussions
-
-              </div>
-
-              </div>
-
-              <div className="flex items-center gap-1">
-
-                <button onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1} className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-
-                  <svg className="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>Prev
-
-                </button>
-
-                {Array.from({length:Math.ceil(sortedEntries.length/pageSize)},(_,i)=>i+1).map(p=>(
-
-                  <button key={p} onClick={()=>setCurrentPage(p)} className={"inline-flex items-center justify-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors "+(p===currentPage?"bg-slate-800 text-white":"border border-gray-200 bg-white text-gray-700 hover:bg-gray-50")}>{p}</button>
-
-                ))}
-
-                <button onClick={()=>setCurrentPage(p=>Math.min(Math.ceil(sortedEntries.length/pageSize),p+1))} disabled={currentPage>=Math.ceil(sortedEntries.length/pageSize)} className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-
-                  Next<svg className="h-3.5 w-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
-
-                </button>
-
-              </div>
-
+          {/* Pagination footer */}
+          <div className="flex flex-col gap-3 text-sm text-gray-600 lg:flex-row lg:items-center lg:justify-between border-t border-gray-100 bg-white rounded-b-2xl px-4 py-3 mt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">First</button>
+              <button type="button" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="inline-flex items-center rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                <svg className="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>Prev
+              </button>
+              <button type="button" onClick={() => setCurrentPage(p => Math.min(Math.ceil(sortedEntries.length / pageSize), p + 1))} disabled={currentPage >= Math.ceil(sortedEntries.length / pageSize)} className="inline-flex items-center rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                Next<svg className="h-3.5 w-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button type="button" onClick={() => setCurrentPage(Math.ceil(sortedEntries.length / pageSize))} disabled={currentPage >= Math.ceil(sortedEntries.length / pageSize)} className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">Last</button>
             </div>
-
-          )}
-
+            <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+              <span>
+                Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, sortedEntries.length)} of {sortedEntries.length} discussions
+              </span>
+              <label className="flex items-center gap-2">
+                <span>Page size</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                  className="rounded border px-2 py-1 bg-white"
+                >
+                  {[10, 20, 30].map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+              </label>
+              <span>Page {currentPage} of {Math.max(1, Math.ceil(sortedEntries.length / pageSize))}</span>
+              <label className="flex items-center gap-2">
+                <span>Page</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={Math.ceil(sortedEntries.length / pageSize)}
+                  value={currentPage}
+                  onChange={(e) => {
+                    const val = Number.parseInt(e.target.value, 10);
+                    if (!Number.isNaN(val) && val >= 1 && val <= Math.ceil(sortedEntries.length / pageSize)) {
+                      setCurrentPage(val);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const val = Number.parseInt((e.target as HTMLInputElement).value, 10);
+                      if (!Number.isNaN(val) && val >= 1 && val <= Math.ceil(sortedEntries.length / pageSize)) {
+                        setCurrentPage(val);
+                      }
+                    }
+                  }}
+                  className="w-20 rounded border px-2 py-1"
+                />
+              </label>
+            </div>
+          </div>
         </>
 
         )}

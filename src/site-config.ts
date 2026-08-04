@@ -193,7 +193,7 @@ export const SiteConfig = {
   },
   chromosomes: [process.env.NEXT_PUBLIC_REFERENCE_ASSEMBLY || 'reference'],
 
-  pageSize: 20,
+  pageSize: 10,
 
   checksums: {
     enabled: true,

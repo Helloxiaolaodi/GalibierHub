@@ -432,7 +432,7 @@ export default function DownloadCatalogPanel({
   const [downloadRegion, setDownloadRegion] = useState<DownloadRegion>(() => getPreferredDownloadRegion());
   const [batchBrowserDownloading, setBatchBrowserDownloading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [pageInput, setPageInput] = useState('1');
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const pendingRecordHandledRef = useRef(false);
@@ -831,7 +831,7 @@ export default function DownloadCatalogPanel({
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
               <span className="rounded bg-teal-50 px-2 py-1 text-teal-700">Files: {currentFolderSummary.fileCount}</span>
-              <span className="rounded bg-slate-100 px-2 py-1 text-slate-700">Folders: {currentFolderSummary.folderCount}</span>
+              
               {currentFolderItems.length > 0 && (
                 <button
                   type="button"
@@ -994,7 +994,7 @@ export default function DownloadCatalogPanel({
 
       {!error && childFolders.length > 0 && (
         <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="border-b bg-gray-50 px-4 py-3 text-sm font-medium text-gray-800">Folders</div>
+          
           <div className="grid gap-3 px-4 py-4 sm:grid-cols-2 xl:grid-cols-3">
             {childFolderSummaries.map(({ folder, summary }) => (
               <button
@@ -1197,7 +1197,7 @@ export default function DownloadCatalogPanel({
                 onChange={(event) => handlePageSizeChange(Number.parseInt(event.target.value, 10))}
                 className="rounded border bg-white px-2 py-1"
               >
-                {[20, 50, 100].map((size) => (
+                {[10, 20, 30].map((size) => (
                   <option key={size} value={size}>{size}</option>
                 ))}
               </select>
