@@ -6,7 +6,7 @@ import {
   hasSupabaseServiceRole,
   isSupabaseConfigured,
 } from '@/utils/supabase';
-import { getBearerToken, hashVisitorFingerprint } from '@/lib/feedback-admin';
+import { getBearerToken, hashVisitorFingerprint, requireGithubAuth } from '@/lib/feedback-admin';
 
 type ReactionType = 'like' | 'bookmark';
 
@@ -84,6 +84,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
   }
 
+  const authToken = getBearerToken(request);
+  const authResult = await requireGithubAuth(authToken);
+  if (!authResult.ok) {
+    return NextResponse.json({ error: authResult.error }, { status: 401 });
+  }
+
   const reactionType = typeof (body as { reactionType?: unknown }).reactionType === 'string'
     ? (body as { reactionType: string }).reactionType.trim()
     : '';
@@ -96,9 +102,8 @@ export async function POST(request: NextRequest) {
   const commentId = typeof (body as { commentId?: unknown }).commentId === 'string'
     ? (body as { commentId: string }).commentId.trim()
     : null;
-  const userId = typeof (body as { userId?: unknown }).userId === 'string'
-    ? (body as { userId: string }).userId.trim()
-    : null;
+  const userId = authResult.user.id;
+  const actorName = authResult.githubLogin || 'User';
 
   if (!isReactionType(reactionType)) {
     return NextResponse.json({ error: 'Reaction type must be like or bookmark.' }, { status: 400 });
@@ -109,11 +114,10 @@ export async function POST(request: NextRequest) {
   }
 
   const fingerprintHash = hashVisitorFingerprint(fingerprint);
-  const sb = getSupabase();
-  const notificationToken = getBearerToken(request);
-  const notificationClient = hasSupabaseServiceRole
+  const sb = hasSupabaseServiceRole
     ? getServiceSupabase()
-    : (notificationToken ? getSupabaseWithAuth(notificationToken) : sb);
+    : getSupabaseWithAuth(authToken!);
+  const notificationClient = sb;
 
   let existingQuery = sb
     .from('site_reactions')
@@ -184,9 +188,6 @@ export async function POST(request: NextRequest) {
         recipientId = likedEntry?.user_id as string | null | undefined;
       }
       if (recipientId) {
-        const actorName = typeof (body as { actorName?: unknown }).actorName === 'string'
-          ? (body as { actorName: string }).actorName
-          : 'Someone';
         await notificationClient.from('site_notifications').insert({
           recipient_id: recipientId,
           discussion_id: discussionId,

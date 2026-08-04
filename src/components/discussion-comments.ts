@@ -27,8 +27,7 @@ export function useDiscussionComments(accessToken?: string | null, isAdmin = fal
     const draft = (commentDrafts[entryId] || '').trim();
     if (!draft || draft.length < 1) return;
     const storedGithubUser = typeof window === 'undefined' ? null : window.localStorage.getItem('galibierhub-github-user');
-    const storedUserId = typeof window === 'undefined' ? null : window.localStorage.getItem('galibierhub-user-id');
-    if (!accessToken && !storedGithubUser && !storedUserId) {
+    if (!accessToken) {
       setCommentError((e) => ({ ...e, [entryId]: 'Please sign in to reply.' }));
       return;
     }
@@ -39,7 +38,10 @@ export function useDiscussionComments(accessToken?: string | null, isAdmin = fal
     try {
       const response = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           feedbackId: entryId,
           message: draft,

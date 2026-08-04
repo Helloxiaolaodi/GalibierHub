@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 
 
@@ -522,34 +522,17 @@ export default function DiscussionsPage() {
 
   const handleToggleLike = useCallback(async (entryId: string) => {
     if (likeBusy[entryId]) return;
+    if (!session?.access_token) {
+      setAuthModalOpen(true);
+      return;
+    }
     setLikeBusy((current) => ({ ...current, [entryId]: true }));
     const fingerprint = buildVisitorFingerprint();
-    let userId: string | null = null;
-    let actorName = githubUser || "User";
-    const sb = getBrowserSupabase();
-    if (sb) {
-      try {
-        const { data: sessionData } = await sb.auth.getSession();
-        const user = sessionData.session?.user;
-        if (user) {
-          userId = user.id;
-          actorName = String(
-            user.user_metadata?.user_name ||
-            user.user_metadata?.preferred_username ||
-            user.user_metadata?.login ||
-            (user.email ? user.email.split('@')[0] : null) ||
-            actorName
-          );
-        }
-      } catch {
-        // Like still works without session identity.
-      }
-    }
     try {
       const response = await fetch("/api/reactions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reactionType: "like", fingerprint, entryId, userId, actorName }),
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + session.access_token },
+        body: JSON.stringify({ reactionType: "like", fingerprint, entryId }),
       });
       const data = await response.json() as { active?: boolean; error?: string };
       if (!response.ok) throw new Error(data.error || "Failed to update like");
@@ -563,7 +546,7 @@ export default function DiscussionsPage() {
         return next;
       });
     }
-  }, [likeBusy, githubUser]);
+  }, [likeBusy, session?.access_token]);
 
   const handleToggleHidden = useCallback(async (entryId: string, nextHidden: boolean) => {
     if (modBusy[entryId]) return;
@@ -654,8 +637,8 @@ export default function DiscussionsPage() {
 
     if (!composerForm.message.trim() || composerForm.message.trim().length < 3) { setComposerError("Message must be at least 3 characters."); return; }
 
-    if (!githubUser && !session?.access_token) {
-      setComposerError("Please sign in to post a discussion.");
+    if (!session?.access_token) {
+      setComposerError("Please sign in with GitHub to post a discussion.");
       return;
     }
 
@@ -665,7 +648,7 @@ export default function DiscussionsPage() {
 
     try {
 
-      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json", ...(session?.access_token ? {"Authorization":"Bearer "+session.access_token} : {})}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,affiliation:composerForm.affiliation,visibility:composerForm.visibility,category:composerForm.category}) });
+      const res = await fetch("/api/feedback", { method: "POST", headers: {"Content-Type":"application/json", "Authorization":"Bearer "+session.access_token}, body: JSON.stringify({title:composerForm.title.trim(),displayName,message:composerForm.message.trim(),visitorEmail:composerForm.visitorEmail,affiliation:composerForm.affiliation,visibility:composerForm.visibility,category:composerForm.category}) });
 
       if (!res.ok) { const d = await res.json() as {error?:string}; throw new Error(d.error||"Failed to submit"); }
 
@@ -993,7 +976,7 @@ export default function DiscussionsPage() {
 
                             </div>
 
-                            <span>·</span>
+                            <span>Â·</span>
 
                         <span>{formatTimeAgo(entry.created_at)}</span>
 

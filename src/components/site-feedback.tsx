@@ -681,33 +681,20 @@ const [uploadingImage, setUploadingImage] = useState(false);
   }, [refreshSignal]);
 
   const handleReaction = useCallback(async (reactionType: ReactionType, entryId: string) => {
-    const fingerprint = buildVisitorFingerprint();
-    let userId: string | null = null;
-    let actorName = 'Someone';
-    const sb = getBrowserSupabase();
-    if (sb) {
-      try {
-        const { data: sessionData } = await sb.auth.getSession();
-        const user = sessionData.session?.user;
-        if (user) {
-          userId = user.id;
-          actorName = String(
-            user.user_metadata?.user_name ||
-            user.user_metadata?.preferred_username ||
-            user.user_metadata?.login ||
-            (user.email ? user.email.split('@')[0] : null) ||
-            'Someone'
-          );
-        }
-      } catch {
-        // Reaction still works without session identity.
-      }
+    if (!accessToken) {
+      setReplyError('Please sign in to like or bookmark.');
+      return;
     }
+    setReplyError(null);
+    const fingerprint = buildVisitorFingerprint();
     try {
       const response = await fetch('/api/reactions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reactionType, fingerprint, entryId, userId, actorName }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ reactionType, fingerprint, entryId }),
       });
       const data = (await response.json()) as { active?: boolean; error?: string };
       if (!response.ok) {
@@ -736,9 +723,9 @@ const [uploadingImage, setUploadingImage] = useState(false);
        [reactionType]: Math.max(0, current[reactionType] + (data.active ? 1 : -1)),
      }));
     } catch (err) {
-      console.error('Reaction failed:', err);
-   }
- }, []);
+      setReplyError(err instanceof Error ? err.message : 'Reaction failed. Please try again.');
+    }
+ }, [accessToken]);
 
   const fetchThreadComments = useCallback(async (entryId: string) => {
     try {
