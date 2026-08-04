@@ -60,18 +60,18 @@ export default function UserGuide({ open, onClose }: UserGuideProps) {
           </section>
 
           <section className="rounded-xl bg-slate-50/70 p-5">
-            <h3 className="text-base font-semibold text-slate-900 mb-2">Discussions</h3>
-            <ul className="space-y-2">
-              <li>Create discussions, reply, react, and manage notifications from the user menu.</li>
-              <li>Notifications, Replies, Likes, and Following each provide Mark all read.</li>
-            </ul>
-          </section>
-
-          <section className="rounded-xl bg-slate-50/70 p-5">
             <h3 className="text-base font-semibold text-slate-900 mb-2">Downloads</h3>
             <ul className="space-y-2">
               <li>Browse folders, select files, and use Download to Browser, CLI, or Cluster Batch Download.</li>
               <li>The Records folder contains every file from the Records interface and supports the same workflows as other Downloads folders.</li>
+            </ul>
+          </section>
+
+          <section className="rounded-xl bg-slate-50/70 p-5">
+            <h3 className="text-base font-semibold text-slate-900 mb-2">Discussions</h3>
+            <ul className="space-y-2">
+              <li>Create discussions, reply, react, and manage notifications from the user menu.</li>
+              <li>Notifications, Replies, Likes, and Following each provide Mark all read.</li>
             </ul>
           </section>
         </div>

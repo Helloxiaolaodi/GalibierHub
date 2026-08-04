@@ -1,5 +1,5 @@
--- ============================================================
--- GalibierHub Ã¢â‚¬â€ Supabase Database Schema
+﻿-- ============================================================
+-- GalibierHub ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Supabase Database Schema
 -- ============================================================
 -- Run this SQL in your Supabase SQL Editor to create all
 -- required tables, indexes, and sample data.
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS genome_samples (
   assembly_version TEXT NOT NULL,
   total_variants INTEGER DEFAULT 0,
   coverage NUMERIC DEFAULT 0,
-  -- Phenotype / cohort metadata — optional, drives the metadata filter panel
+  -- Phenotype / cohort metadata â€” optional, drives the metadata filter panel
   cohort TEXT,
   bmi NUMERIC,
   age INTEGER,
@@ -233,11 +233,11 @@ DROP POLICY IF EXISTS "Public read genome_samples"      ON genome_samples;
 DROP POLICY IF EXISTS "Public read predicted_promoters" ON predicted_promoters;
 DROP POLICY IF EXISTS "Public read variant_index"       ON variant_index;
 DROP POLICY IF EXISTS "Public read site_feedback"       ON site_feedback;
-DROP POLICY IF EXISTS "Public insert site_feedback"     ON site_feedback;
+DROP POLICY IF EXISTS "Authenticated insert site_feedback"     ON site_feedback;
 DROP POLICY IF EXISTS "Public read feedback_comments"   ON feedback_comments;
-DROP POLICY IF EXISTS "Public insert feedback_comments" ON feedback_comments;
+DROP POLICY IF EXISTS "Authenticated insert feedback_comments" ON feedback_comments;
 DROP POLICY IF EXISTS "Public read site_reactions"      ON site_reactions;
-DROP POLICY IF EXISTS "Public insert site_reactions"    ON site_reactions;
+DROP POLICY IF EXISTS "Authenticated insert site_reactions"    ON site_reactions;
 DROP POLICY IF EXISTS "Public read site_visitors"       ON site_visitors;
 DROP POLICY IF EXISTS "Public insert site_visitors"     ON site_visitors;
 
@@ -267,8 +267,8 @@ BEGIN
 END $$;
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public insert site_feedback' AND tablename = 'site_feedback') THEN
-    CREATE POLICY "Public insert site_feedback" ON site_feedback FOR INSERT TO anon WITH CHECK (true);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated insert site_feedback' AND tablename = 'site_feedback') THEN
+    CREATE POLICY "Authenticated insert site_feedback" ON site_feedback FOR INSERT TO authenticated WITH CHECK (true);
   END IF;
 END $$;
 DO $$
@@ -279,8 +279,8 @@ BEGIN
 END $$;
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public insert feedback_comments' AND tablename = 'feedback_comments') THEN
-    CREATE POLICY "Public insert feedback_comments" ON feedback_comments FOR INSERT TO anon WITH CHECK (true);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated insert feedback_comments' AND tablename = 'feedback_comments') THEN
+    CREATE POLICY "Authenticated insert feedback_comments" ON feedback_comments FOR INSERT TO authenticated WITH CHECK (true);
   END IF;
 END $$;
 DO $$
@@ -291,8 +291,8 @@ BEGIN
 END $$;
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public insert site_reactions' AND tablename = 'site_reactions') THEN
-    CREATE POLICY "Public insert site_reactions" ON site_reactions FOR INSERT TO anon WITH CHECK (true);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated insert site_reactions' AND tablename = 'site_reactions') THEN
+    CREATE POLICY "Authenticated insert site_reactions" ON site_reactions FOR INSERT TO authenticated WITH CHECK (true);
   END IF;
 END $$;
 DO $$
@@ -338,7 +338,7 @@ BEGIN
   IF badge_name IS NOT NULL THEN
     INSERT INTO site_notifications (recipient_id, discussion_id, actor_name, preview_text, is_read)
     VALUES (p_user_id, COALESCE(p_discussion_id, 'badges'), 'GalibierHub',
-            COALESCE(badge_icon, '🏅') || ' You earned the "' || badge_name || '" badge!', false);
+            COALESCE(badge_icon, 'ðŸ…') || ' You earned the "' || badge_name || '" badge!', false);
   END IF;
 EXCEPTION WHEN OTHERS THEN
   RAISE WARNING 'award_badge error: %', SQLERRM;
@@ -491,35 +491,35 @@ END $$;
 -- ============================================================
 -- DELETE policies for reactions and feedback entries
 -- ============================================================
-DROP POLICY IF EXISTS "Public delete site_reactions" ON site_reactions;
+DROP POLICY IF EXISTS "Authenticated delete site_reactions" ON site_reactions;
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public delete site_reactions' AND tablename = 'site_reactions') THEN
-    CREATE POLICY "Public delete site_reactions" ON site_reactions FOR DELETE TO anon USING (true);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated delete site_reactions' AND tablename = 'site_reactions') THEN
+    CREATE POLICY "Authenticated delete site_reactions" ON site_reactions FOR DELETE TO authenticated USING (true);
   END IF;
 END $$;
 DROP POLICY IF EXISTS "Service delete site_feedback" ON site_feedback;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service delete site_feedback' AND tablename = 'site_feedback') THEN
-    CREATE POLICY "Service delete site_feedback" ON site_feedback FOR DELETE TO anon USING (true);
+    CREATE POLICY "Service delete site_feedback" ON site_feedback FOR DELETE TO authenticated USING (auth.role() = 'service_role');
   END IF;
 END $$;
 -- ============================================================
 -- UPDATE policies for feedback-related tables
 -- ============================================================
-DROP POLICY IF EXISTS "Public update site_feedback" ON site_feedback;
+DROP POLICY IF EXISTS "Authenticated update site_feedback" ON site_feedback;
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public update site_feedback' AND tablename = 'site_feedback') THEN
-    CREATE POLICY "Public update site_feedback" ON site_feedback FOR UPDATE TO anon USING (true);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated update site_feedback' AND tablename = 'site_feedback') THEN
+    CREATE POLICY "Authenticated update site_feedback" ON site_feedback FOR UPDATE TO authenticated USING (true);
   END IF;
 END $$;
-DROP POLICY IF EXISTS "Public update feedback_comments" ON feedback_comments;
+DROP POLICY IF EXISTS "Authenticated update feedback_comments" ON feedback_comments;
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public update feedback_comments' AND tablename = 'feedback_comments') THEN
-    CREATE POLICY "Public update feedback_comments" ON feedback_comments FOR UPDATE TO anon USING (true);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated update feedback_comments' AND tablename = 'feedback_comments') THEN
+    CREATE POLICY "Authenticated update feedback_comments" ON feedback_comments FOR UPDATE TO authenticated USING (true);
   END IF;
 END $$;
 
@@ -656,7 +656,7 @@ END $$;
 -- Administrator/admin mutations are expected to use the server-side
 -- SUPABASE_SERVICE_ROLE_KEY configured in the application.
 -- ============================================================
-DROP POLICY IF EXISTS "Public update site_feedback" ON site_feedback;
+DROP POLICY IF EXISTS "Authenticated update site_feedback" ON site_feedback;
 DROP POLICY IF EXISTS "Public delete site_feedback" ON site_feedback;
 DROP POLICY IF EXISTS "Service update site_feedback" ON site_feedback;
 DROP POLICY IF EXISTS "Service delete site_feedback" ON site_feedback;
@@ -673,9 +673,9 @@ BEGIN
   END IF;
 END $$;
 
-DROP POLICY IF EXISTS "Public update feedback_comments" ON feedback_comments;
+DROP POLICY IF EXISTS "Authenticated update feedback_comments" ON feedback_comments;
 
-DROP POLICY IF EXISTS "Public delete site_reactions" ON site_reactions;
+DROP POLICY IF EXISTS "Authenticated delete site_reactions" ON site_reactions;
 DROP POLICY IF EXISTS "Service delete site_reactions" ON site_reactions;
 DO $$
 BEGIN
@@ -813,20 +813,20 @@ CREATE INDEX IF NOT EXISTS idx_user_badges_badge ON user_badges(badge_id);
 
 -- Seed badge definitions
 INSERT INTO badge_definitions (id, name, description, category, icon, tier, criteria) VALUES
-('ice_breaker', 'Ice Breaker', 'Posted your first discussion or reply', 'onboarding', '❄️', 'bronze', 'First comment or discussion'),
-('first_like', 'First Like', 'Liked someone else''s post for the first time', 'onboarding', '👍', 'bronze', 'First like given'),
-('welcome', 'Welcome', 'Your post received its first like', 'onboarding', '👋', 'bronze', 'Received first like on a post'),
-('nice_reply', 'Nice Reply', 'A single reply earned 10 likes', 'engagement', '💬', 'silver', 'Single reply reaches 10 likes'),
-('nice_topic', 'Nice Topic', 'A single discussion earned 10 likes', 'engagement', '📝', 'silver', 'Single topic reaches 10 likes'),
-('enthusiast', 'Enthusiast', 'Visited Discussions for 10 consecutive days', 'engagement', '🔥', 'silver', '10-day activity streak'),
-('appreciated', 'Appreciated', 'Received likes on 20 different posts', 'engagement', '⭐', 'gold', 'Liked on 20 different posts'),
-('thank_you', 'Thank You', 'Gave 10 likes and received 20 likes', 'engagement', '🙏', 'gold', '10 given + 20 received likes'),
-('markdown_master', 'Markdown Master', 'Used code blocks in a discussion', 'tech', '💻', 'bronze', 'Used code block syntax'),
-('cli_maestro', 'CLI Maestro', 'Shared download CLI commands that earned 5 likes', 'tech', '🖥️', 'silver', 'CLI script with 5 likes'),
-('data_visualizer', 'Data Visualizer', 'Uploaded a data visualization image', 'tech', '📊', 'silver', 'Uploaded visualization'),
-('open_science', 'Open Science Advocate', 'Shared a GitHub/ repository link', 'tech', '🔬', 'bronze', 'Shared external repo link'),
-('great_topic', 'Great Topic', 'Discussion reached 1000+ views and 20+ replies', 'milestone', '🏆', 'gold', '1000 views + 20 replies'),
-('top_contributor', 'Top Contributor', 'Among top 5% most-liked users this year', 'milestone', '👑', 'platinum', 'Top 5% annual likes'),
-('community_curator', 'Community Curator', 'Reply marked as official answer by admin', 'exclusive', '✅', 'gold', 'Official answer marked'),
-('bug_hunter', 'Bug Hunter', 'Reported a valid bug that was resolved', 'exclusive', '🐛', 'gold', 'Bug report resolved')
+('ice_breaker', 'Ice Breaker', 'Posted your first discussion or reply', 'onboarding', 'â„ï¸', 'bronze', 'First comment or discussion'),
+('first_like', 'First Like', 'Liked someone else''s post for the first time', 'onboarding', 'ðŸ‘', 'bronze', 'First like given'),
+('welcome', 'Welcome', 'Your post received its first like', 'onboarding', 'ðŸ‘‹', 'bronze', 'Received first like on a post'),
+('nice_reply', 'Nice Reply', 'A single reply earned 10 likes', 'engagement', 'ðŸ’¬', 'silver', 'Single reply reaches 10 likes'),
+('nice_topic', 'Nice Topic', 'A single discussion earned 10 likes', 'engagement', 'ðŸ“', 'silver', 'Single topic reaches 10 likes'),
+('enthusiast', 'Enthusiast', 'Visited Discussions for 10 consecutive days', 'engagement', 'ðŸ”¥', 'silver', '10-day activity streak'),
+('appreciated', 'Appreciated', 'Received likes on 20 different posts', 'engagement', 'â­', 'gold', 'Liked on 20 different posts'),
+('thank_you', 'Thank You', 'Gave 10 likes and received 20 likes', 'engagement', 'ðŸ™', 'gold', '10 given + 20 received likes'),
+('markdown_master', 'Markdown Master', 'Used code blocks in a discussion', 'tech', 'ðŸ’»', 'bronze', 'Used code block syntax'),
+('cli_maestro', 'CLI Maestro', 'Shared download CLI commands that earned 5 likes', 'tech', 'ðŸ–¥ï¸', 'silver', 'CLI script with 5 likes'),
+('data_visualizer', 'Data Visualizer', 'Uploaded a data visualization image', 'tech', 'ðŸ“Š', 'silver', 'Uploaded visualization'),
+('open_science', 'Open Science Advocate', 'Shared a GitHub/ repository link', 'tech', 'ðŸ”¬', 'bronze', 'Shared external repo link'),
+('great_topic', 'Great Topic', 'Discussion reached 1000+ views and 20+ replies', 'milestone', 'ðŸ†', 'gold', '1000 views + 20 replies'),
+('top_contributor', 'Top Contributor', 'Among top 5% most-liked users this year', 'milestone', 'ðŸ‘‘', 'platinum', 'Top 5% annual likes'),
+('community_curator', 'Community Curator', 'Reply marked as official answer by admin', 'exclusive', 'âœ…', 'gold', 'Official answer marked'),
+('bug_hunter', 'Bug Hunter', 'Reported a valid bug that was resolved', 'exclusive', 'ðŸ›', 'gold', 'Bug report resolved')
 ON CONFLICT (id) DO NOTHING;

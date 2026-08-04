@@ -6,7 +6,7 @@ import {
   hasSupabaseServiceRole,
   isSupabaseConfigured,
 } from "@/utils/supabase";
-import { getBearerToken, requireCreatorGithubAuth } from "@/lib/feedback-admin";
+import { getBearerToken, requireCreatorGithubAuth, requireGithubAuth } from "@/lib/feedback-admin";
 
 const VALID_CATEGORIES = new Set(["general", "issue", "tutorials", "idea", "data", "collaboration"]);
 
@@ -400,20 +400,18 @@ export async function POST(request: Request) {
     ? body as Record<string, unknown>
     : {};
   const authToken = getBearerToken(request);
-  let authenticatedUserId: string | null = null;
-  if (authToken) {
-    try {
-      const authClient = getSupabaseWithAuth(authToken);
-      const { data: { user } } = await authClient.auth.getUser(authToken);
-      authenticatedUserId = user?.id || null;
-    } catch {
-      // Anonymous or invalid sessions still allow public feedback posting.
-    }
+  const authResult = await requireGithubAuth(authToken);
+  if (!authResult.ok) {
+    return NextResponse.json({ error: authResult.error }, { status: 401 });
   }
+  const authenticatedUserId = authResult.user.id;
   const effectiveUserId = authenticatedUserId;
   const replyToUserId = typeof bodyRecord.replyToUserId === "string"
     ? bodyRecord.replyToUserId.trim()
     : null;
+  const writeClient = hasSupabaseServiceRole
+    ? getServiceSupabase()
+    : getSupabaseWithAuth(authToken!);
 
   // Handle comment submission (POST to a specific feedback entry)
   const feedbackId = typeof (body as { feedbackId?: unknown }).feedbackId === 'string'
@@ -426,10 +424,8 @@ export async function POST(request: Request) {
     if (!commentMessage || commentMessage.length < 1 || commentMessage.length > 2000) {
       return NextResponse.json({ error: "Comment message must be between 1 and 2000 characters." }, { status: 400 });
     }
-    const sbComments = getSupabase();
-    const notifyClient = hasSupabaseServiceRole
-      ? getServiceSupabase()
-      : (authToken ? getSupabaseWithAuth(authToken) : sbComments);
+    const sbComments = writeClient;
+    const notifyClient = writeClient;
     const { data: feedbackEntry, error: feedbackLookupErr } = await sbComments
       .from("site_feedback")
       .select("id, title, display_name, visibility, created_at, user_id")
@@ -623,7 +619,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Message must be between 3 and 2000 characters." }, { status: 400 });
   }
 
-  const sb = getSupabase();
+  const sb = writeClient;
   const { data, error } = await sb
     .from("site_feedback")
    .insert({

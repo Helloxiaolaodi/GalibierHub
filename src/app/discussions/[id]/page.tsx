@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ClipboardEvent, type PointerEvent } from "react";
 import Link from "next/link";
@@ -617,16 +617,12 @@ export default function DiscussionDetailPage() {
 
   // Fixed like handler - supports toggle (like/unlike) with real per-user fingerprints
   const handleLike = useCallback(async (entryId: string) => {
+    if (!session?.access_token) {
+      setAuthModalOpen(true);
+      return;
+    }
     const currentlyLiked = likes[entryId];
-    const userFp = getUserFingerprint();
     const isComment = entryId !== id;
-    const actorName = session?.user?.user_metadata?.name
-      || session?.user?.user_metadata?.full_name
-      || session?.user?.user_metadata?.user_name
-      || session?.user?.user_metadata?.preferred_username
-      || session?.user?.user_metadata?.login
-      || (session?.user?.email ? session.user.email.split("@")[0] : null)
-      || "User";
     setLikeLoading(p=>({...p,[entryId]:true}));
     
     // Optimistic update
@@ -639,15 +635,14 @@ export default function DiscussionDetailPage() {
     }
 
     try {
+      const fingerprint = getUserFingerprint();
       await fetch("/api/reactions", {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: {"Content-Type":"application/json", "Authorization":"Bearer "+session.access_token},
         body: JSON.stringify({
           reactionType:"like",
-          fingerprint: userFp,
+          fingerprint,
           ...(isComment ? { commentId: entryId } : { entryId }),
-          userId: session?.user?.id || null,
-          actorName,
         })
       });
       // Re-fetch actual count from server
@@ -665,15 +660,9 @@ export default function DiscussionDetailPage() {
         if (!likedList.includes(entryId)) likedList.push(entryId);
       }
       localStorage.setItem("galibierhub-likes-"+(id||""), JSON.stringify(likedList));
-      // Send notification to the post author when liking their post
-      const likeTarget = entry as { user_id?: string | null; title?: string | null } | null;
-      if (!currentlyLiked && session?.user?.id && likeTarget?.user_id && likeTarget.user_id !== session.user.id) {
-        const postTitle = likeTarget.title?.substring(0, 40) || "your post";
-        fetch("/api/notifications", { method: "POST", headers: {"Content-Type":"application/json", Authorization:"Bearer "+(session?.access_token||"")}, body: JSON.stringify({ recipient_id: likeTarget.user_id, discussion_id: id, actor_name: actorName, preview_text: "liked your post \"" + postTitle + "\"" }) }).catch(()=>{});
-      }
     } catch {}
     finally { setLikeLoading(p=>({...p,[entryId]:false})); }
-  }, [likes, id, getUserFingerprint, session]);
+  }, [likes, id, getUserFingerprint, session?.access_token]);
 
   // Open share modal
   const handleShare = useCallback((entryId: string) => {
@@ -689,21 +678,20 @@ export default function DiscussionDetailPage() {
   }, []);
 
   const handleSubmitComment = useCallback(async (text: string) => {
-    if (!githubUser && !session?.access_token) {
-      throw new Error("Please sign in to reply.");
+    if (!session?.access_token) {
+      throw new Error("Please sign in with GitHub to reply.");
     }
     const authorName = isAdmin ? "GalibierHub Team" : (githubUser || (session?.user?.email ? session.user.email.split("@")[0] : null) || "User");
     const res = await fetch("/api/feedback", {
       method: "POST",
       headers: {
         "Content-Type":"application/json",
-        ...(session?.access_token ? { Authorization: "Bearer " + session.access_token } : {}),
+        Authorization: "Bearer " + session.access_token,
       },
       body: JSON.stringify({
         feedbackId:id,
         message:text,
         authorName,
-        userId: currentUserId || (typeof window !== "undefined" ? localStorage.getItem("galibierhub-user-id") : null),
         replyToUserId: replyTargetUserId,
       })
     });
@@ -943,8 +931,8 @@ const isLoggedIn = !!(session || githubUser);
 
                               {ed.user_id && <BadgeDisplay userId={ed.user_id} />}
 
-                              {ed.affiliation&&<><span>·</span><span>{ed.affiliation}</span></>}
-                              <span>·</span><span>{formatDate(ed.created_at)}</span>
+                              {ed.affiliation&&<><span>Â·</span><span>{ed.affiliation}</span></>}
+                              <span>Â·</span><span>{formatDate(ed.created_at)}</span>
                             </div>
                           </div>
                         </div>
