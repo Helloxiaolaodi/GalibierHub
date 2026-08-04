@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ClipboardEvent, type PointerEvent } from "react";
 import Link from "next/link";
@@ -863,7 +863,7 @@ const isLoggedIn = !!(session || githubUser);
     <div className="min-h-screen bg-[#F5F5F7]">
       {/* Sticky nav */}
       <header className="sticky top-0 z-40 border-b border-white/20 bg-white/70 backdrop-blur-xl saturate-150 shadow-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-[1100px] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 min-w-0">
             <Logo compact />
             <span className="text-gray-300">/</span>
@@ -893,7 +893,7 @@ const isLoggedIn = !!(session || githubUser);
       </header>
 
       {/* Main content area with relative positioning for sidebar */}
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 relative">
+      <div className="mx-auto max-w-[1100px] px-4 sm:px-6 lg:px-8 relative">
         {/* Timeline sidebar - draggable and synced with page scroll */}
         {displayTimeline.length>1&&(
           <div className="absolute right-0 top-0 bottom-0 hidden xl:block" style={{transform:"translateX(100%)",paddingLeft:"16px"}}>
