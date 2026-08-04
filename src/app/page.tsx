@@ -82,6 +82,7 @@ export default function HomePage() {
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const [tutorialMenuOpen, setTutorialMenuOpen] = useState(false);
+  const [pendingRecordSampleId, setPendingRecordSampleId] = useState<string | null>(null);
   const tutorialMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -99,6 +100,11 @@ export default function HomePage() {
     () => resolveExpectedAdminGithubLogin({ fallbackLabel: SiteConfig.adminGithubLoginFallback }),
     [],
   );
+
+  const handleRecordDownload = useCallback((sampleId: string) => {
+    setPendingRecordSampleId(sampleId);
+    setActiveTab('downloads');
+  }, []);
 
   const configurationHints = useMemo(() => {
     if (!dataError) return [] as string[];
@@ -591,14 +597,14 @@ export default function HomePage() {
             <PromoterTable data={promoters} totalCount={totalPromoters} pageIndex={pageIndex} pageSize={pageSize} loading={loading} filterSummary={filterSummary} topChromosomes={pageSummary.topChromosomes} topSamples={pageSummary.topSamples} visibleCount={pageSummary.visibleCount} sortMode={sortMode} summaryMode={summaryMode} onSortModeChange={(nextMode) => {
                 setSortMode(nextMode);
                 setPageIndex(0);
-              }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick} />
+              }} onSummaryModeChange={setSummaryMode} onPageChange={handlePageChange} onRowClick={handleRowClick} onDownloadRecord={handleRecordDownload} />
 
           </>
         )}
                 {activeTab === 'genome-browser' && (
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
             <div id="galibierhub-genome-browser" />
-            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
+            <div className="bg-slate-800 px-4 py-2 text-sm font-medium text-white">
               Genome Browser
             </div>
             <GenomeBrowser
@@ -628,7 +634,7 @@ export default function HomePage() {
                   <div className="absolute right-0 mt-2 z-30 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
                     <Link href="/docs/download-cli" className="flex items-center gap-3 rounded-lg p-3 hover:bg-slate-50 transition-colors">
                       <svg className="h-5 w-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                      <div><div className="text-sm font-medium text-gray-900">Download &amp; CLI Usage Guide</div><div className="text-xs text-gray-500">How to use wget/curl/aria2c for batch downloads</div></div>
+                      <div><div className="text-sm font-medium text-gray-900">Download &amp; CLI Usage Guide</div><div className="text-xs text-gray-500">Download to Browser, CLI, and Cluster Batch Download</div></div>
                     </Link>
                     <Link href="/discussions?category=issue" className="flex items-center gap-3 rounded-lg p-3 hover:bg-slate-50 transition-colors">
                       <svg className="h-5 w-5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
@@ -642,6 +648,8 @@ export default function HomePage() {
           <DownloadCatalogPanel
             isAdmin={isCreatorAdmin}
             accessToken={creatorAccessToken}
+            pendingRecordSampleId={pendingRecordSampleId}
+            onPendingRecordSampleHandled={() => setPendingRecordSampleId(null)}
           />
           </>
         )}
@@ -660,8 +668,6 @@ export default function HomePage() {
            setActiveTab('genome-browser');
          }}
          onClose={() => setSelectedPromoter(null)}
-         isAdmin={isCreatorAdmin}
-         accessToken={creatorAccessToken}
        />
       )}
       <SiteUptime startAt={SiteConfig.uptime.startAt} />

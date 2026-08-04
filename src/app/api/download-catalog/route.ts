@@ -23,6 +23,7 @@ type DownloadCatalogItem = {
   sampleCount: number;
   sampleIds: string[];
   kinds: string[];
+  catalogFolder?: string;
   hidden?: boolean;
   updatedAt?: string | null;
   sha256Checksum?: string | null;
@@ -82,6 +83,7 @@ function upsertItem(
     sourceScope: 'featured' | 'sample' | 'dataset';
     sampleId?: string;
     kind?: string;
+    catalogFolder?: string;
     sha256Checksum?: string | null;
     updatedAt?: string | null;
   },
@@ -102,6 +104,7 @@ function upsertItem(
     if (!current.updatedAt && input.updatedAt) current.updatedAt = input.updatedAt;
     if (current.label.startsWith('Download ') && !input.label.startsWith('Download ')) current.label = input.label;
     if ((!current.description || current.description.includes('configured storage host') || current.description.includes('configured storage location')) && input.description) current.description = input.description;
+    if (input.catalogFolder && !current.catalogFolder) current.catalogFolder = input.catalogFolder;
     current._scopes.add(input.sourceScope);
     if (input.sampleId) current._sampleIds.add(input.sampleId);
     if (input.kind) current._kinds.add(input.kind);
@@ -123,6 +126,7 @@ function upsertItem(
     sampleCount: input.sampleId ? 1 : 0,
     sampleIds: input.sampleId ? [input.sampleId] : [],
     kinds: input.kind ? [input.kind] : [],
+    catalogFolder: input.catalogFolder,
     _scopes: new Set([input.sourceScope]),
     _sampleIds: new Set(input.sampleId ? [input.sampleId] : []),
     _kinds: new Set(input.kind ? [input.kind] : []),
@@ -206,6 +210,7 @@ export async function GET(request: NextRequest) {
           sourceScope: 'sample',
           sampleId,
           kind: entry.kind,
+          catalogFolder: `Records/${sampleId}`,
         });
       }
     }

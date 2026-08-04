@@ -14,55 +14,38 @@ export default function DownloadCliGuidePage() {
         <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-2xl font-bold text-gray-900">Download &amp; CLI Usage Guide</h1>
           <p className="mt-2 text-sm leading-relaxed text-gray-600">
-            GalibierHub public datasets can be downloaded from the browser or with resumable command-line tools.
-            Each dataset row in the Downloads tab provides a CLI button with the exact URL, checksum, and commands
-            for that file.
+            Use the Downloads interface to save individual files, generate command-line commands, or run batch downloads on a cluster.
+            The Records folder in Downloads contains every file from the Records interface and supports the same workflows as other folders.
           </p>
 
           <section className="mt-8">
-            <h2 className="text-sm font-semibold text-gray-900">Recommended tools</h2>
-            <ul className="mt-3 space-y-2 text-sm text-gray-700">
-              <li className="rounded-lg bg-slate-50 px-3 py-2">wget -c resumes interrupted downloads on Linux and macOS.</li>
-              <li className="rounded-lg bg-slate-50 px-3 py-2">curl -L -C - resumes interrupted downloads on Windows, Linux, and macOS.</li>
-              <li className="rounded-lg bg-slate-50 px-3 py-2">aria2c adds multi-threaded parallel downloads for large files.</li>
-              <li className="rounded-lg bg-slate-50 px-3 py-2">Free Download Manager and similar tools accept the official direct URL.</li>
-            </ul>
+            <h2 className="text-sm font-semibold text-gray-900">1. Download to Browser</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Click Download to Browser on a file to download it directly through your browser while preserving the original filename.
+              This is the quickest option for individual files.
+            </p>
           </section>
 
           <section className="mt-8">
-            <h2 className="text-sm font-semibold text-gray-900">Verify integrity</h2>
+            <h2 className="text-sm font-semibold text-gray-900">2. CLI</h2>
             <p className="mt-2 text-sm text-gray-600">
-              After downloading a file, compare its SHA-256 value with the checksum shown in the CLI details panel.
+              Click CLI on a file to copy the exact command for that file. The panel provides options for Linux/macOS and Windows PowerShell,
+              and includes the correct repo ID, filename, URL, checksum, and verification command.
             </p>
-            <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-900 p-4 text-xs font-mono text-slate-100">
-{`sha256sum "downloaded-file"
-# macOS fallback: shasum -a 256 "downloaded-file"
-# Windows fallback: certutil -hashfile "downloaded-file" SHA256`}
-            </pre>
           </section>
 
           <section className="mt-8">
-            <h2 className="text-sm font-semibold text-gray-900">Command examples</h2>
+            <h2 className="text-sm font-semibold text-gray-900">3. Cluster Batch Download</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Replace the placeholder URL and filename with the values from the CLI details panel for the dataset you
-              selected.
+              Select one or more files, open Cluster Batch Download, and generate Python and SLURM scripts for recursive folder downloads.
+              The generated workflow includes an integrity verification step so the downloaded files can be checked after transfer.
             </p>
-            <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-900 p-4 text-xs font-mono text-slate-100">
-{`# Linux/macOS: wget (resume)
-wget -c -O "file.bam" "https://example.galibierhub.com/file.bam"
-
-# Windows/Linux/macOS: curl (resume)
-curl -L -C - -o "file.bam" "https://example.galibierhub.com/file.bam"
-
-# Multi-threaded download with aria2c
-aria2c -x 16 -s 16 -c "https://example.galibierhub.com/file.bam" -o "file.bam"`}
-            </pre>
           </section>
 
-          <div className="mt-8 rounded-xl border border-teal-200 bg-teal-50 p-4">
-            <p className="text-sm text-teal-900">
-              Always use the official direct URL shown in the CLI details panel. If a download is interrupted, run the
-              same command again to resume instead of starting over.
+          <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm text-slate-700">
+              The Records folder in Downloads is specifically the collection of all files shown in the Records interface.
+              Files inside it can be downloaded, selected, exported, and batch-downloaded exactly like files in other Downloads folders.
             </p>
           </div>
         </div>

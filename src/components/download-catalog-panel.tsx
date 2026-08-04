@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DownloadActions from '@/components/download-actions';
 import { buildHfMirrorUrl, formatDownloadBytes, normalizeDownloadKey } from '@/lib/download-info';
 import { getPreferredDownloadRegion, resolveBrowserDownload, triggerBrowserDownload, type DownloadRegion } from '@/lib/download-region';
@@ -18,6 +18,7 @@ type DownloadCatalogItem = {
   sampleCount: number;
   sampleIds: string[];
   kinds: string[];
+  catalogFolder?: string;
   hidden?: boolean;
   updatedAt?: string | null;
   sha256Checksum?: string | null;
@@ -123,7 +124,7 @@ function buildTree(items: DownloadCatalogItem[]): FolderNode {
   };
 
   for (const item of items) {
-    const folderPath = deriveFolderPath(item.url);
+    const folderPath = item.catalogFolder || deriveFolderPath(item.url);
     const segments = folderPath ? folderPath.split('/').filter(Boolean) : [];
     let current = root;
     for (const segment of segments) {
@@ -386,9 +387,13 @@ function buildChecksumFile(folderItems: FileRow[], algorithm: 'md5' | 'sha256'):
 export default function DownloadCatalogPanel({
   isAdmin = false,
   accessToken = null,
+  pendingRecordSampleId = null,
+  onPendingRecordSampleHandled,
 }: {
   isAdmin?: boolean;
   accessToken?: string | null;
+  pendingRecordSampleId?: string | null;
+  onPendingRecordSampleHandled?: () => void;
 }) {
   const [items, setItems] = useState<DownloadCatalogItem[]>([]);
   const [effectiveIsAdmin, setEffectiveIsAdmin] = useState(isAdmin);
@@ -413,6 +418,7 @@ export default function DownloadCatalogPanel({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [pageInput, setPageInput] = useState('1');
+  const pendingRecordHandledRef = useRef(false);
 
   useEffect(() => {
     setPageInput(String(currentPage));
@@ -459,13 +465,33 @@ export default function DownloadCatalogPanel({
     };
   }, [loadCatalog]);
 
+  useEffect(() => {
+    if (!pendingRecordSampleId) {
+      pendingRecordHandledRef.current = false;
+      return;
+    }
+    if (pendingRecordHandledRef.current || loading || items.length === 0) return;
+
+    const folderPath = `Records/${pendingRecordSampleId}`;
+    const matching = items.filter((item) => item.catalogFolder === folderPath);
+    pendingRecordHandledRef.current = true;
+    if (matching.length > 0) {
+      setCurrentPath(folderPath);
+      setSelectedIds(new Set(matching.map((item) => item.id)));
+      setSearchText('');
+      setCurrentPage(1);
+      setPageInput('1');
+    }
+    onPendingRecordSampleHandled?.();
+  }, [items, loading, onPendingRecordSampleHandled, pendingRecordSampleId]);
+
 
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
     if (!keyword) return items;
     return items.filter((item) => {
       const fileName = deriveFileName(item.url).toLowerCase();
-      const folderPath = deriveFolderPath(item.url).toLowerCase();
+      const folderPath = (item.catalogFolder || deriveFolderPath(item.url)).toLowerCase();
       const label = item.label.toLowerCase();
       const description = item.description.toLowerCase();
       return fileName.includes(keyword)
@@ -507,7 +533,7 @@ export default function DownloadCatalogPanel({
       return {
         ...item,
         fileName,
-        directoryPath: deriveFolderPath(item.url),
+        directoryPath: item.catalogFolder || deriveFolderPath(item.url),
         fileType: deriveFileType(fileName),
         updatedLabel: formatUpdatedDate(item.updatedAt),
         sourceLabel: scopeLabel(item.sourceScope),
@@ -528,7 +554,7 @@ export default function DownloadCatalogPanel({
       return {
         ...item,
         fileName,
-        directoryPath: deriveFolderPath(item.url),
+        directoryPath: item.catalogFolder || deriveFolderPath(item.url),
         fileType: deriveFileType(fileName),
         updatedLabel: formatUpdatedDate(item.updatedAt),
         sourceLabel: scopeLabel(item.sourceScope),
@@ -536,18 +562,20 @@ export default function DownloadCatalogPanel({
     });
   }, [currentNode]);
 
-  const totals = useMemo(() => ({
-    all: filteredItems.length,
-    hf: filteredItems.filter((item) => item.providerLabel === 'Hugging Face').length,
-    cf: filteredItems.filter((item) => item.providerLabel === 'Cloudflare').length,
-  }), [filteredItems]);
-
   const currentFolderSummary = useMemo(() => folderSummary(currentNode), [currentNode]);
 
-  const clusterFolderPattern = currentPath ? `${currentPath}/*` : '*';
+  const clusterFolderPattern = currentPath.startsWith('Records/') && currentFolderItems[0]?.directoryPath
+    ? `${currentFolderItems[0].directoryPath}/*`
+    : currentPath
+      ? `${currentPath}/*`
+      : '*';
   const clusterRepoId = deriveHfRepoId(currentFolderItems);
   const clusterSuffix = downloadRegion === 'apac' ? 'mirror' : 'official';
-  const clusterVerifyDir = currentPath ? `downloads/${currentPath}/` : `downloads/${rootLabel}/`;
+  const clusterVerifyDir = currentPath.startsWith('Records/') && currentFolderItems[0]?.directoryPath
+    ? `downloads/${currentFolderItems[0].directoryPath}/`
+    : currentPath
+      ? `downloads/${currentPath}/`
+      : `downloads/${rootLabel}/`;
   const clusterPythonFileName = `GalibierHub-download-${clusterSuffix}-folder.py`;
   const clusterSlurmFileName = `GalibierHub-download-${clusterSuffix}-folder.sh`;
   const clusterPythonScript = normalizeScriptSpaces(buildClusterPythonScript(clusterRepoId, clusterFolderPattern, downloadRegion));
@@ -636,7 +664,19 @@ export default function DownloadCatalogPanel({
     }
   };
 
-  const selectedFiles = visibleFiles.filter((item) => selectedIds.has(item.id));
+  const selectedFiles = useMemo<FileRow[]>(() => items
+    .filter((item) => selectedIds.has(item.id))
+    .map((item) => {
+      const fileName = deriveFileName(item.url);
+      return {
+        ...item,
+        fileName,
+        directoryPath: item.catalogFolder || deriveFolderPath(item.url),
+        fileType: deriveFileType(fileName),
+        updatedLabel: formatUpdatedDate(item.updatedAt),
+        sourceLabel: scopeLabel(item.sourceScope),
+      };
+    }), [items, selectedIds]);
   const batchCliFiles = selectedFiles.map((item) => {
     const cliUrl = downloadRegion === 'apac' ? buildHfMirrorUrl(item.url) || item.url : item.url;
     return { ...item, url: cliUrl, fileName: deriveFileName(cliUrl) };
@@ -724,7 +764,7 @@ export default function DownloadCatalogPanel({
               Browse files by directory, export manifests, and choose browser or CLI delivery.
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
-              <span className="rounded bg-teal-50 px-2 py-1 text-teal-700">Files: {totals.all}</span>
+              <span className="rounded bg-teal-50 px-2 py-1 text-teal-700">Files: {currentFolderSummary.fileCount}</span>
               <span className="rounded bg-slate-100 px-2 py-1 text-slate-700">Folders: {currentFolderSummary.folderCount}</span>
               {currentFolderItems.length > 0 && (
                 <button

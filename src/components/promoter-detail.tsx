@@ -2,17 +2,12 @@
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { SiteConfig } from '@/site-config';
-import { getDirectDownloadUrl } from '@/lib/storage';
 import type { Promoter, SampleMetadata } from '@/types/genome';
-import DownloadActions from './download-actions';
-import { useDownloadVisibility } from '@/hooks/use-download-visibility';
 
 interface PromoterDetailProps {
   promoter: Promoter | null;
   onViewInBrowser?: (promoter: Promoter) => void;
   onClose: () => void;
-  isAdmin?: boolean;
-  accessToken?: string | null;
 }
 
 type SampleState = SampleMetadata | null | undefined;
@@ -75,7 +70,7 @@ function displayValue(value: string | number | null | undefined): string {
   return String(value);
 }
 
-export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isAdmin = false, accessToken = null }: PromoterDetailProps) {
+export default function PromoterDetail({ promoter, onViewInBrowser, onClose }: PromoterDetailProps) {
   const initializedPromoterIdRef = useRef<string | null>(null);
   const [sample, setSample] = useState<SampleState>(undefined);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
@@ -90,21 +85,6 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
     width: 448,
     height: 720,
   });
-  const vcfDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.vcf_download_url) : '';
-  const fastaDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.fasta_download_url) : '';
-  const gbDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gb_download_url) : '';
-  const bedDownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.bed_download_url) : '';
-  const gff3DownloadUrl = sample && sample !== null ? getDirectDownloadUrl(sample.gff3_download_url) : '';
-  const { isVisible: isDownloadVisible, loaded: downloadsLoaded } = useDownloadVisibility(
-    [vcfDownloadUrl, fastaDownloadUrl, gbDownloadUrl, bedDownloadUrl, gff3DownloadUrl],
-    isAdmin,
-  );
-  const visibleVcfDownloadUrl = isDownloadVisible(vcfDownloadUrl) ? vcfDownloadUrl : '';
-  const visibleFastaDownloadUrl = isDownloadVisible(fastaDownloadUrl) ? fastaDownloadUrl : '';
-  const visibleGbDownloadUrl = isDownloadVisible(gbDownloadUrl) ? gbDownloadUrl : '';
-  const visibleBedDownloadUrl = isDownloadVisible(bedDownloadUrl) ? bedDownloadUrl : '';
-  const visibleGff3DownloadUrl = isDownloadVisible(gff3DownloadUrl) ? gff3DownloadUrl : '';
-
   useEffect(() => {
     if (!promoter) return;
 
@@ -188,8 +168,6 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
   const strandColor = promoter.strand === '+' ? 'text-blue-600' : 'text-red-600';
   const length = promoter.end_pos - promoter.start;
   const bmi = sample && sample !== null ? bmiClass(sample.bmi) : null;
-  const showVcfCli = sample?.vcf_download_mode === 'cli';
-  const showFastaCli = sample?.fasta_download_mode === 'cli';
 
   const handleCopyBed = () => {
     const bed = `${promoter.chrom}\t${promoter.start}\t${promoter.end_pos}\t${promoter.gene_symbol || 'NA'}\t${promoter.score}\t${promoter.strand}`;
@@ -413,7 +391,7 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
             <button
               type="button"
               onClick={handleViewInBrowser}
-              className="min-w-[10rem] flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              className="min-w-[10rem] flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
             >
               Open in Records
             </button>
@@ -435,66 +413,6 @@ export default function PromoterDetail({ promoter, onViewInBrowser, onClose, isA
             )}
           </div>
 
-          {((downloadsLoaded && (visibleVcfDownloadUrl || visibleFastaDownloadUrl || visibleGbDownloadUrl || visibleBedDownloadUrl || visibleGff3DownloadUrl)) || isAdmin) && (
-            <Card title="Downloads">
-              <div className="space-y-4">
-                {!downloadsLoaded && !isAdmin && <p className="text-sm text-gray-500">Loading files...</p>}
-                {visibleVcfDownloadUrl && (
-                  <DownloadActions
-                    url={visibleVcfDownloadUrl}
-                    label="Download VCF"
-                    description="Sample-level file available from the configured storage location."
-                    showCli={showVcfCli}
-                    isAdmin={isAdmin}
-                    accessToken={accessToken}
-                  />
-                )}
-               {visibleFastaDownloadUrl && (
-                 <DownloadActions
-                   url={visibleFastaDownloadUrl}
-                   label="Download FASTA"
-                   description="Sample-level file available from the configured storage location."
-                   showCli={showFastaCli}
-                   isAdmin={isAdmin}
-                   accessToken={accessToken}
-                 />
-               )}
-               {visibleGbDownloadUrl && (
-                 <DownloadActions
-                   url={visibleGbDownloadUrl}
-                   label="Download Package"
-                   description="Sample-level file available from the configured storage location."
-                   showCli={true}
-                   isAdmin={isAdmin}
-                   accessToken={accessToken}
-                 />
-               )}
-               {visibleBedDownloadUrl && (
-                 <DownloadActions
-                   url={visibleBedDownloadUrl}
-                   label="Download BED"
-                   description="Sample-level file available from the configured storage location."
-                   showCli={true}
-                   isAdmin={isAdmin}
-                   accessToken={accessToken}
-                 />
-               )}
-               {visibleGff3DownloadUrl && (
-                 <DownloadActions
-                   url={visibleGff3DownloadUrl}
-                   label="Download GFF3"
-                   description="Sample-level file available from the configured storage location."
-                   showCli={true}
-                   isAdmin={isAdmin}
-                   accessToken={accessToken}
-                 />
-               )}
-               {downloadsLoaded && !isAdmin && !visibleVcfDownloadUrl && !visibleFastaDownloadUrl && !visibleGbDownloadUrl && !visibleBedDownloadUrl && !visibleGff3DownloadUrl && (
-                 <p className="text-sm text-gray-500">No public files are available for this sample.</p>
-               )}
-              </div>
-            </Card>
-          )}
         </div>
 
         <button

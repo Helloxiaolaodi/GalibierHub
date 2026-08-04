@@ -139,6 +139,7 @@ interface PromoterTableProps {
   topChromosomes?: Array<{ label: string; count: number }>;
   topSamples?: Array<{ label: string; count: number }>;
   onRowClick?: (promoter: Promoter) => void;
+  onDownloadRecord?: (sampleId: string) => void;
   onSortModeChange: (mode: PromoterSortMode) => void;
   onSummaryModeChange: (mode: SummaryMode) => void;
   onPageChange: (pageIndex: number, pageSize: number) => void;
@@ -157,6 +158,7 @@ export default function PromoterTable({
   topChromosomes = [],
   topSamples = [],
   onRowClick,
+  onDownloadRecord,
   onSortModeChange,
   onSummaryModeChange,
   onPageChange,
@@ -406,8 +408,26 @@ export default function PromoterTable({
         header: 'Sample ID',
         size: 120,
       },
+      {
+        id: 'download',
+        header: 'Download',
+        size: 110,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDownloadRecord?.(row.original.sample_id);
+            }}
+            className="inline-flex items-center justify-center rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-slate-700"
+          >
+            Download
+          </button>
+        ),
+      },
     ],
-    [selectedSampleIds, allPageSelected, somePageSelected, toggleAllPage, toggleSample]
+    [selectedSampleIds, allPageSelected, somePageSelected, toggleAllPage, toggleSample, onDownloadRecord]
   );
 
   const table = useReactTable({
@@ -570,7 +590,7 @@ export default function PromoterTable({
           </thead>
           <tbody className="divide-y">
             {loading ? (
-              <SkeletonTableRows rows={pageSize} cols={7} />
+              <SkeletonTableRows rows={pageSize} cols={9} />
             ) : table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-3 py-6 text-center text-sm text-gray-500">
