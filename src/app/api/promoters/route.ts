@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SiteConfig } from '@/site-config';
-import { EXCLUDED_SAMPLE_IDS_FILTER, isExcludedSampleId } from '@/lib/sample-exclusions';
+import { ALLOWED_SAMPLE_IDS, isAllowedSampleId } from '@/lib/sample-exclusions';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 import { promotersQuerySchema, parseAndValidate } from '@/lib/validation';
 
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 
   if (needSampleFilter) {
     let sq = sb.from('genome_samples').select('sample_id');
-    sq = sq.not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER);
+    sq = sq.in('sample_id', ALLOWED_SAMPLE_IDS);
     if (species) sq = sq.eq('species', species);
     if (tissue) sq = sq.eq('tissue', tissue);
     if (cohort) sq = sq.eq('cohort', cohort);
@@ -70,7 +70,7 @@ export async function GET(request: Request) {
 
   // Step 2 - promoter query with combined filters.
   let query = sb.from('predicted_promoters').select('*', { count: 'exact' });
-  query = query.not('sample_id', 'in', EXCLUDED_SAMPLE_IDS_FILTER);
+  query = query.in('sample_id', ALLOWED_SAMPLE_IDS);
   if (id) query = query.eq('id', id);
   if (chrom) query = query.eq('chrom', chrom);
   if (gene_symbol) query = query.ilike('gene_symbol', `%${gene_symbol}%`);
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
   if (start) query = query.gte('start', Number.parseInt(start));
   if (end_pos) query = query.lte('end_pos', Number.parseInt(end_pos));
   if (sample_id) {
-    if (isExcludedSampleId(sample_id)) {
+    if (!isAllowedSampleId(sample_id)) {
       return NextResponse.json({
         data: [],
         total: 0,

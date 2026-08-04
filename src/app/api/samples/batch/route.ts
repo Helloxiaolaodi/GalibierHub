@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isExcludedSampleId } from "@/lib/sample-exclusions";
+import { isAllowedSampleId } from "@/lib/sample-exclusions";
 import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
 
 const DOWNLOAD_FIELDS =
@@ -13,7 +13,7 @@ function sanitizeIds(raw: unknown): string[] {
   for (const item of raw) {
     if (typeof item !== "string") continue;
     const id = item.trim();
-    if (!id || isExcludedSampleId(id) || seen.has(id)) continue;
+    if (!id || !isAllowedSampleId(id) || seen.has(id)) continue;
     seen.add(id);
     if (seen.size >= MAX_BATCH_IDS) break;
   }

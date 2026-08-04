@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { EXCLUDED_SAMPLE_IDS, EXCLUDED_SAMPLE_IDS_FILTER } from "@/lib/sample-exclusions";
+import { ALLOWED_SAMPLE_IDS } from "@/lib/sample-exclusions";
 import { getSupabase, isSupabaseConfigured } from "@/utils/supabase";
 
 const SCORE_BINS = [
@@ -16,22 +16,10 @@ const SCORE_BINS = [
 ] as const;
 
 async function computeSpeciesDistribution(sb: ReturnType<typeof getSupabase>) {
-  const { data: viewData, error: viewError } = await sb
-    .from("overview_species_stats")
-    .select("species, count");
-  if (!viewError && viewData) {
-    const speciesDistribution: Record<string, number> = {};
-    for (const row of viewData) {
-      const sp = row.species || "Unknown";
-      speciesDistribution[sp] = (speciesDistribution[sp] || 0) + Number(row.count || 0);
-    }
-    return { speciesDistribution };
-  }
-
   const { data: sampleData, error: sampleDataError } = await sb
     .from("genome_samples")
     .select("species, sample_id")
-    .not("sample_id", "in", EXCLUDED_SAMPLE_IDS_FILTER);
+    .in("sample_id", ALLOWED_SAMPLE_IDS);
 
   if (sampleDataError) {
     return { error: sampleDataError.message };
@@ -40,9 +28,6 @@ async function computeSpeciesDistribution(sb: ReturnType<typeof getSupabase>) {
   const speciesDistribution: Record<string, number> = {};
   if (sampleData) {
     for (const row of sampleData) {
-      if (EXCLUDED_SAMPLE_IDS.includes(row.sample_id)) {
-        continue;
-      }
       const sp = row.species || "Unknown";
       speciesDistribution[sp] = (speciesDistribution[sp] || 0) + 1;
     }
@@ -52,33 +37,10 @@ async function computeSpeciesDistribution(sb: ReturnType<typeof getSupabase>) {
 }
 
 async function computeScoreDistribution(sb: ReturnType<typeof getSupabase>) {
-  const { data: viewData, error: viewError } = await sb
-    .from("overview_score_stats")
-    .select("score_bucket, count");
-  if (!viewError && viewData) {
-    const scoreDistribution = viewData.map((row) => ({
-      range: row.score_bucket,
-      count: Number(row.count || 0),
-    }));
-    return { scoreDistribution };
-  }
-
-  try {
-    const { data, error } = await sb.rpc("compute_score_distribution", {
-      exclusion_list: EXCLUDED_SAMPLE_IDS_FILTER,
-    });
-
-    if (!error && data) {
-      return { scoreDistribution: data };
-    }
-  } catch {
-    // RPC not available, fall back to client-side binning
-  }
-
   const { data: scores, error: fetchErr } = await sb
     .from("predicted_promoters")
     .select("score")
-    .not("sample_id", "in", EXCLUDED_SAMPLE_IDS_FILTER);
+    .in("sample_id", ALLOWED_SAMPLE_IDS);
 
   if (fetchErr) {
     return { error: fetchErr.message };
@@ -133,9 +95,9 @@ export async function GET() {
     { count: totalPromoters, error: promotersError },
     { count: totalVariants, error: variantsError },
   ] = await Promise.all([
-    sb.from("genome_samples").select("*", { count: "exact", head: true }).not("sample_id", "in", EXCLUDED_SAMPLE_IDS_FILTER),
-    sb.from("predicted_promoters").select("*", { count: "exact", head: true }).not("sample_id", "in", EXCLUDED_SAMPLE_IDS_FILTER),
-    sb.from("variant_index").select("*", { count: "exact", head: true }),
+    sb.from("genome_samples").select("*", { count: "exact", head: true }).in("sample_id", ALLOWED_SAMPLE_IDS),
+    sb.from("predicted_promoters").select("*", { count: "exact", head: true }).in("sample_id", ALLOWED_SAMPLE_IDS),
+    sb.from("variant_index").select("*", { count: "exact", head: true }).in("sample_id", ALLOWED_SAMPLE_IDS),
   ]);
 
   const statsQueryErrors = [samplesError, promotersError, variantsError]

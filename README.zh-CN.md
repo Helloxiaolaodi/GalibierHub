@@ -46,11 +46,12 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 - Downloads 表格显示真实 `Updated` 日期，`Name` 与 `Actions` 列保持简洁，Actions 列提供 `Download to Browser` 与 `CLI`。
 - Downloads 的 `Files:` 显示当前文件夹的实际文件数。
 - `Download & CLI Usage Guide` 现在依次介绍 `Download to Browser`、`CLI` 和 `Cluster Batch Download`，并说明 `Downloads > Records` 就是 Records 界面全部文件的下载目录。
-- Records 界面的所有文件也会出现在 `Downloads > Records` 中，并支持与其他 Downloads 文件夹完全相同的浏览、选择、导出、浏览器下载、CLI 和集群批量下载工作流。
+- Records 是 Downloads 中的第一个文件夹，排在其他文件夹前面；Records 界面的所有文件位于 `Downloads > Records`，并支持与其他 Downloads 文件夹完全相同的浏览、选择、导出、浏览器下载、CLI 和集群批量下载工作流。
 - Records 表格新增 `Download` 列，点击后会跳转到 `Downloads > Records` 并自动勾选对应的样本文件。
 - User Guide 文案精简；用户菜单为 Notifications、Replies、Likes 和 Following 提供 `Mark all read`，并在 Settings 中提供 `View saved profile`。
-- Genome Browser 边框与 Records 控件已改用网站统一的 slate 按钮和边框配色，不再使用亮眼的蓝色或绿色。
+- Genome Browser 边框与 Records 控件采用网站统一的 slate 按钮和边框配色。
 - 网站 Site uptime 从 2026 年 8 月 1 日开始计时。
+- 已新增独立 Cloudflare Worker（`cloudflare-templates/supabase-keepalive`），每 3 天查询一次 Supabase，防止免费套餐项目因 7 天无活动被暂停。
 
 ## 项目概览
 
@@ -209,10 +210,10 @@ NEXT_PUBLIC_REFERENCE_DEFAULT_LOCUS=NC_045512.2:1-5000
 必填基因组存储变量：
 
 ```bash
-NEXT_PUBLIC_REFERENCE_FASTA=scov2.fa
-NEXT_PUBLIC_REFERENCE_FASTA_INDEX=scov2.fa.fai
-NEXT_PUBLIC_REFERENCE_BED=scov2.genes.bed
-NEXT_PUBLIC_REFERENCE_GFF3=scov2.genes.gff3
+NEXT_PUBLIC_REFERENCE_FASTA=Records/Reference_Genomes/reference.fasta
+NEXT_PUBLIC_REFERENCE_FASTA_INDEX=Records/Reference_Genomes/reference.fasta.fai
+NEXT_PUBLIC_REFERENCE_BED=Records/Reference_Genomes/reference.bed
+NEXT_PUBLIC_REFERENCE_GFF3=Records/Reference_Genomes/annotation.gff3
 ```
 
 可选但建议配置：
@@ -307,17 +308,18 @@ Cloudflare Pages：
 
 ### Downloads 页面现在支持什么
 
-- 标准面包屑路径导航，例如 `Downloads / seqedge-data / reference_genomes / scov2`，其中每一级父目录都可点击返回。
+- 标准面包屑路径导航，例如 `Downloads / seqedge-data / Records / Variant_Calling_VCF`，其中每一级父目录都可点击返回。
 - 紧凑的控制栏，将目录搜索、`Copy Folder CLI`、`Export Manifest CSV`、README 按钮、批量下载 以及网格/表格视图切换集中在同一层。
 - 适合大目录的表格视图，支持按 `Name`、`Size`、`Updated`、`Actions` 排序。
 - 信息密度更高的卡片视图，在保留视觉浏览体验的同时补充大小与更新时间。
 - 单文件操作入口拆分为浏览器下载与 CLI/详情两类按钮，避免一个按钮承载过多动作。
 - 可导出机器可读的 Manifest，字段固定为 `Directory_Path`、`File_Name`、`File_Type`、`Size_Bytes`、`Direct_URL`、`SHA-256`。
-- Manifest CSV 与 CLI/校验和弹窗会从目录元数据解析真实 SHA-256，不再导出 `NA` 或显示 `N/A`。
+- Manifest CSV 与 CLI/校验和弹窗会从目录元数据解析真实 SHA-256。
 - 统一 `Tutorials` 菜单提供 `View all Tutorials` 与 `Download & CLI Usage Guide`，其中下载指南位于 `/docs/download-cli`。
 - 分页显示，每页 20 个文件，大目录也能保持可浏览性。
 - 批量选择与下载，支持勾选文件后统一生成浏览器下载、`wget` 和 `curl` 命令。
 - README 按钮动态生成当前目录的文件结构与基本信息。
+- `Records` 是 Downloads 的第一个文件夹，包含 `Reference_Genomes`、`Variant_Calling_VCF` 和 `ML_Ready_FASTA` 三个子目录，并支持与其他文件夹相同的浏览、选择、导出、浏览器下载、CLI 和集群批量下载工作流。
 
 ### 当前下载弹窗实际会展示什么
 
@@ -329,22 +331,22 @@ Cloudflare Pages：
 - 基于 `hf-mirror.com` 的 `Asia-Pacific (Mirror)` 断点续传命令
 - 独立下载指南位于 `/docs/download-cli`，提供浏览器下载、CLI、校验和与下载工具说明。
 
-以 `scov2.fa` 为例，弹窗会在不改变数据集路径的前提下，同时提供官方线路和亚洲镜像线路。
+以 Records 样本文件 `CNhs13076.vcf.gz` 为例，弹窗会在不改变数据集路径的前提下，同时提供官方线路和亚洲镜像线路。
 
 官方线路：
 
 ```bash
-wget -c -O "scov2.fa" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
-curl -L -C - -o "scov2.fa" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
-hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
+wget -c -O "CNhs13076.vcf.gz" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz?download=true"
+curl -L -C - -o "CNhs13076.vcf.gz" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz?download=true"
+hf download Helloxiaolaodi/seqedge-data Records/Variant_Calling_VCF/CNhs13076.vcf.gz --repo-type dataset --local-dir .
 ```
 
 亚洲镜像线路：
 
 ```bash
-wget -c -O "scov2.fa" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
-curl -L -C - -o "scov2.fa" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
-HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
+wget -c -O "CNhs13076.vcf.gz" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz?download=true"
+curl -L -C - -o "CNhs13076.vcf.gz" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz?download=true"
+HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data Records/Variant_Calling_VCF/CNhs13076.vcf.gz --repo-type dataset --local-dir .
 ```
 
 这样做的目的，是让站点展示的不是名义上的下载入口，而是真正更贴近不同地区网络条件的可执行交付路径。
@@ -361,8 +363,8 @@ HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data scov2.
 
 不要使用包含 `/blob/main/` 的 Hugging Face 页面链接。
 
-- 页面链接示例：`https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/blob/main/scov2.fa`
-- 文件直链示例：`https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa`
+- 页面链接示例：`https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/blob/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz`
+- 文件直链示例：`https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz`
 
 GalibierHub 现在会自动把常见的 Hugging Face `blob` 链接规范化成 `resolve` 链接，但数据库和环境变量里仍建议保存真正的直链 URL。
 
@@ -371,9 +373,9 @@ GalibierHub 现在会自动把常见的 Hugging Face `blob` 链接规范化成 `
 配置特色归档环境变量：
 
 ```bash
-NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download scov2 Reference Genome
-NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION=Public Hugging Face dataset package for large-file download, browser delivery, and resume-capable CLI retrieval.
-NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa
+NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download Records Reference Genome
+NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION=Public Hugging Face Records dataset package for reference, variant, and sequence-file delivery.
+NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Reference_Genomes/reference.fasta
 NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 ```
@@ -390,14 +392,17 @@ NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 - `bed_download_url`
 - `gff3_download_url`
 
-如果是通用压缩包，在当前 schema 中最少改动的做法是使用 `gb_download_url` 作为通用文件槽位，界面中会把它显示为 `Download Package`。
+对于 Records 演示数据集，请把样本的 VCF 与 FASTA 槽位分别指向 `Records/Variant_Calling_VCF` 与 `Records/ML_Ready_FASTA` 下的对应文件；这些目录随后也会出现在 Downloads 目录中。
 
 示例 SQL：
 
 ```sql
 update genome_samples
-set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa'
-where sample_id = 'CNhs10881';
+set vcf_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz',
+    fasta_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/ML_Ready_FASTA/CNhs13076.fasta',
+    vcf_download_mode = 'cli',
+    fasta_download_mode = 'cli'
+where sample_id = 'CNhs13076';
 ```
 
 同一个文件也可以通过 `download_metadata` 接入 `Downloads` 标签页，这样无论访客从 Overview、Records 还是 Downloads 进入，都会看到一致的下载弹窗。
@@ -419,11 +424,11 @@ insert into download_metadata (
   sha256_checksum
 )
 values (
-  'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa',
-  'scov2 Reference Genome',
-  'Public Hugging Face dataset package exposed through the GalibierHub unified download modal.',
-  'FASTA (.fa)',
-  734003200,
+  'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz',
+  'CNhs13076 Variant Calls (VCF)',
+  'Public Hugging Face Records sample file exposed through the GalibierHub unified download modal.',
+  'VCF (.vcf.gz)',
+  1024,
   'public_url',
   false,
   null,
@@ -451,6 +456,21 @@ on conflict (download_key) do update set
 ### 如何上传数据到 Hugging Face
 
 GalibierHub 的大体量文件，例如发布归档、参考序列包和样本级文件，默认托管在 Hugging Face dataset 仓库 `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`。
+
+### Records 演示数据集与来源
+
+当前 `Records` 演示数据集位于 `Downloads > Records`，并作为 Downloads 的第一个文件夹展示。文件按三个子目录存放：
+
+- `Records/Reference_Genomes/`：`reference.fasta` 与 `annotation.gff3`
+- `Records/Variant_Calling_VCF/`：12 个样本 VCF 文件，每个允许展示的 Records 样本对应一个
+- `Records/ML_Ready_FASTA/`：12 个样本 FASTA 文件，每个允许展示的 Records 样本对应一个
+
+12 个演示样本为 `CNhs13076`、`CNhs13080`、`CNhs13195`、`CNhs13202`、`CNhs13203`、`CNhs13204`、`CNhs13205`、`CNhs13206`、`CNhs13207`、`CNhs13208`、`CNhs13215`、`CNhs13216`。每个样本在 `Variant_Calling_VCF` 下有一个 `.vcf.gz` 文件，在 `ML_Ready_FASTA` 下有一个 `.fasta` 文件，共 24 个样本文件，外加参考 FASTA 与 GFF3。这些公开测试文件由 FANTOM5 人类原代细胞 CAGE 数据（hg19）转换而来，队列为 `FANTOM5 human.primary_cell.hCAGE`，平台为 `HeliScope CAGE`：
+
+- FANTOM5：https://fantom.gsc.riken.jp/5/
+- FANTOM5 参考论文：https://www.nature.com/articles/sdata2017112
+
+点击 Records 行本身仍会跳转到 Genome Browser 的对应位点；新增的 `Download` 列与选中行批量操作会把匹配文件带到 `Downloads > Records`，自动展开目标目录、勾选文件、高亮并滚动到对应行。
 
 #### 1. 安装 CLI
 
@@ -482,7 +502,7 @@ hf upload <用户名/数据集名> <本地路径> <仓库内目标路径> --repo
 示例：
 
 ```bash
-hf upload Helloxiaolaodi/seqedge-data "E:\data\scov2.fa" "scov2.fa" --repo-type dataset
+hf upload Helloxiaolaodi/seqedge-data "E:\data\CNhs13076.vcf.gz" "Records/Variant_Calling_VCF/CNhs13076.vcf.gz" --repo-type dataset
 ```
 
 #### 4. 断点续传
@@ -524,7 +544,7 @@ curl -I https://huggingface.co
 
 ```bash
 pip install -q "huggingface_hub"
-hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
+hf download Helloxiaolaodi/seqedge-data Records/Variant_Calling_VCF/CNhs13076.vcf.gz --repo-type dataset --local-dir .
 ```
 
 传统命令也支持断点续传：
@@ -657,6 +677,7 @@ FEEDBACK_EMAIL_TO=owner@example.org
 - `docs/`：README 媒体与项目说明
 - `schema.sql`：数据库结构与相关 SQL 对象
 - `cloudflare-templates/hf-proxy/`：Cloudflare Worker 代理模板
+- `cloudflare-templates/supabase-keepalive/`：Cloudflare Worker 保活模板
 - `scripts/`：项目脚本
 
 ### 当前功能所需保留的最小文件集
@@ -668,6 +689,7 @@ FEEDBACK_EMAIL_TO=owner@example.org
 - `README.md`
 - `README.zh-CN.md`
 - `cloudflare-templates/hf-proxy/`
+- `cloudflare-templates/supabase-keepalive/`
 - `scripts/`
 
 `public/` 下未被当前部署使用的默认模板 SVG 资源可以自行删除。
@@ -681,6 +703,23 @@ FEEDBACK_EMAIL_TO=owner@example.org
 `src/components/site-uptime.tsx` 会读取配置中的起始时间戳来显示运行时长，同时调用 `/api/visitors`，基于保存在 `localStorage` 中的持久浏览器访客 ID 计算哈希后写入 `site_visitors`，统计累积独立访客人数。这个指标更接近 `Visitors`，而不是 `Page views`：同一浏览器配置文件反复刷新通常不会重复计数，但无痕或隐私窗口由于使用隔离存储，通常会被记作新的访客。即使只配置匿名 Supabase key，首次访问也可以被计入；如果同时配置了服务端 role key，则还可以为重复访问刷新 `last_seen_at`。
 
 起始时间戳请在 `src/site-config.ts` 的 `uptime.startAt` 中设置。
+
+### Supabase 保活 Worker
+
+`cloudflare-templates/supabase-keepalive` 是独立的 Cloudflare Worker，用于防止免费 Supabase 项目因连续 7 天无活动被自动暂停。Cron Trigger 设置为每 3 天执行一次（`0 0 */3 * *`），Worker 会使用匿名 key 对 `genome_samples` 发起一次轻量的 Supabase REST `SELECT id ... limit=1` 请求。
+
+进入模板目录部署一次：
+
+```bash
+cd cloudflare-templates/supabase-keepalive
+npx wrangler login
+npx wrangler secret put SUPABASE_URL
+npx wrangler secret put SUPABASE_ANON_KEY
+npx wrangler secret put KEEPALIVE_SECRET
+npx wrangler deploy
+```
+
+请填写 Supabase 项目 URL 和 anon key，不要使用 service-role key。可选的 `KEEPALIVE_SECRET` 用于保护手动触发入口。如果主表名不是 `genome_samples`，请在部署前通过 Worker 变量 `SUPABASE_KEEPALIVE_TABLE` 指定实际表名。
 
 ### 验证
 
@@ -724,7 +763,7 @@ extCursor 供分页消费。
 - **单例 Supabase 客户端**：src/utils/supabase.ts 创建一个带 persistSession: false 的 Supabase 客户端实例，所有 API 路由复用而非每次新建。
 - **缓存头**：读取端点（/api/promoters、/api/samples、/api/download-catalog）返回 Cache-Control: public, s-maxage=300, stale-while-revalidate=600，使 Cloudflare CDN 可在不回源的情况下响应重复查询。
 - **R2 签名 URL**：大型二进制下载（FASTQ、BAM、VCF、参考序列包）通过 Cloudflare R2 预签名 URL 分发，有效期 60 秒。Vercel 不代理文件字节，带宽完全在 Cloudflare 免费额度内。
-- **心跳保活**：Vercel Cron 任务（/api/cron/heartbeat）每 6 小时向 Supabase 发送一次 SELECT 1，防止免费档 7 天不活跃自动暂停。
+- **Supabase Keep-Alive**：独立的 Cloudflare Worker（`cloudflare-templates/supabase-keepalive`）通过 Cron Trigger 每 3 天查询一次 Supabase，防止免费档 7 天不活跃自动暂停；原有 Vercel `/api/cron/heartbeat` 路由仍可作为备用方案保留。
 - **物化视图**：重度聚合查询（按物种统计、按年发文量）使用 cron 刷新的物化视图预计算，不对基表实时 COUNT(*)，保护 Nano 实例 CPU。
 
 

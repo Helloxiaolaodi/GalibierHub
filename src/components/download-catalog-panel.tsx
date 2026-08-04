@@ -115,13 +115,28 @@ function scopeLabel(scope: DownloadCatalogItem['sourceScope']): string {
   return 'Dataset source';
 }
 
-function buildTree(items: DownloadCatalogItem[]): FolderNode {
+function compareFolderNames(a: FolderNode, b: FolderNode): number {
+  if (a.name === 'Records') return -1;
+  if (b.name === 'Records') return 1;
+  return a.name.localeCompare(b.name);
+}
+
+function buildTree(items: DownloadCatalogItem[], injectRecordsFolder = false): FolderNode {
   const root: FolderNode = {
     name: 'Root',
     path: '',
     folders: new Map<string, FolderNode>(),
     items: [],
   };
+
+  if (injectRecordsFolder && !root.folders.has('Records')) {
+    root.folders.set('Records', {
+      name: 'Records',
+      path: 'Records',
+      folders: new Map<string, FolderNode>(),
+      items: [],
+    });
+  }
 
   for (const item of items) {
     const folderPath = item.catalogFolder || deriveFolderPath(item.url);
@@ -396,6 +411,7 @@ export default function DownloadCatalogPanel({
   onPendingRecordSampleHandled?: () => void;
 }) {
   const [items, setItems] = useState<DownloadCatalogItem[]>([]);
+  const [recordsAvailable, setRecordsAvailable] = useState(false);
   const [effectiveIsAdmin, setEffectiveIsAdmin] = useState(isAdmin);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -418,7 +434,9 @@ export default function DownloadCatalogPanel({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [pageInput, setPageInput] = useState('1');
+  const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const pendingRecordHandledRef = useRef(false);
+  const pendingSessionHandledRef = useRef(false);
 
   useEffect(() => {
     setPageInput(String(currentPage));
@@ -440,6 +458,7 @@ export default function DownloadCatalogPanel({
       };
       if (Array.isArray(data?.items)) {
         setItems(data.items as DownloadCatalogItem[]);
+        setRecordsAvailable(Boolean(data?.recordsAvailable));
         setEffectiveIsAdmin(Boolean(isAdmin) || Boolean(data?.isAdmin));
         setWarning(typeof data?.warning === 'string' && data.warning.trim() ? data.warning : null);
       } else {
@@ -466,22 +485,67 @@ export default function DownloadCatalogPanel({
   }, [loadCatalog]);
 
   useEffect(() => {
+    if (pendingSessionHandledRef.current || loading || items.length === 0) return;
+    if (typeof window === 'undefined') return;
+
+    const raw = window.sessionStorage.getItem('galibier_pending_downloads');
+    if (!raw) return;
+
+    let filenames: unknown;
+    try {
+      filenames = JSON.parse(raw);
+    } catch {
+      window.sessionStorage.removeItem('galibier_pending_downloads');
+      return;
+    }
+
+    const pendingNames = (Array.isArray(filenames) ? filenames : [])
+      .filter((name): name is string => typeof name === 'string' && name.trim().length > 0)
+      .map((name) => name.trim());
+    if (pendingNames.length === 0) {
+      window.sessionStorage.removeItem('galibier_pending_downloads');
+      return;
+    }
+
+    const matching = items.filter((item) => pendingNames.includes(deriveFileName(item.url)));
+    pendingSessionHandledRef.current = true;
+    window.sessionStorage.removeItem('galibier_pending_downloads');
+
+    if (matching.length === 0) return;
+
+    const firstFolder = matching[0].catalogFolder || deriveFolderPath(matching[0].url) || 'Records';
+    setCurrentPath(firstFolder);
+    setSearchText('');
+    setCurrentPage(1);
+    setPageInput('1');
+    setSelectedIds(new Set(matching.map((item) => item.id)));
+    setHighlightedIds(new Set(matching.map((item) => item.id)));
+
+    window.setTimeout(() => {
+      const first = matching[0];
+      const target = document.querySelector(`[data-download-id="${CSS.escape(first.id)}"]`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    window.setTimeout(() => setHighlightedIds(new Set()), 2600);
+  }, [items, loading]);
+
+  useEffect(() => {
     if (!pendingRecordSampleId) {
       pendingRecordHandledRef.current = false;
       return;
     }
     if (pendingRecordHandledRef.current || loading || items.length === 0) return;
 
-    const folderPath = `Records/${pendingRecordSampleId}`;
-    const matching = items.filter((item) => item.catalogFolder === folderPath);
+    const folderPath = 'Records';
+    const matching = items.filter((item) => (item.catalogFolder || '').startsWith('Records') && item.sampleIds.includes(pendingRecordSampleId));
     pendingRecordHandledRef.current = true;
+    setCurrentPath(matching[0]?.catalogFolder || folderPath);
     if (matching.length > 0) {
-      setCurrentPath(folderPath);
       setSelectedIds(new Set(matching.map((item) => item.id)));
-      setSearchText('');
-      setCurrentPage(1);
-      setPageInput('1');
     }
+    setSearchText('');
+    setCurrentPage(1);
+    setPageInput('1');
     onPendingRecordSampleHandled?.();
   }, [items, loading, onPendingRecordSampleHandled, pendingRecordSampleId]);
 
@@ -501,7 +565,13 @@ export default function DownloadCatalogPanel({
     });
   }, [items, searchText]);
 
-  const tree = useMemo(() => buildTree(filteredItems), [filteredItems]);
+  const tree = useMemo(() => {
+    const hasRecordsFolder = filteredItems.some((item) => {
+      const folderPath = item.catalogFolder || deriveFolderPath(item.url);
+      return folderPath.split('/').filter(Boolean)[0] === 'Records';
+    });
+    return buildTree(filteredItems, recordsAvailable && !hasRecordsFolder);
+  }, [filteredItems, recordsAvailable]);
 
   const currentNode = useMemo(() => {
     if (!currentPath) return tree;
@@ -519,7 +589,7 @@ export default function DownloadCatalogPanel({
 
   const childFolders = useMemo(() => {
     const entries = Array.from(currentNode.folders.values());
-    return entries.sort((a, b) => a.name.localeCompare(b.name));
+    return entries.sort(compareFolderNames);
   }, [currentNode]);
 
   const childFolderSummaries = useMemo(
@@ -564,18 +634,14 @@ export default function DownloadCatalogPanel({
 
   const currentFolderSummary = useMemo(() => folderSummary(currentNode), [currentNode]);
 
-  const clusterFolderPattern = currentPath.startsWith('Records/') && currentFolderItems[0]?.directoryPath
-    ? `${currentFolderItems[0].directoryPath}/*`
-    : currentPath
-      ? `${currentPath}/*`
-      : '*';
+  const clusterFolderPattern = currentPath
+    ? `${currentPath}/*`
+    : '*';
   const clusterRepoId = deriveHfRepoId(currentFolderItems);
   const clusterSuffix = downloadRegion === 'apac' ? 'mirror' : 'official';
-  const clusterVerifyDir = currentPath.startsWith('Records/') && currentFolderItems[0]?.directoryPath
-    ? `downloads/${currentFolderItems[0].directoryPath}/`
-    : currentPath
-      ? `downloads/${currentPath}/`
-      : `downloads/${rootLabel}/`;
+  const clusterVerifyDir = currentPath
+    ? `downloads/${currentPath}/`
+    : `downloads/${rootLabel}/`;
   const clusterPythonFileName = `GalibierHub-download-${clusterSuffix}-folder.py`;
   const clusterSlurmFileName = `GalibierHub-download-${clusterSuffix}-folder.sh`;
   const clusterPythonScript = normalizeScriptSpaces(buildClusterPythonScript(clusterRepoId, clusterFolderPattern, downloadRegion));
@@ -789,7 +855,7 @@ export default function DownloadCatalogPanel({
       {showBlockingLoader && <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">Loading files...</div>}
       {!loading && error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">{error}</div>}
       {!error && warning && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">{warning}</div>}
-      {!error && statusMessage && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">{statusMessage}</div>}
+      {!error && statusMessage && <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-4 text-sm text-teal-800">{statusMessage}</div>}
 
       {/* Academic License Banner */}
       {!error && !loading && (
@@ -957,7 +1023,7 @@ export default function DownloadCatalogPanel({
           <div className="border-b bg-gray-50 px-4 py-3 text-sm font-medium text-gray-800">Files</div>
           <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
             {paginatedFiles.map((item) => (
-              <div key={item.id} className={`flex min-h-44 flex-col justify-between gap-4 border p-4 ${selectedIds.has(item.id) ? 'border-slate-300 bg-teal-50/30' : 'border-gray-200 bg-white'}`}>
+              <div key={item.id} data-download-id={item.id} className={`flex min-h-44 flex-col justify-between gap-4 border p-4 ${selectedIds.has(item.id) ? 'border-slate-300 bg-teal-50/30' : 'border-gray-200 bg-white'} ${highlightedIds.has(item.id) ? 'target-highlight-row' : ''}`}>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-start gap-2">
                     <input
@@ -1034,7 +1100,7 @@ export default function DownloadCatalogPanel({
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {paginatedFiles.map((item) => (
-                  <tr key={item.id} className={selectedIds.has(item.id) ? 'bg-teal-50/30' : ''}>
+                  <tr key={item.id} data-download-id={item.id} className={`${selectedIds.has(item.id) ? 'bg-teal-50/30' : ''} ${highlightedIds.has(item.id) ? 'target-highlight-row' : ''}`}>
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
@@ -1094,7 +1160,7 @@ export default function DownloadCatalogPanel({
               type="button"
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               First
             </button>
@@ -1102,7 +1168,7 @@ export default function DownloadCatalogPanel({
               type="button"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Previous
             </button>
@@ -1110,7 +1176,7 @@ export default function DownloadCatalogPanel({
               type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
             </button>
@@ -1118,7 +1184,7 @@ export default function DownloadCatalogPanel({
               type="button"
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Last
             </button>
@@ -1154,7 +1220,7 @@ export default function DownloadCatalogPanel({
             <button
               type="button"
               onClick={handleJump}
-              className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100"
+              className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100"
             >
               Go
             </button>
@@ -1181,14 +1247,14 @@ export default function DownloadCatalogPanel({
                   <button
                     type="button"
                     onClick={() => setDownloadRegion('global')}
-                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
                   >
                     Global (Official)
                   </button>
                   <button
                     type="button"
                     onClick={() => setDownloadRegion('apac')}
-                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'apac' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-50'}`}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'apac' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
                   >
                     Asia-Pacific (Mirror)
                   </button>
@@ -1247,28 +1313,28 @@ export default function DownloadCatalogPanel({
                 )}
               </div>
 
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
-                <div className="text-sm font-medium text-emerald-900">How to use Cluster Batch Download</div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700">
+                <div className="text-sm font-medium text-slate-900">How to use Cluster Batch Download</div>
                 <ol className="mt-2 list-decimal space-y-1 pl-5">
                   <li>Choose the network environment: use Asia-Pacific (Mirror) for mainland or restricted networks; use Global (Official) for direct overseas access.</li>
                   <li>Open Show Python Script and Show SLURM Script, then copy both scripts to your cluster.</li>
                   <li>Update every {'<-- [USER MODIFICATION REQUIRED]'} marker for repository, folder pattern, cluster partition, project paths, and conda environment.</li>
                   <li>Submit with:</li>
                 </ol>
-                <pre className="mt-2 rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-emerald-200">sbatch {clusterSlurmFileName}</pre>
-                <div className="mt-2 overflow-hidden rounded-lg border border-emerald-200 bg-emerald-50">
+                <pre className="mt-2 rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-slate-200">sbatch {clusterSlurmFileName}</pre>
+                <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                   <button
                     type="button"
                     onClick={() => setClusterVerifyOpen(current => !current)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-emerald-100/60"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-100"
                   >
-                    <span className="text-sm font-medium text-emerald-900">5. Verify Folder Integrity (Optional)</span>
+                    <span className="text-sm font-medium text-slate-900">5. Verify Folder Integrity (Optional)</span>
                     <span className="text-xs text-slate-500">{clusterVerifyOpen ? 'Hide' : 'Show'}</span>
                   </button>
                   {clusterVerifyOpen && (
-                    <div className="border-t border-emerald-200 px-4 py-3">
-                      <p className="text-xs text-emerald-800">After the job completes, navigate to your download directory and check file integrity using sha256sum.</p>
-                      <pre className="mt-2 whitespace-pre-wrap break-all rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-emerald-200">{clusterVerifyCommand}</pre>
+                    <div className="border-t border-slate-200 px-4 py-3">
+                      <p className="text-xs text-slate-700">After the job completes, navigate to your download directory and check file integrity using sha256sum.</p>
+                      <pre className="mt-2 whitespace-pre-wrap break-all rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-slate-200">{clusterVerifyCommand}</pre>
                       <button
                         type="button"
                         onClick={() => void handleCopyFolderCommand('verify', clusterVerifyCommand)}

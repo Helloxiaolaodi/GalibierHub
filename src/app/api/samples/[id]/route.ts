@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isExcludedSampleId } from '@/lib/sample-exclusions';
+import { isAllowedSampleId } from '@/lib/sample-exclusions';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
 ) {
   const { id } = await context.params;
 
-  if (isExcludedSampleId(id)) {
+  if (!isAllowedSampleId(id)) {
     return NextResponse.json({ error: 'Sample not found' }, { status: 404 });
   }
 
