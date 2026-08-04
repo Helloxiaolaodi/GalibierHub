@@ -43,12 +43,12 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 - Downloads 新增 `Cluster Batch Download` 集群批量下载工作流，可基于 Python 与 SLURM 脚本递归下载整个文件夹，并提供 `Global (Official)` 与 `Asia-Pacific (Mirror)` 模板。
 - Downloads CLI 弹窗新增 Linux/macOS 与 Windows PowerShell 系统切换、一键复制完整命令，以及 `hfd` 镜像加速选项。
 - 浏览器下载会保留原始文件名，并自动为亚太地区访客切换到 Hugging Face 镜像。
-- Downloads 表格现在显示真实 `Updated` 日期，`Name` 与 `Actions` 列保持简洁，Actions 仅保留 `Download to Browser` 与 `CLI`。
-- Downloads 的 `Files:` 现在显示当前文件夹的实际文件数，不再显示整个目录的总数量。
+- Downloads 表格显示真实 `Updated` 日期，`Name` 与 `Actions` 列保持简洁，Actions 列提供 `Download to Browser` 与 `CLI`。
+- Downloads 的 `Files:` 显示当前文件夹的实际文件数。
 - `Download & CLI Usage Guide` 现在依次介绍 `Download to Browser`、`CLI` 和 `Cluster Batch Download`，并说明 `Downloads > Records` 就是 Records 界面全部文件的下载目录。
 - Records 界面的所有文件也会出现在 `Downloads > Records` 中，并支持与其他 Downloads 文件夹完全相同的浏览、选择、导出、浏览器下载、CLI 和集群批量下载工作流。
 - Records 表格新增 `Download` 列，点击后会跳转到 `Downloads > Records` 并自动勾选对应的样本文件。
-- User Guide 文案已精简；用户菜单为 Notifications、Replies、Likes 和 Following 新增 `Mark all read`，移除 `View all`、`View Full Profile` 和 `Activity`，并在 Settings 中新增 `View saved profile`。
+- User Guide 文案精简；用户菜单为 Notifications、Replies、Likes 和 Following 提供 `Mark all read`，并在 Settings 中提供 `View saved profile`。
 - Genome Browser 边框与 Records 控件已改用网站统一的 slate 按钮和边框配色，不再使用亮眼的蓝色或绿色。
 - 网站 Site uptime 从 2026 年 8 月 1 日开始计时。
 
@@ -112,7 +112,7 @@ GalibierHub 当前主要包含五个核心界面：
 *   **入驻引导** -- 首次登录后的 `/onboarding` 页面引导填写研究方向、常用工具和所属机构。
 *   **用户个人主页** -- `/user/[username]` 公开页面，展示徽章、动态、关注/取消关注。
 *   **徽章系统** -- 游戏化积分体系，青铜/白银/黄金/铂金四个等级，通过社区贡献自动获得。
-*   **世界时钟** -- 讨论区侧边栏时区面板和命令面板式全球时间搜索（已移除不需要的时区条目，改为点击外部关闭，搜索框使用 `Clear` 按钮）。
+*   **世界时钟** -- 讨论区侧边栏时区面板和命令面板式全球时间搜索（提供常用默认城市、点击外部关闭，搜索框使用 `Clear` 按钮）。
 *   **实时通知** -- 通过 Supabase Realtime WebSocket 推送，并加入轮询兜底；回复、关注、取关、点赞、@提及和徽章解锁均可通知。
 *   **密码重置** -- `/update-password` 全自助流程，配合 Resend 精美 HTML 邮件模板。
 *   **管理员看板** -- 总注册用户数、本周新增趋势、GitHub 与邮箱注册占比、最近加入列表、讨论/下载/访客统计，以及徽章分析标签页。
@@ -121,7 +121,7 @@ GalibierHub 当前主要包含五个核心界面：
 *   **AI 爬虫管控** -- `robots.txt` 拦截已知 AI 训练与 SEO 抓取爬虫，同时保留学术索引爬虫；Cloudflare 区域级开关说明见 `docs/cloudflare-security-configuration.md`。
 *   **密码可见性** -- 登录与注册密码栏提供显示/隐藏切换。
 *   **统一用户名** -- 所有页面显示同一用户名；邮箱注册默认使用邮箱 `@` 前的部分。
-*   **评论点赞** -- 每条回复的点赞数量实时更新，不再显示红色爱心图标。
+*   **评论点赞** -- 每条回复的点赞数量实时更新。
 *   **讨论浏览数与个人资料** -- 每篇讨论显示真实浏览量；头像悬浮卡片显示在线状态、支持关注/取消关注；`/user/[username]` 个人主页与动态页可正常打开。
 *   **通知事件** -- 关注、取消关注、评论点赞和 @提及会写入目标用户的站内通知中心。
 *   **时间线交互** -- 时间线滑条可拖动滚动整篇留言，与浏览器滚动同步，并显示主帖与每条回复的发布日期。
@@ -314,7 +314,7 @@ Cloudflare Pages：
 - 单文件操作入口拆分为浏览器下载与 CLI/详情两类按钮，避免一个按钮承载过多动作。
 - 可导出机器可读的 Manifest，字段固定为 `Directory_Path`、`File_Name`、`File_Type`、`Size_Bytes`、`Direct_URL`、`SHA-256`。
 - Manifest CSV 与 CLI/校验和弹窗会从目录元数据解析真实 SHA-256，不再导出 `NA` 或显示 `N/A`。
-- Downloads 顶部不再显示 `All Discussions` 按钮；统一 `Tutorials` 菜单提供 `View all Tutorials` 与 `Download & CLI Usage Guide`，其中下载指南位于 `/docs/download-cli`。
+- 统一 `Tutorials` 菜单提供 `View all Tutorials` 与 `Download & CLI Usage Guide`，其中下载指南位于 `/docs/download-cli`。
 - 分页显示，每页 20 个文件，大目录也能保持可浏览性。
 - 批量选择与下载，支持勾选文件后统一生成浏览器下载、`wget` 和 `curl` 命令。
 - README 按钮动态生成当前目录的文件结构与基本信息。
@@ -327,7 +327,7 @@ Cloudflare Pages：
 - 可点击展开后复制给 `Free Download Manager`、`Motrix`、`IDM` 等工具使用的公开直链
 - 基于 `huggingface.co` 的 `Global (Official)` 断点续传命令
 - 基于 `hf-mirror.com` 的 `Asia-Pacific (Mirror)` 断点续传命令
-- 旧版 `Linked Tutorials` 标签与 `Pipeline Integration Guide` 已移除；独立下载指南位于 `/docs/download-cli`
+- 独立下载指南位于 `/docs/download-cli`，提供浏览器下载、CLI、校验和与下载工具说明。
 
 以 `scov2.fa` 为例，弹窗会在不改变数据集路径的前提下，同时提供官方线路和亚洲镜像线路。
 
