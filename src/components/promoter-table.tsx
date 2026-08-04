@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -703,7 +703,7 @@ export default function PromoterTable({
               onChange={(e) => onPageChange(pageIndex, Number.parseInt(e.target.value, 10))}
               className="rounded border px-2 py-1 bg-white"
             >
-              {[20, 50, 100].map((size) => (
+              {[10, 20, 30].map((size) => (
                 <option key={size} value={size}>
                   {size}
                 </option>
