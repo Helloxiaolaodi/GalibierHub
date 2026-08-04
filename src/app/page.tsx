@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -350,9 +350,9 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] flex flex-col">
+    <div className="min-h-screen bg-[#F5F5F7]">
       <header className="bg-white/70 backdrop-blur-xl saturate-150 border-b border-white/20 shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <Logo />
           <nav className="flex flex-wrap items-center gap-1">
             {(['overview', 'promoters', 'genome-browser', 'downloads'] as const).map((tab) => (
@@ -434,7 +434,7 @@ export default function HomePage() {
       </header>
       <UserGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6 space-y-6">
         {creatorSignInError && (
           <div className="rounded-xl border border-red-100 bg-red-50/80 px-4 py-3 text-sm text-red-700 flex items-start justify-between gap-3 shadow-sm">
             <span>{creatorSignInError}</span>
@@ -684,5 +684,8 @@ export default function HomePage() {
     </div>
   );
 }
+
+
+
 
 

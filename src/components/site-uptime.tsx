@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 
@@ -124,7 +124,7 @@ export default function SiteUptime({ startAt }: SiteUptimeProps) {
   const text = useMemo(() => formatDuration(startAt, now), [now, startAt]);
 
   return (
-    <footer className="mt-auto border-t border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
+    <footer className="border-t border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
       Site uptime: <span className="font-medium text-gray-700">{text}</span>
       {typeof visitorCount === 'number' && (
         <>
@@ -136,3 +136,4 @@ export default function SiteUptime({ startAt }: SiteUptimeProps) {
     </footer>
   );
 }
+
