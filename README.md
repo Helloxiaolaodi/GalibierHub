@@ -46,7 +46,7 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 - The `Download & CLI Usage Guide` now covers `Download to Browser`, `CLI`, and `Cluster Batch Download` in that order, and explains that `Downloads > Records` contains every file from the Records interface.
 - Records files are also exposed under `Downloads > Records`, where they support the same browse, select, export, browser download, CLI, and cluster batch workflows as other Downloads folders.
 - The Records table now includes a `Download` column that jumps to `Downloads > Records` and preselects the matching sample files.
-- The User Guide was condensed. The user menu now has `Mark all read` for Notifications, Replies, Likes, and Following; removed `View all`, `View Full Profile`, and `Activity`; and added `View saved profile` in Settings.
+- The User Guide is concise. The user menu provides `Mark all read` for Notifications, Replies, Likes, and Following, plus `View saved profile` in Settings.
 - Genome Browser borders and Records controls now use the site's neutral slate button and border scheme instead of bright blue or green accents.
 - Site uptime now counts from August 1, 2026.
 
@@ -110,7 +110,7 @@ The current default schema and UI are still genomics-oriented. Template users ca
 *   **Onboarding** -- Guided profile setup after first login with research field, preferred tools, and affiliation.
 *   **User profiles** -- Public `/user/[username]` pages with badges, activity feeds, and follow/unfollow.
 *   **Badge system** -- Gamified reputation with bronze/silver/gold/platinum tiers earned through community contributions.
-*   **World clock** -- Timezone companion panel and command-palette global time search (unwanted timezone entry removed, click-outside close, `Clear` search button).
+*   **World clock** -- Timezone companion panel and command-palette global time search (relevant defaults, click-outside close, `Clear` search button).
 *   **Real-time notifications** -- Realtime WebSocket delivery plus a polling fallback for replies, follows, likes, @mentions, and badge unlocks.
 *   **Password reset** -- Full self-service flow at `/update-password` with styled email templates via Resend.
 *   **Admin dashboard** -- Total registered users, weekly sign-up trend, GitHub vs email origin chart, recent joiners, discussion/download/visitor stats, and a Badges analytics tab.
@@ -305,7 +305,7 @@ Cloudflare Pages:
 - Split single-file actions so browser download and CLI or details entry points are visibly separated instead of competing inside one oversized button.
 - Manifest export with stable machine-readable columns: `Directory_Path`, `File_Name`, `File_Type`, `Size_Bytes`, `Direct_URL`, and `SHA-256`.
 - Manifest CSV and CLI/checksum dialogs resolve real SHA-256 values from catalog metadata instead of exporting `NA` or showing `N/A`.
-- The top-level `All Discussions` shortcut is removed; one consolidated `Tutorials` menu exposes `View all Tutorials` and `Download & CLI Usage Guide`, with the guide at `/docs/download-cli`.
+- The consolidated `Tutorials` menu exposes `View all Tutorials` and `Download & CLI Usage Guide`, with the guide at `/docs/download-cli`.
 - Pagination with 20 files per page, so large directories stay scannable.
 - Batch selection with checkboxes and a `Download Selected` button that shows browser download, `wget`, and `curl` commands for the selected files.
 - A README button that dynamically generates a directory overview listing all files with sizes and dates.
@@ -320,7 +320,7 @@ For public files with a stable raw URL, the `Download options` modal now uses a 
 - **Cite Dataset**: BibTeX, RIS, DataCite, and Plain Text citation format export.
 - **Batch Script**: Generate `.sh` and `.bat` download scripts for public sample files.
 
-The old Linked Tutorials tab and Pipeline Integration Guide were removed. A static `/docs/download-cli` page now provides wget, curl, aria2c, checksum, and download-tool guidance.
+A static `/docs/download-cli` page provides browser download, CLI, checksum, and download-tool guidance.
 
 For the example file `scov2.fa`, that means the modal can show both the official route and the Asia-friendly mirror route without changing the dataset path itself.
 
