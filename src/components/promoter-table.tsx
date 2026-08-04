@@ -21,6 +21,7 @@ import { SkeletonTableRows } from '@/components/skeleton-screen';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
+type RecordDownloadKind = 'vcf' | 'fasta';
 
 type BatchFile = { sample_id: string; kind: string; url: string };
 type BatchFileMeta = { size: number | null; sha256: string | null; md5: string | null };
@@ -139,7 +140,8 @@ interface PromoterTableProps {
   topChromosomes?: Array<{ label: string; count: number }>;
   topSamples?: Array<{ label: string; count: number }>;
   onRowClick?: (promoter: Promoter) => void;
-  onDownloadRecord?: (sampleId: string) => void;
+  onDownloadRecord?: (sampleId: string, kind: RecordDownloadKind) => void;
+  onSendSelectedToDownloads?: (kind: RecordDownloadKind, sampleIds: string[]) => void;
   onSortModeChange: (mode: PromoterSortMode) => void;
   onSummaryModeChange: (mode: SummaryMode) => void;
   onPageChange: (pageIndex: number, pageSize: number) => void;
@@ -159,6 +161,7 @@ export default function PromoterTable({
   topSamples = [],
   onRowClick,
   onDownloadRecord,
+  onSendSelectedToDownloads,
   onSortModeChange,
   onSummaryModeChange,
   onPageChange,
@@ -181,6 +184,7 @@ export default function PromoterTable({
   const [batchError, setBatchError] = useState<string | null>(null);
   const [batchItems, setBatchItems] = useState<BatchDownloadItem[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
+  const [downloadMenuSampleId, setDownloadMenuSampleId] = useState<string | null>(null);
 
   const pageSampleIdArray = useMemo(() => {
     const seen = new Set<string>();
@@ -413,21 +417,56 @@ export default function PromoterTable({
         header: 'Download',
         size: 110,
         enableSorting: false,
-        cell: ({ row }) => (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onDownloadRecord?.(row.original.sample_id);
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-slate-700"
-          >
-            Download
-          </button>
-        ),
+        cell: ({ row }) => {
+          const sampleId = row.original.sample_id;
+          const menuOpen = downloadMenuSampleId === sampleId;
+          return (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setDownloadMenuSampleId(menuOpen ? null : sampleId);
+                }}
+                className="inline-flex items-center gap-1 rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-slate-700"
+              >
+                Download
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 z-30 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-xl">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setDownloadMenuSampleId(null);
+                      onDownloadRecord?.(sampleId, 'vcf');
+                    }}
+                    className="block w-full rounded-md px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Download Variant (VCF)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setDownloadMenuSampleId(null);
+                      onDownloadRecord?.(sampleId, 'fasta');
+                    }}
+                    className="block w-full rounded-md px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Download Sequence (FASTA)
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        },
       },
     ],
-    [selectedSampleIds, allPageSelected, somePageSelected, toggleAllPage, toggleSample, onDownloadRecord]
+    [selectedSampleIds, allPageSelected, somePageSelected, toggleAllPage, toggleSample, onDownloadRecord, downloadMenuSampleId]
   );
 
   const table = useReactTable({
@@ -510,7 +549,7 @@ export default function PromoterTable({
                 key={option.key}
                 type="button"
                 onClick={() => onSummaryModeChange(option.key)}
-                className={`rounded-md border px-2.5 py-1 text-xs font-medium ${summaryMode === option.key ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+                className={`rounded-md border px-2.5 py-1 text-xs font-medium ${summaryMode === option.key ? 'border-slate-700 bg-slate-800 text-white' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
               >
                 {option.label}
               </button>
@@ -560,13 +599,15 @@ export default function PromoterTable({
       </div>
 
       {selectedSampleIds.size > 0 && (
-        <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50/95 px-4 py-2 shadow-sm">
-          <span className="text-sm font-medium text-blue-800">
+        <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/95 px-4 py-2 shadow-sm">
+          <span className="text-sm font-medium text-slate-800">
             {selectedSampleIds.size} sample{selectedSampleIds.size === 1 ? '' : 's'} selected for batch download
           </span>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={clearSelection} className="rounded border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100">Clear</button>
-            <button type="button" onClick={openBatch} disabled={batchLoading} className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">Batch download</button>
+            <button type="button" onClick={() => onSendSelectedToDownloads?.('vcf', [...selectedSampleIds])} className="rounded border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700 hover:bg-slate-100">Send Selected to Downloads (VCF)</button>
+            <button type="button" onClick={() => onSendSelectedToDownloads?.('fasta', [...selectedSampleIds])} className="rounded border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700 hover:bg-slate-100">Send Selected to Downloads (FASTA)</button>
+            <button type="button" onClick={clearSelection} className="rounded border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700 hover:bg-slate-100">Clear</button>
+            <button type="button" onClick={openBatch} disabled={batchLoading} className="rounded bg-slate-800 px-3 py-1 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-50">Batch download</button>
           </div>
         </div>
       )}
@@ -600,7 +641,7 @@ export default function PromoterTable({
             ) : table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="hover:bg-blue-50 cursor-pointer transition-colors"
+                className="hover:bg-slate-50 cursor-pointer transition-colors"
                 onClick={() => onRowClick?.(row.original)}
               >
                 {row.getVisibleCells().map((cell) => (
@@ -620,7 +661,7 @@ export default function PromoterTable({
             type="button"
             onClick={() => onPageChange(0, pageSize)}
             disabled={!canPreviousPage}
-            className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             First
           </button>
@@ -628,7 +669,7 @@ export default function PromoterTable({
             type="button"
             onClick={() => onPageChange(Math.max(0, pageIndex - 1), pageSize)}
             disabled={!canPreviousPage}
-            className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Previous
           </button>
@@ -636,7 +677,7 @@ export default function PromoterTable({
             type="button"
             onClick={() => onPageChange(pageIndex + 1, pageSize)}
             disabled={!canNextPage}
-            className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Next
           </button>
@@ -644,7 +685,7 @@ export default function PromoterTable({
             type="button"
             onClick={() => onPageChange(pageCount - 1, pageSize)}
             disabled={!canNextPage}
-            className="rounded border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Last
           </button>
@@ -693,7 +734,7 @@ export default function PromoterTable({
           <button
             type="button"
             onClick={handleJump}
-            className="rounded border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700 hover:bg-emerald-100"
+            className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100"
           >
             Go
           </button>
@@ -720,7 +761,7 @@ export default function PromoterTable({
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
                     <span>{batchItems.length} files. {batchPublicCount} public, {batchPrivateCount} excluded.</span>
-                    {allSha256Text && <button type="button" onClick={() => handleCopy('sha256-all', allSha256Text)} className="text-blue-600 hover:underline">{copied === 'sha256-all' ? 'Copied' : 'Copy all SHA-256'}</button>}
+                    {allSha256Text && <button type="button" onClick={() => handleCopy('sha256-all', allSha256Text)} className="text-teal-700 hover:underline">{copied === 'sha256-all' ? 'Copied' : 'Copy all SHA-256'}</button>}
                   </div>
                   <div className="max-h-[32rem] overflow-auto rounded border border-gray-100 bg-gray-50">
                     <table className="min-w-full text-xs text-gray-700">
@@ -792,17 +833,17 @@ export default function PromoterTable({
                     </table>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <button type="button" onClick={() => downloadText('galibierhub-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Download .sh (Linux/macOS, resumable)</button>
-                    <button type="button" onClick={() => downloadText('galibierhub-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100">Download .bat (Windows, resumable)</button>
+                    <button type="button" onClick={() => downloadText('galibierhub-batch-download.sh', buildSh(batchItems))} className="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">Download .sh (Linux/macOS, resumable)</button>
+                    <button type="button" onClick={() => downloadText('galibierhub-batch-download.bat', buildBat(batchItems))} className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Download .bat (Windows, resumable)</button>
                   </div>
                   <div className="grid gap-3 lg:grid-cols-2">
                     <details className="text-xs text-gray-500">
                       <summary className="cursor-pointer hover:text-gray-700">Preview .sh</summary>
-                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-blue-50 p-3 font-mono text-[11px] text-blue-950 ring-1 ring-blue-100">{buildSh(batchItems)}</pre>
+                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-slate-50 p-3 font-mono text-[11px] text-slate-900 ring-1 ring-slate-200">{buildSh(batchItems)}</pre>
                     </details>
                     <details className="text-xs text-gray-500">
                       <summary className="cursor-pointer hover:text-gray-700">Preview .bat</summary>
-                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-emerald-50 p-3 font-mono text-[11px] text-emerald-950 ring-1 ring-emerald-100 whitespace-pre-wrap">{buildBat(batchItems)}</pre>
+                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-slate-50 p-3 font-mono text-[11px] text-slate-900 ring-1 ring-slate-200 whitespace-pre-wrap">{buildBat(batchItems)}</pre>
                     </details>
                   </div>
                   <p className="text-xs text-gray-400">Public scripts support resume (`wget -c` / `curl -C -`). Protected signed URLs and non-direct links are excluded. SHA-256 appears when available. MD5 remains `N/A` unless set. Counts mainly reflect downloads started on the site.</p>

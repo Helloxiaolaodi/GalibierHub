@@ -1,0 +1,17 @@
+# GalibierHub Supabase Keep-Alive Worker
+# Deploy from this directory with: npx wrangler deploy
+name = "galibierhub-supabase-keepalive"
+main = "worker.js"
+compatibility_date = "2025-06-01"
+workers_dev = true
+
+# Run every 3 days at 00:00 UTC. Supabase free projects pause after
+# 7 days without activity, so this schedule leaves a safe margin.
+triggers = { crons = ["0 0 */3 * *"] }
+
+# Required secrets (never put them in this file):
+#   npx wrangler secret put SUPABASE_URL
+#   npx wrangler secret put SUPABASE_ANON_KEY
+#
+# Optional secret for manually triggering a check:
+#   npx wrangler secret put KEEPALIVE_SECRET

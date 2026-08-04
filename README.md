@@ -42,13 +42,14 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 - The Downloads CLI modal now has Linux/macOS and Windows PowerShell tabs, one-click all-in-one command copying, and a dedicated `hfd` mirror accelerator option.
 - Browser downloads preserve the original filename and automatically route Asia-Pacific visitors through the Hugging Face mirror.
 - The Downloads table now shows real `Updated` dates and keeps the `Name` and `Actions` columns focused on file identity and `Download to Browser` / `CLI` actions.
-- Downloads `Files:` now shows the actual file count for the currently selected folder instead of the total catalog count.
+- Downloads `Files:` displays the actual file count for the currently selected folder.
 - The `Download & CLI Usage Guide` now covers `Download to Browser`, `CLI`, and `Cluster Batch Download` in that order, and explains that `Downloads > Records` contains every file from the Records interface.
-- Records files are also exposed under `Downloads > Records`, where they support the same browse, select, export, browser download, CLI, and cluster batch workflows as other Downloads folders.
+- Records is the first folder in Downloads. Records files are exposed under `Downloads > Records` at the top of the folder list, where they support the same browse, select, export, browser download, CLI, and cluster batch workflows as other Downloads folders.
 - The Records table now includes a `Download` column that jumps to `Downloads > Records` and preselects the matching sample files.
 - The User Guide is concise. The user menu provides `Mark all read` for Notifications, Replies, Likes, and Following, plus `View saved profile` in Settings.
-- Genome Browser borders and Records controls now use the site's neutral slate button and border scheme instead of bright blue or green accents.
+- Genome Browser borders and Records controls use the site's neutral slate button and border scheme.
 - Site uptime now counts from August 1, 2026.
+- A standalone Cloudflare Worker (`cloudflare-templates/supabase-keepalive`) runs every 3 days and queries Supabase to prevent the free-tier 7-day auto-suspension.
 
 ## Overview
 
@@ -200,10 +201,10 @@ Add these for genome browser, downloads, authentication, and email:
 Required genome storage variables:
 
 ```bash
-NEXT_PUBLIC_REFERENCE_FASTA=scov2.fa
-NEXT_PUBLIC_REFERENCE_FASTA_INDEX=scov2.fa.fai
-NEXT_PUBLIC_REFERENCE_BED=scov2.genes.bed
-NEXT_PUBLIC_REFERENCE_GFF3=scov2.genes.gff3
+NEXT_PUBLIC_REFERENCE_FASTA=Records/Reference_Genomes/reference.fasta
+NEXT_PUBLIC_REFERENCE_FASTA_INDEX=Records/Reference_Genomes/reference.fasta.fai
+NEXT_PUBLIC_REFERENCE_BED=Records/Reference_Genomes/reference.bed
+NEXT_PUBLIC_REFERENCE_GFF3=Records/Reference_Genomes/annotation.gff3
 ```
 
 Optional but recommended:
@@ -298,17 +299,18 @@ Cloudflare Pages:
 
 ### What the Downloads view now supports
 
-- Breadcrumb navigation such as `Downloads / seqedge-data / reference_genomes / scov2`, where every parent level remains clickable.
+- Breadcrumb navigation such as `Downloads / seqedge-data / Records / Variant_Calling_VCF`, where every parent level remains clickable.
 - A compact control bar that combines folder search, `Copy Folder CLI`, `Export Manifest CSV`, a README button, batch download, and grid or table view switching.
 - A table view with sortable `Name`, `Size`, `Updated`, and `Actions` columns for directories that would become unwieldy in card mode.
 - A denser grid view that still shows size and updated time so card browsing does not hide basic metadata.
-- Split single-file actions so browser download and CLI or details entry points are visibly separated instead of competing inside one oversized button.
+- Split single-file actions into separate browser download and CLI/details entry points.
 - Manifest export with stable machine-readable columns: `Directory_Path`, `File_Name`, `File_Type`, `Size_Bytes`, `Direct_URL`, and `SHA-256`.
-- Manifest CSV and CLI/checksum dialogs resolve real SHA-256 values from catalog metadata instead of exporting `NA` or showing `N/A`.
+- Manifest CSV and CLI/checksum dialogs resolve real SHA-256 values from catalog metadata.
 - The consolidated `Tutorials` menu exposes `View all Tutorials` and `Download & CLI Usage Guide`, with the guide at `/docs/download-cli`.
 - Pagination with 20 files per page, so large directories stay scannable.
 - Batch selection with checkboxes and a `Download Selected` button that shows browser download, `wget`, and `curl` commands for the selected files.
 - A README button that dynamically generates a directory overview listing all files with sizes and dates.
+- `Records` is the first folder in Downloads. It contains the Records demo dataset in three subfolders: `Reference_Genomes`, `Variant_Calling_VCF`, and `ML_Ready_FASTA`, with the same browse, select, export, browser download, CLI, and cluster batch workflows as other folders.
 
 ### What the download modal now exposes
 
@@ -322,25 +324,25 @@ For public files with a stable raw URL, the `Download options` modal now uses a 
 
 A static `/docs/download-cli` page provides browser download, CLI, checksum, and download-tool guidance.
 
-For the example file `scov2.fa`, that means the modal can show both the official route and the Asia-friendly mirror route without changing the dataset path itself.
+For a Records sample file such as `CNhs13076.vcf.gz`, that means the modal can show both the official route and the Asia-friendly mirror route without changing the dataset path itself.
 
 Official route:
 
 ```bash
-wget -c -O "scov2.fa" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
-curl -L -C - -o "scov2.fa" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
-hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
+wget -c -O "CNhs13076.vcf.gz" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz?download=true"
+curl -L -C - -o "CNhs13076.vcf.gz" "https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz?download=true"
+hf download Helloxiaolaodi/seqedge-data Records/Variant_Calling_VCF/CNhs13076.vcf.gz --repo-type dataset --local-dir .
 ```
 
 Asia-Pacific mirror route:
 
 ```bash
-wget -c -O "scov2.fa" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
-curl -L -C - -o "scov2.fa" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa?download=true"
-HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
+wget -c -O "CNhs13076.vcf.gz" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz?download=true"
+curl -L -C - -o "CNhs13076.vcf.gz" "https://hf-mirror.com/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz?download=true"
+HF_ENDPOINT=https://hf-mirror.com hf download Helloxiaolaodi/seqedge-data Records/Variant_Calling_VCF/CNhs13076.vcf.gz --repo-type dataset --local-dir .
 ```
 
-This keeps the UI aligned with real network conditions instead of documenting only one nominal path.
+This keeps the UI aligned with real network conditions.
 
 ### Add a Hugging Face file to GalibierHub
 
@@ -354,8 +356,8 @@ The current codebase supports three practical Hugging Face integration points:
 
 Do not paste the Hugging Face page URL that contains `/blob/main/`.
 
-- Page URL example: `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/blob/main/scov2.fa`
-- Direct file URL example: `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa`
+- Page URL example: `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/blob/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz`
+- Direct file URL example: `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz`
 
 GalibierHub now normalizes common Hugging Face `blob` links to `resolve` links, but you should still store the direct file URL in your database and environment variables.
 
@@ -364,9 +366,9 @@ GalibierHub now normalizes common Hugging Face `blob` links to `resolve` links, 
 Set the featured archive environment variables:
 
 ```bash
-NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download scov2 Reference Genome
-NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION=Public Hugging Face dataset package for large-file download, browser delivery, and resume-capable CLI retrieval.
-NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa
+NEXT_PUBLIC_RELEASE_ARCHIVE_LABEL=Download Records Reference Genome
+NEXT_PUBLIC_RELEASE_ARCHIVE_DESCRIPTION=Public Hugging Face Records dataset package for reference, variant, and sequence-file delivery.
+NEXT_PUBLIC_RELEASE_ARCHIVE_URL=https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Reference_Genomes/reference.fasta
 NEXT_PUBLIC_RELEASE_ARCHIVE_SIZE=~700 MB
 NEXT_PUBLIC_RELEASE_ARCHIVE_MODE=cli
 ```
@@ -383,14 +385,17 @@ The current UI renders these sample-level file slots in both the floating detail
 - `bed_download_url`
 - `gff3_download_url`
 
-For a generic package from Hugging Face, the least disruptive option in the current schema is to use `gb_download_url` as a generic package slot. The UI labels this slot as `Download Package`.
+For the Records demo dataset, set the sample VCF and FASTA slots to the matching files under `Records/Variant_Calling_VCF` and `Records/ML_Ready_FASTA`. The same folder and file are then available from the Downloads catalog.
 
 Example SQL:
 
 ```sql
 update genome_samples
-set gb_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa'
-where sample_id = 'CNhs10881';
+set vcf_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz',
+    fasta_download_url = 'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/ML_Ready_FASTA/CNhs13076.fasta',
+    vcf_download_mode = 'cli',
+    fasta_download_mode = 'cli'
+where sample_id = 'CNhs13076';
 ```
 
 You can also attach the same file to the dedicated `Downloads` tab through `download_metadata`, so the site exposes one consistent single-file modal whether the visitor enters from Overview, Records, or Downloads.
@@ -412,11 +417,11 @@ insert into download_metadata (
   sha256_checksum
 )
 values (
-  'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/scov2.fa',
-  'scov2 Reference Genome',
-  'Public Hugging Face dataset package exposed through the GalibierHub unified download modal.',
-  'FASTA (.fa)',
-  734003200,
+  'https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data/resolve/main/Records/Variant_Calling_VCF/CNhs13076.vcf.gz',
+  'CNhs13076 Variant Calls (VCF)',
+  'Public Hugging Face Records sample file exposed through the GalibierHub unified download modal.',
+  'VCF (.vcf.gz)',
+  1024,
   'public_url',
   false,
   null,
@@ -444,6 +449,21 @@ That is the only fully implemented private-download path in the current codebase
 ### Uploading data to Hugging Face
 
 GalibierHub hosts large data files such as release archives, reference bundles, and sample-level files on a Hugging Face dataset repository, by default `https://huggingface.co/datasets/Helloxiaolaodi/seqedge-data`.
+
+### Records demo data and sources
+
+The current `Records` demo dataset is exposed in `Downloads > Records` as the first folder. It stores files under three subfolders:
+
+- `Records/Reference_Genomes/`: `reference.fasta` and `annotation.gff3`
+- `Records/Variant_Calling_VCF/`: 12 sample VCF files, one per allowed Records sample
+- `Records/ML_Ready_FASTA/`: 12 sample FASTA files, one per allowed Records sample
+
+The 12 demo samples are `CNhs13076`, `CNhs13080`, `CNhs13195`, `CNhs13202`, `CNhs13203`, `CNhs13204`, `CNhs13205`, `CNhs13206`, `CNhs13207`, `CNhs13208`, `CNhs13215`, and `CNhs13216`. Each sample has a `.vcf.gz` file under `Variant_Calling_VCF` and a `.fasta` file under `ML_Ready_FASTA`, for a total of 24 sample files plus the reference FASTA and GFF3. These are public test files converted from FANTOM5 human primary-cell CAGE data (hg19), cohort `FANTOM5 human.primary_cell.hCAGE`, platform `HeliScope CAGE`:
+
+- FANTOM5: https://fantom.gsc.riken.jp/5/
+- FANTOM5 reference publication: https://www.nature.com/articles/sdata2017112
+
+Records rows still open their locus in Genome Browser when the record itself is clicked. The new `Download` column and selected-row batch actions route the matching files to `Downloads > Records`, where the destination folder is expanded and the corresponding files are checked, highlighted, and scrolled into view.
 
 #### 1. Install the CLI
 
@@ -475,7 +495,7 @@ hf upload <namespace/dataset-name> <local-path> <path-in-repo> --repo-type datas
 Example:
 
 ```bash
-hf upload Helloxiaolaodi/seqedge-data "E:\data\scov2.fa" "scov2.fa" --repo-type dataset
+hf upload Helloxiaolaodi/seqedge-data "E:\data\CNhs13076.vcf.gz" "Records/Variant_Calling_VCF/CNhs13076.vcf.gz" --repo-type dataset
 ```
 
 #### 4. Resumable transfer
@@ -517,7 +537,7 @@ For multi-hundred-MB to GB files prefer the HF CLI:
 
 ```bash
 pip install -q "huggingface_hub"
-hf download Helloxiaolaodi/seqedge-data scov2.fa --repo-type dataset --local-dir .
+hf download Helloxiaolaodi/seqedge-data Records/Variant_Calling_VCF/CNhs13076.vcf.gz --repo-type dataset --local-dir .
 ```
 
 Classic commands also resume:
@@ -527,7 +547,7 @@ wget -c -O <name> "<resolve url>"
 curl -L -C - -o <name> "<resolve url>"
 ```
 
-For users in China and some Asia-Pacific networks, the mirror route may be materially more reliable than the official domain. GalibierHub therefore exposes both command sets in the modal instead of forcing users to discover the mirror path elsewhere.
+For users in China and some Asia-Pacific networks, the mirror route may be materially more reliable than the official domain. GalibierHub therefore exposes both command sets in the modal.
 
 ### Genome browser notes
 
@@ -647,6 +667,7 @@ To send reply emails to any visitor, you need a verified custom domain in Resend
 - `docs/`: README media and project notes
 - `schema.sql`: database schema and related SQL objects
 - `cloudflare-templates/hf-proxy/`: Cloudflare Worker proxy template
+- `cloudflare-templates/supabase-keepalive/`: Cloudflare Worker keep-alive template
 - `scripts/`: project utility scripts
 
 ### Minimal files to keep
@@ -658,6 +679,7 @@ Keep these for the current feature set:
 - `README.md`
 - `README.zh-CN.md`
 - `cloudflare-templates/hf-proxy/`
+- `cloudflare-templates/supabase-keepalive/`
 - `scripts/`
 
 Default template SVG assets under `public/` that are not used by your deployment can be removed.
@@ -671,6 +693,23 @@ The footer shows a live uptime counter together with a cumulative visitor counte
 `src/components/site-uptime.tsx` reads the configured start timestamp for the uptime display and also calls `/api/visitors` to show the cumulative unique visitor count derived from a persistent browser visitor id stored in `localStorage` and hashed before insertion into `site_visitors`. This metric is intentionally closer to `Visitors` than to `Page views`: refreshing the same browser profile should usually not increment the count again, while an incognito or private window will usually be counted separately because it starts from isolated storage. First-time visits can still be counted with the anonymous Supabase key, while the service-role key additionally allows refreshing `last_seen_at` for repeat visits.
 
 Set the start timestamp in `src/site-config.ts` under `uptime.startAt`.
+
+### Supabase keep-alive worker
+
+The standalone Cloudflare Worker at `cloudflare-templates/supabase-keepalive` prevents a free Supabase project from being paused after 7 days without activity. Its cron trigger runs at `00:00 UTC` every 3 days (`0 0 */3 * *`) and performs one lightweight Supabase REST `SELECT id ... limit=1` against `genome_samples` with the anonymous key.
+
+Deploy it once from the template directory:
+
+```bash
+cd cloudflare-templates/supabase-keepalive
+npx wrangler login
+npx wrangler secret put SUPABASE_URL
+npx wrangler secret put SUPABASE_ANON_KEY
+npx wrangler secret put KEEPALIVE_SECRET
+npx wrangler deploy
+```
+
+Use the Supabase project URL and anon key, not the service-role key. The optional `KEEPALIVE_SECRET` protects the manual trigger endpoint. If your main Supabase table has a different name, set `SUPABASE_KEEPALIVE_TABLE` as a Worker variable before deploying.
 
 ### Validation
 
@@ -713,7 +752,7 @@ extCursor in API responses for paginated consumption.
 - **Singleton Supabase Client**: src/utils/supabase.ts creates a single Supabase client instance with persistSession: false, reused across all API routes rather than instantiated per-request.
 - **Cache Headers**: Read endpoints (/api/promoters, /api/samples, /api/download-catalog) emit Cache-Control: public, s-maxage=300, stale-while-revalidate=600, allowing Cloudflare CDN to serve repeated identical queries without forwarding them to Vercel or Supabase.
 - **R2 Signed URLs**: Large binary downloads (FASTQ, BAM, VCF, reference archives) are delivered via Cloudflare R2 pre-signed URLs with a 60-second TTL. Vercel never proxies file bytes; bandwidth stays within Cloudflare's free tier.
-- **Heartbeat Cron**: A Vercel Cron job (/api/cron/heartbeat) sends a lightweight SELECT 1 query to Supabase every 6 hours to prevent the free-tier 7-day inactivity auto-suspension.
+- **Supabase Keep-Alive**: A standalone Cloudflare Worker (`cloudflare-templates/supabase-keepalive`) uses a cron trigger to query Supabase every 3 days, preventing free-tier 7-day inactivity auto-suspension. The existing Vercel `/api/cron/heartbeat` route remains available as a secondary option.
 - **Materialized Views**: Heavy aggregate queries (per-species counts, yearly publication stats) use pre-computed materialized views refreshed by cron rather than ad-hoc COUNT(*) on base tables, keeping Nano-instance CPU within budget.
 
 

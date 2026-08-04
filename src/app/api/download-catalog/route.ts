@@ -4,7 +4,7 @@ import { getDirectDownloadUrl, validateDirectFileUrl } from '@/lib/storage';
 import { listHuggingFaceDatasetFiles } from '@/lib/hf-tree';
 import { normalizeDownloadKey } from '@/lib/download-info';
 import { resolveHttpChecksum, resolveHttpFileSize } from '@/lib/http-checksum';
-import { isExcludedSampleId } from '@/lib/sample-exclusions';
+import { ALLOWED_SAMPLE_IDS, isAllowedSampleId } from '@/lib/sample-exclusions';
 import { getSupabase, isSupabaseConfigured } from '@/utils/supabase';
 import { getBearerToken, requireCreatorGithubAuth } from '@/lib/feedback-admin';
 
@@ -49,6 +49,11 @@ const SAMPLE_FIELDS = 'sample_id, vcf_download_url, fasta_download_url, gb_downl
 const PAGE_SIZE = 1000;
 const CATALOG_CACHE_MS = 24 * 60 * 60 * 1000;
 const catalogCache = new Map<string, { expiresAt: number; payload: unknown }>();
+const LEGACY_RECORDS_FILES = new Set([
+  ...ALLOWED_SAMPLE_IDS.flatMap((id) => [`Records/${id}.vcf`, `Records/${id}.vcf.gz`]),
+  'Records/reference_genome.fa',
+  'Records/reference_annotations.gff3',
+]);
 
 function inferProviderLabel(url: string): string {
   try {
@@ -145,6 +150,7 @@ async function fetchAllSampleRows() {
     const { data, error } = await sb
       .from('genome_samples')
       .select(SAMPLE_FIELDS)
+      .in('sample_id', ALLOWED_SAMPLE_IDS)
       .range(from, to);
 
     if (error) {
@@ -186,31 +192,34 @@ export async function GET(request: NextRequest) {
   }
 
   let sampleWarning: string | null = null;
+  let recordsAvailable = false;
   try {
     const sampleRows = await fetchAllSampleRows();
+    if (sampleRows.length > 0) recordsAvailable = true;
     for (const row of sampleRows) {
       const sampleId = typeof row.sample_id === 'string' ? row.sample_id.trim() : '';
-      if (!sampleId || isExcludedSampleId(sampleId)) continue;
+      if (!sampleId || !isAllowedSampleId(sampleId)) continue;
 
-      const entries: Array<{ kind: string; url: unknown; showCli: boolean }> = [
-        { kind: 'vcf', url: row.vcf_download_url, showCli: row.vcf_download_mode === 'cli' },
-        { kind: 'fasta', url: row.fasta_download_url, showCli: row.fasta_download_mode === 'cli' },
-        { kind: 'gb', url: row.gb_download_url, showCli: true },
-        { kind: 'bed', url: row.bed_download_url, showCli: true },
-        { kind: 'gff3', url: row.gff3_download_url, showCli: true },
+      const entries: Array<{ kind: string; url: unknown; showCli: boolean; catalogFolder: string }> = [
+        { kind: 'vcf', url: row.vcf_download_url, showCli: true, catalogFolder: 'Records/Variant_Calling_VCF' },
+        { kind: 'fasta', url: row.fasta_download_url, showCli: true, catalogFolder: 'Records/ML_Ready_FASTA' },
+        { kind: 'gb', url: row.gb_download_url, showCli: true, catalogFolder: 'Records' },
+        { kind: 'bed', url: row.bed_download_url, showCli: true, catalogFolder: 'Records' },
+        { kind: 'gff3', url: row.gff3_download_url, showCli: true, catalogFolder: 'Records' },
       ];
-
       for (const entry of entries) {
         if (typeof entry.url !== 'string' || !entry.url.trim()) continue;
+        const resolvedUrl = getDirectDownloadUrl(entry.url);
+        if (!validateDirectFileUrl(resolvedUrl).valid) continue;
         upsertItem(items, {
-          url: entry.url,
+          url: resolvedUrl,
           label: `Download ${kindLabel(entry.kind)}`,
           description: 'Sample-level file available from the configured storage location.',
           showCli: entry.showCli,
           sourceScope: 'sample',
           sampleId,
           kind: entry.kind,
-          catalogFolder: `Records/${sampleId}`,
+          catalogFolder: entry.catalogFolder,
         });
       }
     }
@@ -222,6 +231,7 @@ export async function GET(request: NextRequest) {
   try {
     const hfFiles = await listHuggingFaceDatasetFiles(undefined, forceRefresh);
     for (const hfFile of hfFiles) {
+      if (LEGACY_RECORDS_FILES.has(hfFile.path)) continue;
       let fileName = hfFile.path.split('/').filter(Boolean).pop() || hfFile.path;
       try {
         fileName = decodeURIComponent(fileName);
@@ -317,15 +327,22 @@ export async function GET(request: NextRequest) {
   const itemsWithoutSize = result.filter(
     (item) => item.sizeBytes == null && (!item.sizeLabel || /^unknown$/i.test(item.sizeLabel)),
   );
-  if (itemsWithoutSize.length > 0 && itemsWithoutSize.length <= 30) {
-    const sizePromises = itemsWithoutSize.map(async (item) => {
+  const sizeGroups = new Map<string, typeof itemsWithoutSize>();
+  for (const item of itemsWithoutSize) {
+    const key = normalizeDownloadKey(item.url);
+    const group = sizeGroups.get(key);
+    if (group) group.push(item);
+    else sizeGroups.set(key, [item]);
+  }
+  if (!hfTreeWarning && sizeGroups.size > 0 && sizeGroups.size <= 30) {
+    const sizePromises = Array.from(sizeGroups.entries()).map(async ([baseUrl, group]) => {
       try {
-        const hfSize = await resolveHttpFileSize(item.url);
+        const hfSize = await resolveHttpFileSize(baseUrl);
         if (hfSize != null) {
-          item.sizeBytes = hfSize;
+          for (const item of group) item.sizeBytes = hfSize;
           return;
         }
-        const directUrl = getDirectDownloadUrl(item.url);
+        const directUrl = getDirectDownloadUrl(baseUrl);
         if (!validateDirectFileUrl(directUrl)) return;
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
@@ -333,7 +350,8 @@ export async function GET(request: NextRequest) {
         clearTimeout(timeout);
         const contentLength = headRes.headers.get('content-length');
         if (contentLength && /^\d+$/.test(contentLength)) {
-          item.sizeBytes = parseInt(contentLength, 10);
+          const resolvedSize = parseInt(contentLength, 10);
+          for (const item of group) item.sizeBytes = resolvedSize;
         }
       } catch {
         // Silently ignore - size will remain null / show 'Unknown'
@@ -346,15 +364,24 @@ export async function GET(request: NextRequest) {
   const missingChecksums = result.filter(
     (item) => !item.sha256Checksum && item.providerLabel !== 'Supabase' && /^https?:\/\//i.test(item.url),
   );
-  if (missingChecksums.length > 0) {
-    const checksumPromises = missingChecksums.map(async (item) => {
-      const checksum = await resolveHttpChecksum(item.url);
-      if (checksum) item.sha256Checksum = checksum;
+  if (!hfTreeWarning && missingChecksums.length > 0) {
+    const checksumGroups = new Map<string, typeof missingChecksums>();
+    for (const item of missingChecksums) {
+      const key = normalizeDownloadKey(item.url);
+      const group = checksumGroups.get(key);
+      if (group) group.push(item);
+      else checksumGroups.set(key, [item]);
+    }
+    const checksumPromises = Array.from(checksumGroups.entries()).map(async ([baseUrl, group]) => {
+      const checksum = await resolveHttpChecksum(baseUrl);
+      if (checksum) {
+        for (const item of group) item.sha256Checksum = checksum;
+      }
     });
     await Promise.allSettled(checksumPromises);
   }
 
-  const payload = { items: result, warning: metadataWarning, isAdmin };
+  const payload = { items: result, warning: metadataWarning, isAdmin, recordsAvailable };
   catalogCache.set(cacheKey, { expiresAt: Date.now() + CATALOG_CACHE_MS, payload });
   const responseHeaders: Record<string, string> = forceRefresh
     ? {

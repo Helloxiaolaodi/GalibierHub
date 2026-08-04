@@ -78,3 +78,13 @@ body {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+.target-highlight-row {
+  animation: successFlash 2.4s ease-out forwards;
+}
+
+@keyframes successFlash {
+  0% { background-color: #E2E8F0; }
+  40% { background-color: #F8FAFC; }
+  100% { background-color: transparent; }
+}

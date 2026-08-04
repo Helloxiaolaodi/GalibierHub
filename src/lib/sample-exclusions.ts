@@ -1,23 +1,26 @@
-export const EXCLUDED_SAMPLE_IDS = [
-  'SCOV2-REF-001',
-  'SAMPLE-001',
-  'SAMPLE-002',
-  'SAMPLE-003',
-  'SAMPLE-004',
-  'SAMPLE-005',
-  'SAMPLE-006',
-  'P-SAMPLE-001',
-  'P-SAMPLE-002',
-  'P-SAMPLE-004',
-  'C-SAMPLE-003',
-  'C-SAMPLE-005',
-  'V-SAMPLE-006',
-] as const;
+export const ALLOWED_SAMPLE_IDS: string[] = [
+  'CNhs13076',
+  'CNhs13080',
+  'CNhs13195',
+  'CNhs13202',
+  'CNhs13203',
+  'CNhs13204',
+  'CNhs13205',
+  'CNhs13206',
+  'CNhs13207',
+  'CNhs13208',
+  'CNhs13215',
+  'CNhs13216',
+];
 
-const quotedIds = EXCLUDED_SAMPLE_IDS.map((id) => `"${id}"`).join(',');
+const quotedIds = ALLOWED_SAMPLE_IDS.map((id) => `"${id}"`).join(',');
 
-export const EXCLUDED_SAMPLE_IDS_FILTER = `(${quotedIds})`;
+export const ALLOWED_SAMPLE_IDS_FILTER = `(${quotedIds})`;
+
+export function isAllowedSampleId(sampleId: string | null | undefined): boolean {
+  return !!sampleId && ALLOWED_SAMPLE_IDS.includes(sampleId);
+}
 
 export function isExcludedSampleId(sampleId: string | null | undefined): boolean {
-  return !!sampleId && EXCLUDED_SAMPLE_IDS.includes(sampleId as (typeof EXCLUDED_SAMPLE_IDS)[number]);
+  return !isAllowedSampleId(sampleId);
 }

@@ -1,0 +1,6 @@
+# Copy this file to .dev.vars for local testing only.
+# Do not commit the real .dev.vars file.
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+KEEPALIVE_SECRET=replace-with-a-long-random-string
+SUPABASE_KEEPALIVE_TABLE=genome_samples
