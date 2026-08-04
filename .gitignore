@@ -51,6 +51,17 @@ _*.txt
 tsc-out*.txt
 commit-out.txt
 build-cf.log
+fix_mojibake.py
+fix_mojibake2.py
+auth-modal-analysis.txt
+discussions-detail-analysis.txt
+discussions-page-analysis.txt
+feedback-api-analysis.txt
+notification-bell-analysis.txt
+notifications-api-analysis.txt
+user-menu-panel-analysis.txt
+user-profile-card-analysis.txt
+user-profile-card-v2.txt
 
 # Demo data shipped in older versions - not needed for production
 public/demo-data/
