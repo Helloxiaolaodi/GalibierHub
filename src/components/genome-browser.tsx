@@ -25,8 +25,8 @@ type AdapterWithFiles = DemoTrackAdapter;
 const JBrowseViewer = dynamic(() => import('./jbrowse-viewer'), {
   ssr: false,
   loading: () => (
-    <div className="border rounded-lg overflow-hidden bg-white">
-      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
+    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+      <div className="bg-slate-800 px-4 py-2 text-sm font-medium text-white">
         Genome Browser
       </div>
       <div className="p-6 text-center text-gray-400 text-sm animate-pulse">
@@ -195,8 +195,8 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
 
   if (probe === 'checking' || probe === 'idle') {
     return (
-      <div className="border rounded-lg overflow-hidden bg-white">
-        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
+      <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+        <div className="bg-slate-800 px-4 py-2 text-sm font-medium text-white">
           Genome Browser
         </div>
         <div className="p-6 text-center text-gray-400 text-sm animate-pulse">
@@ -218,8 +218,8 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
           ? 'GalibierHub is reading reference files from Hugging Face. A deployed NEXT_PUBLIC_HF_PROXY_URL is still recommended for production reliability.'
           : 'GalibierHub is configured to use your storage endpoint directly. Confirm NEXT_PUBLIC_STORAGE_BASE_URL points to a public CORS-enabled object store and that the reference files are reachable.';
     return (
-      <div className="border rounded-lg overflow-hidden bg-white">
-        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-sm font-medium text-white">
+      <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+        <div className="bg-slate-800 px-4 py-2 text-sm font-medium text-white">
           Genome browser unavailable
         </div>
         <div className="p-6 text-center space-y-3">
@@ -242,7 +242,7 @@ export default function GenomeBrowser({ locus, onLocusChange, highlightRegion }:
     <>
     <div className="space-y-2">
       {missingTrackNames.length > 0 && (
-        <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-1.5">
+        <div className="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5">
           Some optional tracks are hidden because required files were unavailable: {missingTrackNames.join(', ')}.
         </div>
       )}

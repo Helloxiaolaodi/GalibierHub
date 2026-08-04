@@ -130,7 +130,7 @@ export const SiteConfig = {
       'A centralized space for research communication, public discussions, and feedback.',
   },
   uptime: {
-    startAt: '2026-07-22T00:00:00+08:00',
+    startAt: '2026-08-01T00:00:00+08:00',
   },
 
   colors: {

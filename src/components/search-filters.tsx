@@ -40,7 +40,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
   const set = (key: keyof SearchFilters, value: string) =>
     setFilters((prev) => ({ ...prev, [key]: value }));
 
-  const cellCls = 'w-full rounded-lg border border-slate-200 bg-[#F5F5F7] px-3 py-2 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:bg-slate-200/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10';
+  const cellCls = 'w-full rounded-lg border border-slate-200 bg-[#F5F5F7] px-3 py-2 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:bg-slate-200/50 focus:bg-white focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10';
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
@@ -136,7 +136,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
               type="button"
               onClick={() => onSearch(filters)}
               disabled={loading}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-blue-500 active:bg-blue-700 active:scale-[0.98] transition-all"
+              className="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all"
             >
               {loading ? 'Searching...' : 'Apply filters'}
             </button>
@@ -146,7 +146,7 @@ export default function SearchFilters({ onSearch, loading }: SearchFiltersProps)
                 setFilters(EMPTY);
                 onSearch(EMPTY);
               }}
-              className="px-4 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
+              className="px-4 py-1.5 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
             >
               Reset
             </button>

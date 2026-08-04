@@ -44,6 +44,13 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 - Downloads CLI 弹窗新增 Linux/macOS 与 Windows PowerShell 系统切换、一键复制完整命令，以及 `hfd` 镜像加速选项。
 - 浏览器下载会保留原始文件名，并自动为亚太地区访客切换到 Hugging Face 镜像。
 - Downloads 表格现在显示真实 `Updated` 日期，`Name` 与 `Actions` 列保持简洁，Actions 仅保留 `Download to Browser` 与 `CLI`。
+- Downloads 的 `Files:` 现在显示当前文件夹的实际文件数，不再显示整个目录的总数量。
+- `Download & CLI Usage Guide` 现在依次介绍 `Download to Browser`、`CLI` 和 `Cluster Batch Download`，并说明 `Downloads > Records` 就是 Records 界面全部文件的下载目录。
+- Records 界面的所有文件也会出现在 `Downloads > Records` 中，并支持与其他 Downloads 文件夹完全相同的浏览、选择、导出、浏览器下载、CLI 和集群批量下载工作流。
+- Records 表格新增 `Download` 列，点击后会跳转到 `Downloads > Records` 并自动勾选对应的样本文件。
+- User Guide 文案已精简；用户菜单为 Notifications、Replies、Likes 和 Following 新增 `Mark all read`，移除 `View all`、`View Full Profile` 和 `Activity`，并在 Settings 中新增 `View saved profile`。
+- Genome Browser 边框与 Records 控件已改用网站统一的 slate 按钮和边框配色，不再使用亮眼的蓝色或绿色。
+- 网站 Site uptime 从 2026 年 8 月 1 日开始计时。
 
 ## 项目概览
 

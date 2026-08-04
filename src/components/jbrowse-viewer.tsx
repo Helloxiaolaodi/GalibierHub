@@ -226,7 +226,7 @@ export default function JBrowseViewer({ locus, onLocusChange, highlightRegion, d
   }, [assemblyName, highlightRegion, viewState]);
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-white">
+    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
       <JBrowseLinearGenomeView viewState={viewState} />
     </div>
   );

@@ -42,6 +42,13 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 - The Downloads CLI modal now has Linux/macOS and Windows PowerShell tabs, one-click all-in-one command copying, and a dedicated `hfd` mirror accelerator option.
 - Browser downloads preserve the original filename and automatically route Asia-Pacific visitors through the Hugging Face mirror.
 - The Downloads table now shows real `Updated` dates and keeps the `Name` and `Actions` columns focused on file identity and `Download to Browser` / `CLI` actions.
+- Downloads `Files:` now shows the actual file count for the currently selected folder instead of the total catalog count.
+- The `Download & CLI Usage Guide` now covers `Download to Browser`, `CLI`, and `Cluster Batch Download` in that order, and explains that `Downloads > Records` contains every file from the Records interface.
+- Records files are also exposed under `Downloads > Records`, where they support the same browse, select, export, browser download, CLI, and cluster batch workflows as other Downloads folders.
+- The Records table now includes a `Download` column that jumps to `Downloads > Records` and preselects the matching sample files.
+- The User Guide was condensed. The user menu now has `Mark all read` for Notifications, Replies, Likes, and Following; removed `View all`, `View Full Profile`, and `Activity`; and added `View saved profile` in Settings.
+- Genome Browser borders and Records controls now use the site's neutral slate button and border scheme instead of bright blue or green accents.
+- Site uptime now counts from August 1, 2026.
 
 ## Overview
 

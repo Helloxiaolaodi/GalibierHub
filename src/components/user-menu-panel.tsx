@@ -158,8 +158,12 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
   const [customAvatar, setCustomAvatar] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('galibierhub-custom-avatar') || ''; return '';
   });
+  const [profileDisplayName, setProfileDisplayName] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('galibierhub-display-name') || ''; return '';
+  });
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [showSavedProfile, setShowSavedProfile] = useState(false);
 
   useEffect(() => {
     const uid = session?.user?.id;
@@ -200,6 +204,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
       setProfileBio(localStorage.getItem('galibierhub-bio') || '');
       setCustomAvatar(localStorage.getItem('galibierhub-custom-avatar') || '');
       setUserBio(localStorage.getItem('galibierhub-bio') || '');
+      setProfileDisplayName(localStorage.getItem('galibierhub-display-name') || '');
     };
     window.addEventListener('galibierhub-settings-updated', handler);
     return () => window.removeEventListener('galibierhub-settings-updated', handler);
@@ -207,7 +212,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
 
   const userId = session?.user?.id;
   const emailPrefix = session?.user?.email ? session.user.email.split("@")[0] : null;
-  const displayName = isAdmin ? "GalibierHub Team" : (githubUser || emailPrefix || "User");
+  const displayName = isAdmin ? "GalibierHub Team" : (profileDisplayName || githubUser || emailPrefix || "User");
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
@@ -352,7 +357,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     if (!sb) return;
     sb.from("profiles").select("display_name, affiliation, research_field, role, bio, avatar_url").eq("id", userId).single().then(({ data }) => {
       if (!data) return;
-      if (data.display_name) { localStorage.setItem("galibierhub-display-name", data.display_name); }
+      if (data.display_name) { localStorage.setItem("galibierhub-display-name", data.display_name); setProfileDisplayName(data.display_name); }
       if (data.affiliation !== undefined) { localStorage.setItem("galibierhub-affiliation", data.affiliation || ""); setProfileAffiliation(data.affiliation || ""); }
       if (data.research_field !== undefined) { localStorage.setItem("galibierhub-research-field", data.research_field || ""); setProfileResearchField(data.research_field || ""); }
       if (data.role !== undefined) { localStorage.setItem("galibierhub-role", data.role || ""); setProfileRole(data.role || ""); }
@@ -366,15 +371,17 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
     const handler = () => {
       const aff = localStorage.getItem("galibierhub-affiliation") || "";
       const rf = localStorage.getItem("galibierhub-research-field") || "";
-      const role = localStorage.getItem("galibierhub-role") || "";
-      const bio = localStorage.getItem("galibierhub-bio") || "";
-      const avatar = localStorage.getItem("galibierhub-custom-avatar") || "";
-      setProfileAffiliation(aff);
-      setProfileResearchField(rf);
-      setProfileRole(role);
-      setProfileBio(bio);
-      setCustomAvatar(avatar);
-    };
+    const role = localStorage.getItem("galibierhub-role") || "";
+    const bio = localStorage.getItem("galibierhub-bio") || "";
+    const avatar = localStorage.getItem("galibierhub-custom-avatar") || "";
+    const savedName = localStorage.getItem("galibierhub-display-name") || "";
+    setProfileAffiliation(aff);
+    setProfileResearchField(rf);
+    setProfileRole(role);
+    setProfileBio(bio);
+    setCustomAvatar(avatar);
+    setProfileDisplayName(savedName);
+  };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
   }, []);
@@ -466,6 +473,8 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
       setReplies(prev => prev.map(n => ({ ...n, is_read: true })));
       setLikesReceived(prev => prev.map(n => ({ ...n, is_read: true })));
       setNotifUnread(0);
+      void fetchFollowing();
+      void fetchFollowers();
     } catch {}
   };
 
@@ -574,7 +583,7 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
                 <h4 className="text-sm font-semibold text-gray-900">{tabs.find(t => t.id === activeTab)?.label || ""}</h4>
-                {activeTab === "notifications" && notifUnread > 0 && (
+                {(activeTab === "notifications" || activeTab === "replies" || activeTab === "likes" || activeTab === "following") && (
                   <button onClick={markAllRead} className="text-xs text-teal-600 hover:text-slate-800 font-medium">Mark all read</button>
                 )}
               </div>
@@ -768,20 +777,40 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
                         {profileRole && <p className="text-xs text-gray-400 truncate">{profileRole}</p>}
                       </div>
                     </div>
-                    {/* View Full Profile */}
-                    <Link href={githubUser ? `/user/${githubUser}` : (userId ? `/user/${userId}` : "#")} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                      <span>View Full Profile</span>
-                    </Link>
+                    {/* View saved profile */}
+                    {showSavedProfile ? (
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 space-y-2">
+                        <div className="flex items-center gap-3">
+                          {resolvedAvatar ? (
+                            <img src={resolvedAvatar} alt={displayName || "User"} className="h-10 w-10 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-900 flex items-center justify-center text-sm font-semibold text-white">
+                              {displayName ? displayName.substring(0, 1).toUpperCase() : "?"}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
+                            {profileAffiliation && <p className="text-xs text-gray-500 truncate">{profileAffiliation}</p>}
+                          </div>
+                          <button type="button" onClick={() => setShowSavedProfile(false)} className="text-xs text-slate-500 hover:text-slate-800 font-medium">Close</button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-1.5 text-xs text-slate-600">
+                          <p><span className="font-medium text-slate-800">Affiliation:</span> {profileAffiliation || "Not set"}</p>
+                          <p><span className="font-medium text-slate-800">Research field:</span> {profileResearchField || "Not set"}</p>
+                          <p><span className="font-medium text-slate-800">Role:</span> {profileRole || "Not set"}</p>
+                          <p><span className="font-medium text-slate-800">Bio:</span> {profileBio || "Not set"}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => setShowSavedProfile(true)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors w-full text-left">
+                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        <span>View saved profile</span>
+                      </button>
+                    )}
                     {/* Settings */}
                     <Link href="/settings/preferences" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                       <span>Settings</span>
-                    </Link>
-                    {/* Activity */}
-                    <Link href={githubUser ? `/user/${githubUser}?tab=activity` : (userId ? `/user/${userId}?tab=activity` : "/discussions")} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                      <span>Activity</span>
                     </Link>
                     {/* Moderation Dashboard - admin only */}
                     {isAdmin && (
@@ -806,7 +835,6 @@ export default function UserMenuPanel({ session, githubUser, isAdmin, onSignOut,
 
               {/* Footer links */}
               <div className="border-t border-gray-100 px-4 py-2 flex items-center justify-between">
-                <Link href="/discussions" className="text-xs text-gray-400 hover:text-gray-600">View all</Link>
                 {onSignOut ? (
                   <button onClick={onSignOut} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Sign out</button>
                 ) : (
