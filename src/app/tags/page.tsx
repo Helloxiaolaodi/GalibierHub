@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import WorldClock from "@/components/world-clock";
 import Logo from "@/components/logo";
+import ThemeToggle from "@/components/theme-toggle";
 import type { SiteFeedbackEntry } from "@/types/genome";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
 
@@ -79,8 +80,8 @@ export default function TagsCloudPage() {
   const maxCount = tags.length > 0 ? tags[0].count : 1;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/70 backdrop-blur-xl saturate-150 shadow-sm">
+    <div className="min-h-screen bg-[var(--color-bg)]">
+      <header className="sticky top-0 z-40 border-b border-white/20 bg-white/70 backdrop-blur-xl saturate-150 shadow-sm dark:bg-[#16203A]/80 dark:border-[#334155]/90">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <Logo compact />
@@ -88,6 +89,7 @@ export default function TagsCloudPage() {
             <h1 className="text-base font-semibold text-gray-900">Tags Cloud</h1>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <WorldClock />
             <Link href="/discussions" className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">Discussions</Link>
           </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ThemeToggle from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
   title: "Security Policy - GalibierHub",
@@ -8,11 +9,14 @@ export const metadata: Metadata = {
 
 export default function SecurityPolicyPage() {
   return (
-    <main className="min-h-screen bg-gray-50 py-10">
+    <main className="min-h-screen bg-[var(--color-bg)] py-10">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="text-xs text-slate-500 hover:text-slate-700">
-          Back to GalibierHub
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/" className="text-xs text-slate-500 hover:text-slate-700">
+            Back to GalibierHub
+          </Link>
+          <ThemeToggle />
+        </div>
 
         <div className="mt-6">
           <h1 className="text-2xl font-bold text-gray-900">Security Policy</h1>

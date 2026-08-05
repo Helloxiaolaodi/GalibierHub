@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DownloadActions from '@/components/download-actions';
 import { buildHfMirrorUrl, formatDownloadBytes, normalizeDownloadKey } from '@/lib/download-info';
 import { getPreferredDownloadRegion, resolveBrowserDownload, triggerBrowserDownload, type DownloadRegion } from '@/lib/download-region';
+import { renderMarkdown } from '@/lib/markdown';
 
 type DownloadCatalogItem = {
   id: string;
@@ -106,6 +107,16 @@ function deriveFileType(fileName: string): string {
   const dotIndex = fileName.indexOf('.');
   if (dotIndex === -1) return 'File';
   return fileName.slice(dotIndex);
+}
+
+function fileTypeBadgeClass(fileType: string): string {
+  const extension = fileType.replace(/^\./, '').toLowerCase();
+  if (extension === 'pdf') return 'bg-red-50 text-red-700';
+  if (['fasta', 'fa', 'fna', 'faa', 'fq', 'fastq'].includes(extension)) return 'bg-blue-50 text-blue-700';
+  if (['gff', 'gff3', 'gtf', 'vcf', 'bed'].includes(extension)) return 'bg-violet-50 text-violet-700';
+  if (['gb', 'genbank', 'gbk'].includes(extension)) return 'bg-emerald-50 text-emerald-700';
+  if (['md', 'txt', 'readme', 'json', 'csv', 'tsv'].includes(extension)) return 'bg-slate-100 text-slate-700';
+  return 'bg-slate-100 text-slate-700';
 }
 
 function scopeLabel(scope: DownloadCatalogItem['sourceScope']): string {
@@ -822,7 +833,7 @@ export default function DownloadCatalogPanel({
 
   return (
     <section className="space-y-4">
-      <div className="rounded-2xl border border-slate-100 bg-white px-5 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Downloads</h2>
@@ -852,7 +863,16 @@ export default function DownloadCatalogPanel({
         </div>
       </div>
 
-      {showBlockingLoader && <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">Loading files...</div>}
+      {showBlockingLoader && (
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-6">
+          <div className="grid gap-3">
+            <div className="skeleton h-4 w-1/3 rounded" />
+            <div className="skeleton h-4 w-2/3 rounded" />
+            <div className="skeleton h-4 w-1/2 rounded" />
+            <div className="skeleton h-4 w-3/4 rounded" />
+          </div>
+        </div>
+      )}
       {!loading && error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">{error}</div>}
       {!error && warning && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">{warning}</div>}
       {!error && statusMessage && <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-4 text-sm text-teal-800">{statusMessage}</div>}
@@ -868,26 +888,26 @@ export default function DownloadCatalogPanel({
                 <p className="text-xs text-teal-700">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-slate-900">CC BY 4.0</a>. Please cite GalibierHub when using this data in publications.</p>
               </div>
             </div>
-            <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-teal-700 hover:bg-teal-50 transition-colors">Learn more</a>
+            <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-teal-700 hover:bg-teal-50 transition-colors">Learn more</a>
           </div>
         </div>
       )}
 
       {!error && (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4">
           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
             <button
               type="button"
               onClick={() => goToFolder('')}
-              className={`rounded px-2 py-1 ${currentPath === '' ? 'font-semibold text-gray-900' : 'text-teal-700 hover:bg-teal-50'}`}
+              className={`rounded px-2 py-1 ${currentPath === '' ? 'font-semibold text-gray-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
             >
               Downloads
             </button>
-            <span className="text-gray-400">/</span>
+            <span className="text-slate-300">/</span>
             <button
               type="button"
               onClick={() => goToFolder('')}
-              className={`rounded px-2 py-1 ${currentPath === '' ? 'font-semibold text-gray-900' : 'text-teal-700 hover:bg-teal-50'}`}
+              className={`rounded px-2 py-1 ${currentPath === '' ? 'font-semibold text-gray-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
             >
               {rootLabel}
             </button>
@@ -896,14 +916,14 @@ export default function DownloadCatalogPanel({
               const active = path === currentPath;
               return (
                 <div key={path} className="contents">
-                  <span className="text-gray-400">/</span>
+                  <span className="text-slate-300">/</span>
                   {active ? (
-                    <span className="rounded px-2 py-1 font-semibold text-gray-900">{part}</span>
+                    <span className="rounded px-2 py-1 font-semibold text-slate-900">{part}</span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => goToFolder(path)}
-                      className="rounded px-2 py-1 text-teal-700 hover:bg-teal-50"
+                      className="rounded px-2 py-1 text-slate-500 hover:bg-slate-50 hover:text-slate-800"
                     >
                       {part}
                     </button>
@@ -925,7 +945,7 @@ export default function DownloadCatalogPanel({
       )}
 
       {!error && (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-center">
               <input
@@ -933,7 +953,7 @@ export default function DownloadCatalogPanel({
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
                 placeholder="Search files or folders"
-                className="w-full rounded-lg border border-slate-200 bg-[#F5F5F7] px-3 py-2 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:bg-slate-200/50 focus:bg-white focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 lg:max-w-md"
+                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-sm text-[var(--color-text)] outline-none transition-all placeholder:text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] focus:bg-[var(--color-surface)] focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent)]/15 lg:max-w-md"
               />
               <div className="flex flex-wrap gap-2">
                 <button
@@ -947,7 +967,7 @@ export default function DownloadCatalogPanel({
                 <button
                   type="button"
                   onClick={() => exportManifest('csv')}
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 transition-all"
+                  className="inline-flex items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 transition-all"
                 >
                   Export Manifest CSV
                 </button>
@@ -987,13 +1007,13 @@ export default function DownloadCatalogPanel({
       )}
 
       {!loading && !error && childFolders.length === 0 && visibleFiles.length === 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-6 text-sm text-gray-500">
           No matching files or folders.
         </div>
       )}
 
       {!error && childFolders.length > 0 && (
-        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <section className="overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
           
           <div className="grid gap-3 px-4 py-4 sm:grid-cols-2 xl:grid-cols-3">
             {childFolderSummaries.map(({ folder, summary }) => (
@@ -1001,7 +1021,7 @@ export default function DownloadCatalogPanel({
                 key={folder.path}
                 type="button"
                 onClick={() => goToFolder(folder.path)}
-                className="flex min-h-24 flex-col items-start justify-between rounded-lg border border-gray-200 bg-white p-4 text-left transition-colors hover:border-slate-200 hover:bg-teal-50"
+                className="card-hover flex min-h-24 flex-col items-start justify-between rounded-lg border bg-white p-4 text-left hover:bg-slate-50"
               >
                 <div>
                   <div className="text-base font-semibold text-gray-900 break-all">{folder.name}</div>
@@ -1019,11 +1039,11 @@ export default function DownloadCatalogPanel({
       )}
 
       {!error && visibleFiles.length > 0 && viewMode === 'grid' && (
-        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <section className="overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
           <div className="border-b bg-gray-50 px-4 py-3 text-sm font-medium text-gray-800">Files</div>
           <div className="grid gap-4 px-4 py-4 lg:grid-cols-2">
             {paginatedFiles.map((item) => (
-              <div key={item.id} data-download-id={item.id} className={`flex min-h-44 flex-col justify-between gap-4 border p-4 ${selectedIds.has(item.id) ? 'border-slate-300 bg-teal-50/30' : 'border-gray-200 bg-white'} ${highlightedIds.has(item.id) ? 'target-highlight-row' : ''}`}>
+              <div key={item.id} data-download-id={item.id} className={`flex min-h-44 flex-col justify-between gap-4 border p-4 ${selectedIds.has(item.id) ? 'border-slate-300 bg-teal-50/30' : 'border-[var(--color-border)] bg-[var(--color-surface)]'} ${highlightedIds.has(item.id) ? 'target-highlight-row' : ''}`}>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-start gap-2">
                     <input
@@ -1038,7 +1058,7 @@ export default function DownloadCatalogPanel({
                     {item.hidden && effectiveIsAdmin && <span className="rounded bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">Hidden</span>}
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px] text-gray-600">
-                    <span className="rounded bg-gray-100 px-2 py-0.5 text-gray-700">{item.fileType}</span>
+                    <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${fileTypeBadgeClass(item.fileType)}`}>{item.fileType}</span>
                     {item.sampleCount > 0 && <span className="rounded bg-emerald-50 px-2 py-0.5 text-emerald-700">Samples: {item.sampleCount}</span>}
                   </div>
                   <div className="grid gap-1 text-xs text-gray-500 sm:grid-cols-2">
@@ -1067,9 +1087,9 @@ export default function DownloadCatalogPanel({
       )}
 
       {!error && visibleFiles.length > 0 && viewMode === 'table' && (
-        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <section className="overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <table className="data-table min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium w-10">
@@ -1085,8 +1105,8 @@ export default function DownloadCatalogPanel({
                       Name
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    <button type="button" onClick={() => toggleSort('size')} className="inline-flex items-center gap-1 text-left text-gray-600 hover:text-gray-900">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                    <button type="button" onClick={() => toggleSort('size')} className="inline-flex items-center gap-1 text-right text-gray-600 hover:text-gray-900">
                       Size
                     </button>
                   </th>
@@ -1111,7 +1131,7 @@ export default function DownloadCatalogPanel({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-start gap-3">
-                        <span className="mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded bg-teal-50 px-2 text-[11px] font-medium text-teal-700">
+                        <span className={`mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded px-2 text-[11px] font-medium ${fileTypeBadgeClass(item.fileType)}`}>
                           {item.fileType.replace('.', '') || 'file'}
                         </span>
                         <div className="min-w-0">
@@ -1122,8 +1142,8 @@ export default function DownloadCatalogPanel({
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{formatDownloadBytes(item.sizeBytes) || item.sizeLabel || 'Unknown'}</td>
-                    <td className="px-4 py-3 text-gray-700">{item.updatedLabel}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-gray-700">{formatDownloadBytes(item.sizeBytes) || item.sizeLabel || 'Unknown'}</td>
+                    <td className="px-4 py-3 text-gray-500">{item.updatedLabel}</td>
                     <td className="px-4 py-3">
                       <DownloadActions
                         url={item.url}
@@ -1230,7 +1250,7 @@ export default function DownloadCatalogPanel({
 
       {folderCliOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4" onClick={() => setFolderCliOpen(false)}>
-          <div className="my-8 w-full max-w-4xl rounded-lg border border-gray-200 bg-white shadow-xl" onClick={(event) => event.stopPropagation()}>
+          <div className="my-8 w-full max-w-4xl rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between border-b border-gray-200 px-5 py-3">
               <div>
                 <h3 className="text-base font-semibold text-gray-900">Cluster Batch Download</h3>
@@ -1241,7 +1261,7 @@ export default function DownloadCatalogPanel({
               </button>
             </div>
             <div className="space-y-4 px-5 py-4">
-              <div className="rounded-md border border-slate-200 bg-white p-3">
+              <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
                 <div className="text-xs font-medium text-gray-700">Network Routing</div>
                 <div className="mt-2 inline-flex rounded-lg border border-slate-200 bg-gray-50 p-1">
                   <button
@@ -1275,12 +1295,17 @@ export default function DownloadCatalogPanel({
                 </button>
                 {clusterScriptOpen === 'python' && (
                   <div className="border-t border-gray-200 px-4 py-3">
-                    <pre className="max-h-[28rem] overflow-auto whitespace-pre rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{clusterPythonScript}</pre>
+                    <pre className="code-panel max-h-[28rem] overflow-auto whitespace-pre rounded-lg px-3 py-3 font-mono text-xs text-gray-800">{clusterPythonScript}</pre>
                     <button
                       type="button"
                       onClick={() => void handleCopyFolderCommand('python', clusterPythonScript)}
-                      className="mt-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
                     >
+                      {folderCliCopied === 'python' ? (
+                        <svg className="h-3.5 w-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      ) : (
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3" /></svg>
+                      )}
                       {folderCliCopied === 'python' ? 'Copied' : 'Copy All'}
                     </button>
                   </div>
@@ -1301,45 +1326,72 @@ export default function DownloadCatalogPanel({
                 </button>
                 {clusterScriptOpen === 'slurm' && (
                   <div className="border-t border-gray-200 px-4 py-3">
-                    <pre className="max-h-[28rem] overflow-auto whitespace-pre rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{clusterSlurmScript}</pre>
+                    <pre className="code-panel max-h-[28rem] overflow-auto whitespace-pre rounded-lg px-3 py-3 font-mono text-xs text-gray-800">{clusterSlurmScript}</pre>
                     <button
                       type="button"
                       onClick={() => void handleCopyFolderCommand('slurm', clusterSlurmScript)}
-                      className="mt-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
                     >
+                      {folderCliCopied === 'slurm' ? (
+                        <svg className="h-3.5 w-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      ) : (
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3" /></svg>
+                      )}
                       {folderCliCopied === 'slurm' ? 'Copied' : 'Copy All'}
                     </button>
                   </div>
                 )}
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-xs text-slate-700">
                 <div className="text-sm font-medium text-slate-900">How to use Cluster Batch Download</div>
-                <ol className="mt-2 list-decimal space-y-1 pl-5">
-                  <li>Choose the network environment: use Asia-Pacific (Mirror) for mainland or restricted networks; use Global (Official) for direct overseas access.</li>
-                  <li>Open Show Python Script and Show SLURM Script, then copy both scripts to your cluster.</li>
-                  <li>Update every {'<-- [USER MODIFICATION REQUIRED]'} marker for repository, folder pattern, cluster partition, project paths, and conda environment.</li>
-                  <li>Submit with:</li>
+                <ol className="mt-4 space-y-3">
+                  <li className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-white">1</span>
+                    <span className="min-w-0 flex-1">Choose the network environment: use Asia-Pacific (Mirror) for mainland or restricted networks; use Global (Official) for direct overseas access.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-white">2</span>
+                    <span className="min-w-0 flex-1">Open Show Python Script and Show SLURM Script, then copy both scripts to your cluster.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-white">3</span>
+                    <span className="min-w-0 flex-1">Update every {'<-- [USER MODIFICATION REQUIRED]'} marker for repository, folder pattern, cluster partition, project paths, and conda environment.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-white">4</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block">Submit with:</span>
+                      <pre className="code-panel mt-2 overflow-auto whitespace-pre rounded-lg px-3 py-2 font-mono text-xs text-gray-800">sbatch {clusterSlurmFileName}</pre>
+                    </span>
+                  </li>
                 </ol>
-                <pre className="mt-2 rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-slate-200">sbatch {clusterSlurmFileName}</pre>
-                <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                <div className="mt-4 overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
                   <button
                     type="button"
                     onClick={() => setClusterVerifyOpen(current => !current)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-100"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
                   >
-                    <span className="text-sm font-medium text-slate-900">5. Verify Folder Integrity (Optional)</span>
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-[11px] font-semibold text-white">5</span>
+                      <span className="text-sm font-medium text-slate-900">Verify Folder Integrity (Optional)</span>
+                    </span>
                     <span className="text-xs text-slate-500">{clusterVerifyOpen ? 'Hide' : 'Show'}</span>
                   </button>
                   {clusterVerifyOpen && (
                     <div className="border-t border-slate-200 px-4 py-3">
                       <p className="text-xs text-slate-700">After the job completes, navigate to your download directory and check file integrity using sha256sum.</p>
-                      <pre className="mt-2 whitespace-pre-wrap break-all rounded bg-white px-3 py-2 font-mono text-xs ring-1 ring-slate-200">{clusterVerifyCommand}</pre>
+                      <pre className="code-panel mt-2 overflow-auto whitespace-pre-wrap break-all rounded-lg px-3 py-2 font-mono text-xs text-gray-800">{clusterVerifyCommand}</pre>
                       <button
                         type="button"
                         onClick={() => void handleCopyFolderCommand('verify', clusterVerifyCommand)}
-                        className="mt-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
                       >
+                        {folderCliCopied === 'verify' ? (
+                          <svg className="h-3.5 w-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        ) : (
+                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3" /></svg>
+                        )}
                         {folderCliCopied === 'verify' ? 'Copied' : 'Copy All'}
                       </button>
                     </div>
@@ -1353,7 +1405,7 @@ export default function DownloadCatalogPanel({
       {/* Batch download dialog */}
       {batchOpen && selectedFiles.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4" onClick={() => setBatchOpen(false)}>
-          <div className="my-8 w-full max-w-3xl rounded-lg border border-gray-200 bg-white shadow-xl" onClick={(event) => event.stopPropagation()}>
+          <div className="my-8 w-full max-w-3xl rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between border-b border-gray-200 px-5 py-3">
               <div>
                 <h3 className="text-base font-semibold text-gray-900">Batch Download ({selectedFiles.length} files)</h3>
@@ -1385,9 +1437,20 @@ export default function DownloadCatalogPanel({
                 <div key={block.key} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <span className="text-sm font-medium text-gray-800">{block.title}</span>
-                    <button type="button" onClick={() => { navigator.clipboard.writeText(block.cmd); }} className="text-xs text-teal-600 hover:underline">Copy</button>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyFolderCommand(`batch-${block.key}`, block.cmd)}
+                      className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-800"
+                    >
+                      {folderCliCopied === `batch-${block.key}` ? (
+                        <svg className="h-3.5 w-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      ) : (
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3" /></svg>
+                      )}
+                      {folderCliCopied === `batch-${block.key}` ? 'Copied' : 'Copy'}
+                    </button>
                   </div>
-                  <code className="block whitespace-pre-wrap break-all rounded bg-white px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-gray-200">{block.cmd}</code>
+                  <code className="code-panel block max-h-[18rem] overflow-auto whitespace-pre-wrap break-all rounded-lg px-3 py-3 font-mono text-xs text-gray-800">{block.cmd}</code>
                 </div>
               ))}
             </div>
@@ -1399,7 +1462,7 @@ export default function DownloadCatalogPanel({
       {readmeOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-end overflow-y-auto bg-black/30 p-4" onClick={() => setReadmeOpen(false)}>
           <div
-            className="w-full max-w-2xl rounded-lg border border-gray-200 bg-white shadow-xl"
+            className="w-full max-w-2xl rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
@@ -1413,8 +1476,8 @@ export default function DownloadCatalogPanel({
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="prose prose-sm max-w-none px-4 py-3 text-gray-700" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-              {readmeText}
+            <div className="markdown-content max-h-[70vh] overflow-y-auto px-4 py-3 text-gray-700">
+              {renderMarkdown(readmeText)}
             </div>
           </div>
         </div>

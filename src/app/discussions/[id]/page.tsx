@@ -12,6 +12,7 @@ import { renderMarkdown } from "@/lib/markdown";
 import AuthModal from "@/components/auth-modal";
 import WorldClock from "@/components/world-clock";
 import Logo from "@/components/logo";
+import ThemeToggle from "@/components/theme-toggle";
 
 // ---- helpers ----
 function getCategoryColor(c: string): string {
@@ -26,6 +27,20 @@ function getInitials(n: string): string {
   if(!n) return "?";
   const p=n.trim().split(/\s+/);
   return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.substring(0,2).toUpperCase();
+}
+const AVATAR_GRADIENTS = [
+  "bg-gradient-to-br from-slate-400 to-slate-600",
+  "bg-gradient-to-br from-sky-400 to-indigo-500",
+  "bg-gradient-to-br from-teal-400 to-emerald-600",
+  "bg-gradient-to-br from-amber-400 to-orange-500",
+  "bg-gradient-to-br from-rose-400 to-pink-500",
+  "bg-gradient-to-br from-violet-400 to-purple-600",
+];
+function getAvatarClass(n: string): string {
+  if (!n) return AVATAR_GRADIENTS[0];
+  let h = 0;
+  for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0;
+  return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length];
 }
 function mergeLikeCounts(current: Record<string, number>, entries?: Record<string, { like: number; bookmark?: number }>): Record<string, number> {
   const next={...current};
@@ -77,7 +92,7 @@ function TimelineSidebar({ items, currentIndex, onNavigate, onReply }: {
   }
 
   return (
-    <div className="sticky top-24 flex w-44 flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-white/90 py-3 px-3 shadow-sm backdrop-blur">
+    <div className="sticky top-24 flex w-44 flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-[var(--color-surface)]/90 py-3 px-3 shadow-sm backdrop-blur">
       <div className="text-xs font-mono font-semibold text-gray-500 text-center leading-tight">
         {currentIndex+1}<br/><span className="text-[10px] text-gray-400">/ {items.length}</span>
       </div>
@@ -89,6 +104,7 @@ function TimelineSidebar({ items, currentIndex, onNavigate, onReply }: {
         onPointerUp={(e)=>{setDragging(false);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}}
         onPointerCancel={(e)=>{setDragging(false);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}}
       >
+        <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-gray-200" />
         <div className="absolute bottom-0 left-0 right-0 rounded-full bg-slate-700 transition-all duration-150" style={{height:((currentIndex+1)/Math.max(items.length,1))*100+"%"}}/>
         <div className="absolute left-1/2 w-3.5 h-3.5 -translate-x-1/2 rounded-full border-2 border-slate-600 bg-white shadow-sm transition-transform" style={{top:`calc(${((currentIndex+1)/Math.max(items.length,1))*100}% - 7px)`}}/>
       </div>
@@ -127,7 +143,7 @@ function ShareModal({ open, onClose, entryId }: { open: boolean; onClose: () => 
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-gray-900">Share this discussion</h3>
           <button onClick={onClose} className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg></button>
@@ -254,9 +270,9 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4" onClick={onClose}>
-      <div className="w-full max-w-3xl rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-3xl rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/80 px-4 py-2 backdrop-blur">
+        <div className="flex items-center justify-between border-b border-gray-100 bg-[var(--color-surface-muted)] px-4 py-2 backdrop-blur">
           <span className="text-sm font-semibold text-gray-700">{replyTarget ? `Replying to @${replyTarget}` : "Post a Reply"}</span>
           <div className="flex items-center gap-1">
             <button onClick={()=>setPreviewMode(false)} className={"rounded px-2 py-1 text-xs font-medium transition-colors "+(previewMode?"text-gray-500 hover:bg-gray-200":"bg-slate-800 text-white")}>Edit</button>
@@ -284,12 +300,12 @@ function FloatingReply({ open, onClose, replyTarget, onSubmit }: {
 <div className="min-h-[150px] max-h-[400px] overflow-y-auto px-4 py-3 text-sm text-gray-700 prose prose-sm max-w-none">{text.trim() ? renderMarkdown(text) : <span className="text-gray-400 italic">Nothing to preview</span>}</div>
         ) : (
           <textarea ref={textareaRef} value={text} onChange={e => setText(e.target.value)} rows={6}
-            placeholder="Write your reply... (Markdown supported)" 
+            placeholder="Write your reply... (Markdown supported, drag & drop images here)"
             onPaste={handlePaste}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
-            className={"w-full resize-y border-0 px-4 py-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 " + (dragOver ? "bg-teal-50 ring-2 ring-blue-400" : "")} />
+            className={"w-full resize-y border-2 px-4 py-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 transition-all " + (dragOver ? "border-blue-400 border-dashed bg-blue-50/70 ring-2 ring-blue-300/40" : "border-transparent")} />
         )}
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/50 px-4 py-3">
@@ -342,7 +358,7 @@ function DiscussionFooter({ comments, entry, totalViews, onSignUp, onMaybeLater,
           <span className="text-sm font-medium text-gray-700">Notification:</span>
         </div>
         <select value={notifyLevel} onChange={e=>setNotifyLevel(e.target.value)}
-          className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-400/10">
+          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-400/10">
           {notifyOptions.map(o=><option key={o.key} value={o.key} title={o.desc}>{o.label}</option>)}
         </select>
       </div>
@@ -360,7 +376,7 @@ function DiscussionFooter({ comments, entry, totalViews, onSignUp, onMaybeLater,
         <div className="flex items-center gap-2">
           <span className="text-gray-500">Participants:</span>
           <div className="flex -space-x-2">
-            {participants.slice(0,6).map(p=>(<div key={p.name} className="relative" onMouseEnter={()=>setHovered(p.name)} onMouseLeave={()=>setHovered(null)}><div className="h-7 w-7 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-[10px] font-semibold text-white ring-2 ring-white cursor-default">{getInitials(p.name)}</div>{hovered===p.name&&(<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50"><div className="rounded-lg border border-gray-200 bg-white shadow-lg px-4 py-3 text-center min-w-[140px]"><div className="mx-auto mb-2 h-12 w-12 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-lg font-semibold text-white">{getInitials(p.name)}</div><div className="text-sm font-semibold text-gray-900">{p.name}</div><div className="text-xs text-gray-500 mt-0.5">{p.email?"Public profile":"User"}</div></div><div className="mx-auto h-2 w-2 rotate-45 border-r border-b border-gray-200 bg-white -mt-1"/></div>)}</div>))}
+            {participants.slice(0,6).map(p=>(<div key={p.name} className="relative" onMouseEnter={()=>setHovered(p.name)} onMouseLeave={()=>setHovered(null)}><div className={"h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-semibold text-white ring-2 ring-white cursor-default "+getAvatarClass(p.name)}>{getInitials(p.name)}</div>{hovered===p.name&&(<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50"><div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg px-4 py-3 text-center min-w-[140px]"><div className={"mx-auto mb-2 h-12 w-12 rounded-full flex items-center justify-center text-lg font-semibold text-white "+getAvatarClass(p.name)}>{getInitials(p.name)}</div><div className="text-sm font-semibold text-gray-900">{p.name}</div><div className="text-xs text-gray-500 mt-0.5">{p.email?"Public profile":"User"}</div></div><div className="mx-auto h-2 w-2 rotate-45 border-r border-b border-[var(--color-border)] bg-[var(--color-surface)] -mt-1"/></div>)}</div>))}
             {participants.length>6&&<div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-medium text-gray-600 ring-2 ring-white">+{participants.length-6}</div>}
           </div>
         </div>
@@ -737,6 +753,8 @@ export default function DiscussionDetailPage() {
     if (ref) {
       const top = ref.getBoundingClientRect().top + window.scrollY - Math.max(88, window.innerHeight * 0.18);
       window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      ref.classList.add("target-highlight-row");
+      window.setTimeout(() => ref.classList.remove("target-highlight-row"), 2000);
     }
   }
 
@@ -860,9 +878,9 @@ const isLoggedIn = !!(session || githubUser);
   }, [entry, fetchData]);
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7]">
+    <div className="min-h-screen bg-[var(--color-bg)]">
       {/* Sticky nav */}
-      <header className="sticky top-0 z-40 border-b border-white/20 bg-white/70 backdrop-blur-xl saturate-150 shadow-sm">
+      <header className="sticky top-0 z-40 border-b border-white/20 bg-white/70 backdrop-blur-xl saturate-150 shadow-sm dark:bg-[#16203A]/80 dark:border-[#334155]/90">
         <div className="mx-auto flex max-w-[1100px] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 min-w-0">
             <Logo compact />
@@ -873,7 +891,7 @@ const isLoggedIn = !!(session || githubUser);
           <div className="relative">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <input type="text" value={commentSearch} onChange={e=>setCommentSearch(e.target.value)} placeholder="Search comments..."
-              className="rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-400/10 w-40 sm:w-52 transition-all"/>
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] py-1.5 pl-9 pr-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-400/10 w-40 sm:w-52 transition-all"/>
             {commentSearch && <button onClick={()=>setCommentSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg></button>}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -887,6 +905,7 @@ const isLoggedIn = !!(session || githubUser);
               </button>
 
             )}
+            <ThemeToggle />
             <WorldClock />
           </div>
         </div>
@@ -915,11 +934,12 @@ const isLoggedIn = !!(session || githubUser);
                 const itemId = isEntry?ed.id:cd.id;
                 return (
                   <div key={(isEntry?"e-":"c-")+itemId}>
+                    {index > 0 && !gap && <div className="mx-auto my-2 h-5 w-px bg-gray-200" />}
                     {gap&&<div className="flex items-center gap-3 my-6"><div className="flex-1 h-px bg-gray-200"/><span className="text-xs font-medium text-gray-400 flex-shrink-0">{gap}</span><div className="flex-1 h-px bg-gray-200"/></div>}
-                    <div id={isEntry ? "discussion-" + ed.id : "comment-" + cd.id} ref={el=>{contentRefs.current[index]=el;}} className={"rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" + ((isEntry && (ed as SiteFeedbackEntry).hidden) || (!isEntry && (cd as FeedbackCommentEntry).hidden) ? " opacity-60 ring-2 ring-amber-200" : "")}>
+                    <div id={isEntry ? "discussion-" + ed.id : "comment-" + cd.id} ref={el=>{contentRefs.current[index]=el;}} className={"rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" + ((isEntry && (ed as SiteFeedbackEntry).hidden) || (!isEntry && (cd as FeedbackCommentEntry).hidden) ? " opacity-60 ring-2 ring-amber-200" : "")}>
                       {isEntry?(<>
                         <div className="flex items-start gap-3 mb-4">
-                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(ed.display_name); setProfileCardUserId(ed.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-sm font-semibold text-white flex-shrink-0 hover:ring-2 hover:ring-slate-300 transition-all cursor-pointer">{getInitials(ed.display_name)}</button>
+                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(ed.display_name); setProfileCardUserId(ed.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className={"h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold text-white flex-shrink-0 hover:ring-2 hover:ring-slate-300 transition-all cursor-pointer "+getAvatarClass(ed.display_name)}>{getInitials(ed.display_name)}</button>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center flex-wrap gap-2">
                               <h1 className="text-lg font-bold text-gray-900">{ed.title||"Untitled"}</h1>
@@ -944,7 +964,7 @@ const isLoggedIn = !!(session || githubUser);
                           </div>)}
                       </>):(<>
                         <div className="flex items-start gap-3 mb-3">
-                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(cd.author_name); setProfileCardUserId(cd.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0 hover:ring-2 hover:ring-emerald-300 transition-all cursor-pointer overflow-hidden">{cd.author_name === "GalibierHub Team" ? <img src="/galibierhub-logo.svg" alt="GalibierHub Team" className="h-8 w-8 rounded-full object-cover" /> : getInitials(cd.author_name)}</button>
+                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(cd.author_name); setProfileCardUserId(cd.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className={"h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold text-white flex-shrink-0 hover:ring-2 hover:ring-slate-300 transition-all cursor-pointer overflow-hidden "+getAvatarClass(cd.author_name)}>{cd.author_name === "GalibierHub Team" ? <img src="/galibierhub-logo.svg" alt="GalibierHub Team" className="h-8 w-8 rounded-full object-cover" /> : getInitials(cd.author_name)}</button>
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="text-sm font-semibold text-gray-900">{cd.author_name}</span>
@@ -1002,7 +1022,7 @@ const isLoggedIn = !!(session || githubUser);
                   <div className="grid gap-3 sm:grid-cols-2">
                     {similarPosts.slice(0, 4).map((sp: SiteFeedbackEntry) => (
                       <Link key={sp.id} href={"/discussions/"+sp.id}
-                        className="block rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md hover:border-gray-200 transition-all">
+                        className="block rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm hover:shadow-md hover:border-gray-200 transition-all">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={"inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium "+getCategoryColor(sp.category||"general")}>{getCategoryLabel(sp.category||"general")}</span>
                           {hasCreatorReply(sp)&&<span className="text-[10px] text-emerald-600 font-medium">Resolved</span>}

@@ -73,7 +73,7 @@ function RevealRow({ rowKey, label, value, copied, onCopy, loading, unavailable 
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-md border border-slate-200 bg-white">
+    <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]">
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
@@ -88,19 +88,24 @@ function RevealRow({ rowKey, label, value, copied, onCopy, loading, unavailable 
         </span>
       </button>
       {open && (
-        <div className="border-t border-slate-100 px-3 py-3">
+        <div className="border-t border-[var(--color-border)] px-3 py-3">
           {loading ? (
             <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200 text-gray-500">Loading...</span>
           ) : unavailable ? (
             <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200 text-gray-400">{unavailable}</span>
           ) : value ? (
             <div className="flex items-start gap-3">
-              <code className="min-w-0 flex-1 break-all rounded px-3 py-2 font-mono text-[11px] ring-1 bg-gray-50 text-gray-900 ring-gray-200">{value}</code>
+              <code className="code-panel min-w-0 flex-1 break-all rounded-lg px-3 py-2 font-mono text-[11px] text-gray-900">{value}</code>
               <button
                 type="button"
                 onClick={() => onCopy(rowKey, value)}
-                className="flex-shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors"
+                className="inline-flex flex-shrink-0 items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)] transition-colors"
               >
+                {copied === rowKey ? (
+                  <svg className="h-3.5 w-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                ) : (
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3" /></svg>
+                )}
                 {copied === rowKey ? 'Copied' : 'Copy'}
               </button>
             </div>
@@ -162,27 +167,32 @@ function CliSection({
   onCopy: (key: string, text: string) => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-colors">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-start justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-slate-50"
+        className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-slate-50"
       >
         <span className="min-w-0">
           <span className="text-sm font-medium text-slate-800">{title}</span>
-          {badge && <span className="ml-2 rounded bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">{badge}</span>}
+          {badge && <span className="ml-2 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800">{badge}</span>}
           {description && <span className="mt-0.5 block text-xs text-gray-500">{description}</span>}
         </span>
         <span className="flex-shrink-0 text-xs text-slate-500">{expanded ? 'Hide' : 'Show'}</span>
       </button>
       {expanded && (
-        <div className="border-t border-slate-100 px-3 py-3">
-          <pre className="whitespace-pre-wrap break-all rounded bg-slate-50 px-3 py-3 font-mono text-xs text-gray-800 ring-1 ring-slate-200">{code}</pre>
+        <div className="bg-[var(--color-surface-muted)] px-3 py-3">
+          <pre className="code-panel overflow-auto whitespace-pre-wrap break-all rounded-lg px-3 py-3 font-mono text-xs text-gray-800">{code}</pre>
           <button
             type="button"
             onClick={() => onCopy(copyKey, code)}
-            className="mt-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]"
           >
+            {copied === copyKey ? (
+              <svg className="h-3.5 w-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            ) : (
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3" /></svg>
+            )}
             {copied === copyKey ? 'Copied' : 'Copy All'}
           </button>
         </div>
@@ -467,21 +477,21 @@ const [unlocked, setUnlocked] = useState(false);
       )}
       <div className="flex flex-wrap gap-2">
         {hidden && !isAdmin ? (
-          <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-400">Hidden by Administrator</span>
+          <span className="inline-flex items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2 text-sm text-[var(--color-text-muted)]">Hidden by Administrator</span>
         ) : (
           <>
             <button
               type="button"
               onClick={() => void handleBrowserDownload()}
               disabled={downloading || (hidden && !isAdmin)}
-              className={`inline-flex items-center justify-center rounded-lg bg-slate-800 text-sm font-medium text-white transition-colors hover:bg-slate-900 disabled:opacity-50 ${compact ? 'min-w-[7.25rem] px-3 py-2' : 'min-w-[9rem] px-4 py-2'}`}
+              className={`inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:opacity-50 ${compact ? 'min-w-[7.25rem] px-3 py-2' : 'min-w-[9rem] px-4 py-2'}`}
             >
               {downloading ? 'Preparing...' : label}
             </button>
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className={`inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 ${compact ? 'min-w-[2.75rem] px-3 py-2' : 'min-w-[7rem] px-4 py-2'}`}
+              className={`inline-flex items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)] ${compact ? 'min-w-[2.75rem] px-3 py-2' : 'min-w-[7rem] px-4 py-2'}`}
               aria-label="Open CLI and file details"
               title="Open CLI and file details"
             >
@@ -508,15 +518,15 @@ const [unlocked, setUnlocked] = useState(false);
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4" role="dialog" aria-modal="true" onClick={() => setOpen(false)}>
-          <div className="my-8 w-full max-w-3xl rounded-lg border border-gray-200 bg-white shadow-xl" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-start justify-between border-b border-gray-200 px-5 py-3">
+          <div className="my-8 w-full max-w-3xl rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-[var(--color-border)] px-5 py-3">
               <h3 className="text-base font-semibold text-gray-900">{effectiveInfo.display_name}</h3>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             <div className="space-y-5 px-5 py-4">
-              <div className="space-y-3 rounded border border-gray-100 bg-gray-50 p-3">
+              <div className="space-y-3 rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold text-gray-900 break-all">{effectiveInfo.file_name}</span>
                   <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">{effectiveInfo.file_type}</span>
@@ -537,7 +547,7 @@ const [unlocked, setUnlocked] = useState(false);
               <div className="flex border-b border-gray-200 -mx-5 px-5">
                 {(['download','checksum','cite'] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
-                    className={"px-4 py-2 text-xs font-medium border-b-2 transition-colors " + (activeTab === tab ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")}>
+                    className={"relative px-4 py-2 text-xs font-medium transition-colors " + (activeTab === tab ? "text-slate-900 after:absolute after:inset-x-2 after:-bottom-px after:h-[3px] after:rounded-t after:bg-slate-900" : "text-slate-400 hover:text-slate-700")}>
                     {tab === 'download' ? 'Download' : tab === 'checksum' ? 'Checksum' : 'Cite'}
                   </button>
                 ))}
@@ -550,9 +560,9 @@ const [unlocked, setUnlocked] = useState(false);
               {passwordProtected && !unlocked && !isAdmin && (
                 <div className="space-y-2 rounded border border-rose-200 bg-rose-50 p-3">
                   <label className="block text-sm font-medium text-gray-700">Password required</label>
-                  <input type="password" value={pwInput} onChange={(event) => setPwInput(event.target.value)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" placeholder="Enter password" />
+                  <input type="password" value={pwInput} onChange={(event) => setPwInput(event.target.value)} className="w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)]" placeholder="Enter password" />
                   {pwError && <p className="text-xs text-red-600">{pwError}</p>}
-                  <button type="button" onClick={verifyPassword} className="rounded bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">Unlock</button>
+                  <button type="button" onClick={verifyPassword} className="rounded bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-dark)]">Unlock</button>
                 </div>
               )}
 
@@ -570,39 +580,39 @@ const [unlocked, setUnlocked] = useState(false);
                   ) : publicRouteAvailable ? (
                     <>
                       <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-md border border-slate-200 bg-white p-3">
+                        <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
                           <div className="text-xs font-medium text-gray-700">Network Routing</div>
                           <div className="mt-2 inline-flex rounded-lg border border-slate-200 bg-gray-50 p-1">
                             <button
                               type="button"
                               onClick={() => setDownloadRegion('global')}
-                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
+                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'global' ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)]'}`}
                             >
                               Global (Official)
                             </button>
                             <button
                               type="button"
                               onClick={() => setDownloadRegion('apac')}
-                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'apac' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-50'}`}
+                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${downloadRegion === 'apac' ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'text-[var(--color-accent)] hover:bg-[var(--color-surface-muted)]'}`}
                             >
                               Asia-Pacific (Mirror)
                             </button>
                           </div>
                         </div>
-                        <div className="rounded-md border border-slate-200 bg-white p-3">
+                        <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
                           <div className="text-xs font-medium text-gray-700">Operating System</div>
                           <div className="mt-2 inline-flex rounded-lg border border-slate-200 bg-gray-50 p-1">
                             <button
                               type="button"
                               onClick={() => setCliOs('linux')}
-                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${cliOs === 'linux' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
+                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${cliOs === 'linux' ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)]'}`}
                             >
                               Linux / macOS
                             </button>
                             <button
                               type="button"
                               onClick={() => setCliOs('windows')}
-                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${cliOs === 'windows' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-50'}`}
+                              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${cliOs === 'windows' ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)]'}`}
                             >
                               Windows (PowerShell)
                             </button>
@@ -711,17 +721,17 @@ const [unlocked, setUnlocked] = useState(false);
                   <div className="space-y-3">
                     <div>
                       <span className="text-xs font-medium text-gray-600">SHA-256:</span>
-                      <code className="ml-2 block max-w-full break-all rounded px-2 py-1 font-mono text-xs bg-slate-50 text-slate-800 ring-1 ring-slate-200">{hfMeta.loading ? "Loading..." : (effectiveInfo.sha256_checksum || "Not available yet")}</code>
+                      <code className="code-panel ml-2 block max-w-full break-all rounded-lg px-2 py-1 font-mono text-xs text-slate-800">{hfMeta.loading ? "Loading..." : (effectiveInfo.sha256_checksum || "Not available yet")}</code>
                     </div>
                   </div>
-                  <div className="rounded-md border border-slate-200 bg-white p-3">
+                  <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
                     <div className="mb-1 flex items-center justify-between gap-3">
                       <span className="text-xs font-semibold text-gray-700">Linux Terminal Quick Verify</span>
                       <button type="button" onClick={() => handleCopy('checksum-verify', linuxVerifyCommand)} disabled={!linuxVerifyCommand} className="text-xs text-teal-600 hover:underline disabled:opacity-50">
                         {copied === 'checksum-verify' ? 'Copied' : 'Copy'}
                       </button>
                     </div>
-                    <pre className="whitespace-pre-wrap break-all rounded bg-slate-50 px-3 py-2 font-mono text-xs text-gray-800 ring-1 ring-slate-200">{linuxVerifyCommand || '# SHA-256 checksum is not available yet.'}</pre>
+                    <pre className="code-panel overflow-auto whitespace-pre-wrap break-all rounded-lg px-3 py-2 font-mono text-xs text-gray-800">{linuxVerifyCommand || '# SHA-256 checksum is not available yet.'}</pre>
                   </div>
                   <p className="text-xs text-gray-400">Download the file to a Linux server, then copy and run the command above. If the output shows OK, the file is 100% complete.</p>
                 </div>

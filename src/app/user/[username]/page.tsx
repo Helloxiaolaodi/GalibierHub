@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, use } from "react";
 import Link from "next/link";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
 import BadgeDisplay from "@/components/badge-display";
+import ThemeToggle from "@/components/theme-toggle";
 
 type ProfileData = {
   id: string;
@@ -324,13 +325,16 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
   const isOwnProfile = currentUserId === profile.id;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--color-bg)]">
       {/* Back nav */}
-      <div className="max-w-4xl mx-auto px-4 py-3">
-        <Link href="/" className="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1">
-          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-          Back to Home
-        </Link>
+      <div className="sticky top-0 z-40 border-b border-white/20 bg-white/70 px-4 py-3 backdrop-blur-xl saturate-150 shadow-sm dark:bg-[#16203A]/80 dark:border-[#334155]/90">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <Link href="/" className="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1">
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+            Back to Home
+          </Link>
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Profile Header */}
@@ -387,7 +391,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                   className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isFollowing
                       ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
-                      : "bg-slate-800 text-white hover:bg-slate-700"
+                      : "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-dark)]"
                   }`}
                 >
                   {followLoading ? "..." : isFollowing ? "Following" : "Follow"}
@@ -405,7 +409,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2.5 text-sm font-medium transition-colors capitalize ${
                 activeTab === tab
-                  ? "text-slate-800 border-b-2 border-slate-800"
+                  ? "text-[var(--color-text)] border-b-2 border-[var(--color-accent)]"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >

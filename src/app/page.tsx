@@ -15,6 +15,7 @@ import SiteUptime from '@/components/site-uptime';
 import { resolveExpectedAdminGithubLogin } from '@/lib/admin-login';
 import UserMenuPanel from '@/components/user-menu-panel';
 import Logo from '@/components/logo';
+import ThemeToggle from '@/components/theme-toggle';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 import AuthModal from '@/components/auth-modal';
@@ -169,6 +170,28 @@ export default function HomePage() {
     return () => {
       listener.subscription.unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    const applyCommandAction = () => {
+      const raw = window.sessionStorage.getItem('galibierhub-command-action');
+      if (!raw) return;
+      window.sessionStorage.removeItem('galibierhub-command-action');
+      try {
+        const action = JSON.parse(raw) as { tab?: ActiveTab; query?: Partial<FiltersType> };
+        if (action.tab) setActiveTab(action.tab);
+        if (action.query && Object.keys(action.query).length > 0) {
+          setPageIndex(0);
+          setCurrentFilters((prev) => ({ ...EMPTY_FILTERS, ...action.query }));
+        }
+      } catch {
+        // Ignore malformed command payloads.
+      }
+    };
+
+    applyCommandAction();
+    window.addEventListener('galibierhub-command-action', applyCommandAction);
+    return () => window.removeEventListener('galibierhub-command-action', applyCommandAction);
   }, []);
 
   useEffect(() => {
@@ -350,8 +373,8 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7]">
-      <header className="bg-white/70 backdrop-blur-xl saturate-150 border-b border-white/20 shadow-sm sticky top-0 z-40">
+    <div className="min-h-screen bg-[var(--color-bg)]">
+      <header className="bg-white/70 backdrop-blur-xl saturate-150 border-b border-white/20 shadow-sm sticky top-0 z-40 dark:bg-[#16203A]/80 dark:border-[#334155]/90">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <Logo />
           <nav className="flex flex-wrap items-center gap-1">
@@ -360,8 +383,8 @@ export default function HomePage() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === tab
-                    ? 'bg-slate-800 text-white shadow-sm'
-                    : 'text-gray-600 hover:bg-gray-200/60'
+                    ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-200/60 dark:text-[var(--color-text-secondary)] dark:hover:bg-[#334155]/60'
                 }`}
               >
                 {tab === 'overview'
@@ -378,8 +401,8 @@ export default function HomePage() {
               <button type="button" onClick={() => setActiveTab('admin')}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
                   activeTab === 'admin'
-                    ? 'bg-slate-800 text-white shadow-sm'
-                    : 'text-gray-600 hover:bg-gray-200/60'
+                    ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-200/60 dark:text-[var(--color-text-secondary)] dark:hover:bg-[#334155]/60'
                 }`}
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -392,8 +415,8 @@ export default function HomePage() {
               <button type="button" onClick={() => setActiveTab('badges')}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
                   activeTab === 'badges'
-                    ? 'bg-slate-800 text-white shadow-sm'
-                    : 'text-gray-600 hover:bg-gray-200/60'
+                    ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-200/60 dark:text-[var(--color-text-secondary)] dark:hover:bg-[#334155]/60'
                 }`}
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -402,21 +425,22 @@ export default function HomePage() {
                 Badges
               </button>
             )}
-            <Link href="/discussions" className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200/60 transition-colors">Discussions</Link>
-            <div className="w-px h-5 bg-gray-200 mx-1" />
+            <Link href="/discussions" className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200/60 dark:text-[var(--color-text-secondary)] dark:hover:bg-[#334155]/60 transition-colors">Discussions</Link>
+            <div className="w-px h-5 bg-gray-200 dark:bg-[var(--color-border)] mx-1" />
             {!mounted ? (
               <div className="w-[120px] h-8" />
             ) : creatorSession ? (
               <UserMenuPanel session={creatorSession} githubUser={creatorLogin} isAdmin={isCreatorAdmin} onSignOut={() => void handleCreatorSignOut()} avatarUrl={creatorSession?.user?.user_metadata?.avatar_url as string | undefined} />
             ) : (
               <button type="button" onClick={() => setAuthModalOpen(true)}
-                className="rounded-lg border border-slate-200 bg-slate-800 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+                className="rounded-lg border border-[var(--color-border)] bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-dark)]"
               >
                 Sign in
               </button>
 
             )}
             <NotificationBell session={creatorSession} />
+            <ThemeToggle />
             <button type="button" onClick={() => setGuideOpen((v) => !v)}
               aria-expanded={guideOpen}
               aria-controls="galibierhub-user-guide"
@@ -679,7 +703,7 @@ export default function HomePage() {
          onClose={() => setSelectedPromoter(null)}
        />
       )}
-      <SiteUptime startAt={SiteConfig.uptime.startAt} />
+      <SiteUptime startAt={SiteConfig.uptime.startAt} onNavigateTab={(tab) => setActiveTab(tab as ActiveTab)} />
           <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} onSignInError={(msg) => setCreatorSignInError(msg)} />
     </div>
   );

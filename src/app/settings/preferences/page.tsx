@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
 import type { Session } from "@supabase/supabase-js";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default function PreferencesPage() {
   const router = useRouter();
@@ -159,13 +160,16 @@ export default function PreferencesPage() {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Back nav */}
-        <Link href="/" className="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 mb-4">
-          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-          Back to Home
-        </Link>
+        <div className="mb-4 flex items-center justify-between">
+          <Link href="/" className="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1">
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+            Back to Home
+          </Link>
+          <ThemeToggle />
+        </div>
 
         <h1 className="text-xl font-semibold text-slate-800 mb-6">Settings</h1>
 
@@ -220,6 +224,28 @@ export default function PreferencesPage() {
           </div>
         </div>
 
+        {/* Appearance */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm mb-4 dark:bg-[var(--color-surface)] dark:border-[var(--color-border)]">
+          <h2 className="text-sm font-semibold text-slate-700 mb-3">Appearance</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {(["system", "light", "dark"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setTheme(option)}
+                className={`rounded-lg border px-3 py-2.5 text-sm font-medium capitalize transition-colors ${
+                  theme === option
+                    ? "border-[var(--color-accent)] bg-teal-50 text-teal-800"
+                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-[var(--color-border)] dark:bg-[var(--color-surface-muted)] dark:text-gray-300"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-gray-400">System follows your device preference. Changes are applied after saving.</p>
+        </div>
+
         {/* Email Settings */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm mb-4">
           <h2 className="text-sm font-semibold text-slate-700 mb-3">Email Notifications</h2>
@@ -254,7 +280,7 @@ export default function PreferencesPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+          className="w-full rounded-xl bg-[var(--color-accent)] px-4 py-3 text-sm font-medium text-white hover:bg-[var(--color-accent-dark)] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
         >
           {saving && (
             <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">

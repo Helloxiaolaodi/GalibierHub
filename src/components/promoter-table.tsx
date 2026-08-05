@@ -33,6 +33,9 @@ type BatchDownloadItem = DownloadResolvedInfo & {
   batch_skip_reason: string | null;
 };
 
+const NUMERIC_CELL_IDS = new Set(['start', 'end_pos', 'score']);
+const MONO_CELL_IDS = new Set(['sample_id']);
+
 const FILE_KIND_LABELS: Record<string, string> = {
   vcf: 'VCF', fasta: 'FASTA', gb: 'GenBank', bed: 'BED', gff3: 'GFF3',
 };
@@ -599,28 +602,28 @@ export default function PromoterTable({
       </div>
 
       {selectedSampleIds.size > 0 && (
-        <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/95 px-4 py-2 shadow-sm">
-          <span className="text-sm font-medium text-slate-800">
-            {selectedSampleIds.size} sample{selectedSampleIds.size === 1 ? '' : 's'} selected for batch download
+        <div className="sticky bottom-4 z-30 mx-auto flex w-fit max-w-full flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900/95 px-4 py-2.5 text-white shadow-[0_16px_40px_rgba(15,23,42,0.28)] backdrop-blur-md">
+          <span className="text-sm font-medium text-white">
+            {selectedSampleIds.size} sample{selectedSampleIds.size === 1 ? '' : 's'} selected
           </span>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => onSendSelectedToDownloads?.('vcf', [...selectedSampleIds])} className="rounded border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700 hover:bg-slate-100">Send Selected to Downloads (VCF)</button>
-            <button type="button" onClick={() => onSendSelectedToDownloads?.('fasta', [...selectedSampleIds])} className="rounded border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700 hover:bg-slate-100">Send Selected to Downloads (FASTA)</button>
-            <button type="button" onClick={clearSelection} className="rounded border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700 hover:bg-slate-100">Clear</button>
-            <button type="button" onClick={openBatch} disabled={batchLoading} className="rounded bg-slate-800 px-3 py-1 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-50">Batch download</button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => onSendSelectedToDownloads?.('vcf', [...selectedSampleIds])} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20">VCF</button>
+            <button type="button" onClick={() => onSendSelectedToDownloads?.('fasta', [...selectedSampleIds])} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20">FASTA</button>
+            <button type="button" onClick={clearSelection} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20">Clear</button>
+            <button type="button" onClick={openBatch} disabled={batchLoading} className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50">Batch download</button>
           </div>
         </div>
       )}
 
-      <div className="overflow-x-auto border rounded-lg">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <table className="data-table records-table min-w-full text-sm">
+          <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-3 py-2 text-left font-medium text-gray-600"
+                    className={header.column.id === 'select' ? 'px-3 py-2 text-left' : 'px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500'}
                     style={{ width: header.getSize() }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
@@ -634,18 +637,29 @@ export default function PromoterTable({
               <SkeletonTableRows rows={pageSize} cols={9} />
             ) : table.getRowModel().rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-3 py-6 text-center text-sm text-gray-500">
-                  No records matched the current filters.
+                <td colSpan={columns.length} className="px-6 py-12 text-center">
+                  <div className="mx-auto max-w-sm">
+                    <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9l6 6m0-6l-6 6M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium text-slate-800">No matching samples found</p>
+                    <p className="mt-1 text-sm text-slate-500">Try widening the filters or clearing one or more conditions.</p>
+                  </div>
                 </td>
               </tr>
             ) : table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="hover:bg-slate-50 cursor-pointer transition-colors"
+                className="cursor-pointer transition-colors hover:bg-[#F9FAFB]"
                 onClick={() => onRowClick?.(row.original)}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-1.5 whitespace-nowrap">
+                  <td
+                    key={cell.id}
+                    className={`px-3 py-1.5 whitespace-nowrap ${NUMERIC_CELL_IDS.has(cell.column.id) ? 'text-right tabular-nums' : ''} ${MONO_CELL_IDS.has(cell.column.id) ? 'font-mono' : ''}`}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -764,20 +778,20 @@ export default function PromoterTable({
                     {allSha256Text && <button type="button" onClick={() => handleCopy('sha256-all', allSha256Text)} className="text-teal-700 hover:underline">{copied === 'sha256-all' ? 'Copied' : 'Copy all SHA-256'}</button>}
                   </div>
                   <div className="max-h-[32rem] overflow-auto rounded border border-gray-100 bg-gray-50">
-                    <table className="min-w-full text-xs text-gray-700">
-                      <thead className="sticky top-0 bg-gray-100 text-gray-600">
+                    <table className="data-table min-w-full text-xs text-gray-700">
+                      <thead>
                         <tr>
-                          <th className="px-3 py-2 text-left font-medium">Sample</th>
-                          <th className="px-3 py-2 text-left font-medium">Type</th>
-                          <th className="px-3 py-2 text-left font-medium">Access</th>
-                          <th className="px-3 py-2 text-left font-medium">Batch</th>
-                          <th className="px-3 py-2 text-left font-medium">File</th>
-                          <th className="px-3 py-2 text-left font-medium">Description</th>
-                          <th className="px-3 py-2 text-left font-medium">Size</th>
-                          <th className="px-3 py-2 text-left font-medium">Created</th>
-                          <th className="px-3 py-2 text-left font-medium">Downloads</th>
-                          <th className="px-3 py-2 text-left font-medium">SHA256</th>
-                          <th className="px-3 py-2 text-left font-medium">MD5</th>
+                          <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-gray-500">Sample</th>
+                          <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-gray-500">Type</th>
+                          <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-gray-500">Access</th>
+                          <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-gray-500">Batch</th>
+                          <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-gray-500">File</th>
+                          <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-gray-500">Description</th>
+                          <th className="px-3 py-2 text-right text-[11px] font-medium uppercase tracking-wider text-gray-500">Size</th>
+                          <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-gray-500">Created</th>
+                          <th className="px-3 py-2 text-right text-[11px] font-medium uppercase tracking-wider text-gray-500">Downloads</th>
+                          <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-gray-500">SHA256</th>
+                          <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-gray-500">MD5</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -808,13 +822,13 @@ export default function PromoterTable({
                               <td className="px-3 py-2 text-gray-600">
                                 <div className="max-w-[260px] break-words" title={item.description || undefined}>{item.description || 'No description'}</div>
                               </td>
-                              <td className="px-3 py-2 text-gray-600">
+                              <td className="px-3 py-2 text-right tabular-nums text-gray-600">
                                 {formatDownloadBytes(item.size_bytes) || 'Unknown'}
                               </td>
                               <td className="px-3 py-2 text-gray-600">
                                 {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
                               </td>
-                              <td className="px-3 py-2 text-gray-600">
+                              <td className="px-3 py-2 tabular-nums text-gray-600">
                                 {item.download_count.toLocaleString()}
                               </td>
                               <td className="px-3 py-2 font-mono text-[11px] leading-5 text-gray-800">
@@ -839,11 +853,11 @@ export default function PromoterTable({
                   <div className="grid gap-3 lg:grid-cols-2">
                     <details className="text-xs text-gray-500">
                       <summary className="cursor-pointer hover:text-gray-700">Preview .sh</summary>
-                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-slate-50 p-3 font-mono text-[11px] text-slate-900 ring-1 ring-slate-200">{buildSh(batchItems)}</pre>
+                      <pre className="code-panel mt-2 max-h-56 overflow-auto p-3 font-mono text-[11px] text-slate-900">{buildSh(batchItems)}</pre>
                     </details>
                     <details className="text-xs text-gray-500">
                       <summary className="cursor-pointer hover:text-gray-700">Preview .bat</summary>
-                      <pre className="mt-2 max-h-56 overflow-auto rounded bg-slate-50 p-3 font-mono text-[11px] text-slate-900 ring-1 ring-slate-200 whitespace-pre-wrap">{buildBat(batchItems)}</pre>
+                      <pre className="code-panel mt-2 max-h-56 overflow-auto p-3 font-mono text-[11px] text-slate-900 whitespace-pre-wrap">{buildBat(batchItems)}</pre>
                     </details>
                   </div>
                   <p className="text-xs text-gray-400">Public scripts support resume (`wget -c` / `curl -C -`). Protected signed URLs and non-direct links are excluded. SHA-256 appears when available. MD5 remains `N/A` unless set. Counts mainly reflect downloads started on the site.</p>

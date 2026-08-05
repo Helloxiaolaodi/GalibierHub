@@ -45,7 +45,7 @@ export function renderInlineText(text: string, key: string): React.ReactNode {
   html = html
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-gray-900">$1</strong>')
     .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
-    .replace(/`(.+?)`/g, '<code class="rounded bg-gray-100 px-1.5 py-0.5 text-sm text-pink-600 font-mono">$1</code>')
+    .replace(/`(.+?)`/g, '<code class="rounded bg-gray-100 px-1.5 py-0.5 text-sm text-slate-800 font-mono">$1</code>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="text-slate-700 hover:underline">$1</a>');
   return <span key={key} dangerouslySetInnerHTML={{ __html: html }} className="whitespace-pre-wrap break-words" />;
 }
@@ -71,9 +71,21 @@ export function renderMarkdown(text: string, onImageClick?: (src: string, alt: s
   const lines = text.split('\n');
   const result: React.ReactNode[] = [];
   let inCodeBlock = false, codeContent = '', lang = '';
+  let listState: { ordered: boolean; items: string[]; key: string } | null = null;
+
+  const flushList = () => {
+    if (!listState) return;
+    const items = listState.items.map((item, index) =>
+      React.createElement('li', { key: `${listState!.key}-${index}` },
+        renderInline(item, onImageClick, `${listState!.key}-${index}-`)));
+    result.push(React.createElement(listState.ordered ? 'ol' : 'ul', { key: listState.key, className: 'my-1.5 space-y-1' }, ...items));
+    listState = null;
+  };
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (/^```/.test(line)) {
+      flushList();
       if (inCodeBlock) {
         result.push(<CodeBlock key={`cb-${i}`} code={codeContent} language={lang} />);
         inCodeBlock = false; codeContent = ''; lang = '';
@@ -81,9 +93,40 @@ export function renderMarkdown(text: string, onImageClick?: (src: string, alt: s
       continue;
     }
     if (inCodeBlock) { codeContent += (codeContent ? '\n' : '') + line; continue; }
-    if (line.startsWith('> ')) { result.push(<div key={`bq-${i}`} className="my-1 border-l-4 border-slate-300 pl-3 italic text-gray-600">{renderInline(line.substring(2), onImageClick, `bqi-${i}`)}</div>); continue; }
-    if (line.trim() === '') { result.push(<div key={`br-${i}`} className="h-2" />); continue; }
+    const heading = /^(#{1,3})\s+(.+)$/.exec(line);
+    if (heading) {
+      flushList();
+      const level = heading[1].length;
+      const headingClass = level === 1
+        ? 'text-xl font-bold text-gray-900 mt-4 mb-2'
+        : level === 2
+          ? 'text-lg font-bold text-gray-900 mt-4 mb-2'
+          : 'text-base font-semibold text-gray-900 mt-3 mb-2';
+      result.push(React.createElement(`h${level}`, { key: `h-${i}`, className: headingClass },
+        renderInline(heading[2], onImageClick, `hi-${i}-`)));
+      continue;
+    }
+    const listMatch = /^\s*(?:[-*+]|\d+\.)\s+(.+)$/.exec(line);
+    if (listMatch) {
+      if (!listState) {
+        listState = { ordered: /^\s*\d+\./.test(line), items: [], key: `list-${i}` };
+      }
+      listState.items.push(listMatch[1]);
+      continue;
+    }
+    if (line.startsWith('> ')) {
+      flushList();
+      result.push(<div key={`bq-${i}`} className="my-1 border-l-4 border-slate-300 pl-3 italic text-gray-600">{renderInline(line.substring(2), onImageClick, `bqi-${i}`)}</div>);
+      continue;
+    }
+    if (line.trim() === '') {
+      flushList();
+      result.push(<div key={`br-${i}`} className="h-2" />);
+      continue;
+    }
+    flushList();
     result.push(<div key={`ln-${i}`}>{renderInline(line, onImageClick, `lni-${i}`)}</div>);
   }
+  flushList();
   return <div className="markdown-content">{result}</div>;
 }
