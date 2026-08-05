@@ -6,8 +6,8 @@ function resolveDark(): boolean {
   if (typeof window === "undefined") return false;
   const stored = localStorage.getItem("galibierhub-theme");
   if (stored === "dark") return true;
-  if (stored === "light") return false;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  if (stored === "system") return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return false;
 }
 
 function applyTheme(dark: boolean) {
@@ -23,14 +23,15 @@ export default function ThemeToggle() {
 
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const sync = () => {
-      const stored = localStorage.getItem("galibierhub-theme");
-      if (stored !== "light" && stored !== "dark") {
-        setDark(media.matches);
+      if (localStorage.getItem("galibierhub-theme") === "system") {
+        const next = media.matches;
+        setDark(next);
+        applyTheme(next);
       }
     };
     const syncSettings = () => {
       const stored = localStorage.getItem("galibierhub-theme");
-      const next = stored === "dark" || (stored !== "light" && media.matches);
+      const next = stored === "dark" || (stored === "system" && media.matches);
       setDark(next);
       applyTheme(next);
     };

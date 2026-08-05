@@ -95,8 +95,8 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
   const shadowColor = dark ? 'rgba(0,0,0,0.35)' : 'rgba(15,23,42,0.10)';
   const axisPointer = dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)';
   const chartColors: string[] = dark
-    ? ['#2DD4BF', '#38BDF8', '#60A5FA', '#818CF8', '#34D399', '#FBBF24', '#94A3B8', '#E2E8F0', '#F472B6', '#5EEAD4']
-    : ['#1F3A5F', '#4A6FA5', '#5B8C7B', '#8FA8B8', '#C7B198', '#7A8B99', '#2C4C6B', '#6D7B8D', '#A3B8C4', '#B89B7A'];
+    ? ['#38BDF8', '#34D399', '#FACC15', '#FB7185', '#A78BFA', '#FB923C', '#22D3EE', '#4ADE80', '#F472B6', '#FDE047']
+    : ['#7DD3FC', '#6EE7B7', '#FCD34D', '#F9A8D4', '#C4B5FD', '#FDBA74', '#93C5FD', '#A7F3D0', '#FDE68A', '#F0ABFC'];
 
   const speciesOption = {
     tooltip: {
