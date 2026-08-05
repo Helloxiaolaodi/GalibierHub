@@ -60,6 +60,7 @@ export default function FeedbackComposer({ open, onClose, onSubmitted }: Feedbac
 const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadImageMessage, setUploadImageMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -164,6 +165,41 @@ const [uploadingImage, setUploadingImage] = useState(false);
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
+
+  const handleDragEnter = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragOver(true);
+  };
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    if (!dragOver) setDragOver(true);
+  };
+  const handleDragLeave = (event: React.DragEvent) => {
+    if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget as Node)) return;
+    setDragOver(false);
+  };
+  const handleDrop = async (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragOver(false);
+    const files = Array.from(event.dataTransfer.files).filter((file) => file.type.startsWith('image/'));
+    if (files.length === 0) {
+      setUploadImageMessage({ type: 'error', text: 'Drop image files only.' });
+      return;
+    }
+    setUploadingImage(true);
+    setUploadImageMessage(null);
+    for (const file of files.slice(0, 5)) {
+      const url = await handleImageUpload(file);
+      if (url) {
+        setForm((current) => ({
+          ...current,
+          message: current.message + (current.message ? '\n' : '') + '![image](' + url + ')',
+        }));
+      }
+    }
+    setUploadingImage(false);
+    setUploadImageMessage({ type: 'success', text: 'Image uploaded.' });
+  };
 
   if (!open) {
     return null;
@@ -379,20 +415,20 @@ const [uploadingImage, setUploadingImage] = useState(false);
               </label>
             </div>
             <label className="space-y-1 text-sm text-gray-700 md:col-span-2">
-               <span>Title (required)</span>
+               <span>Title</span>
                <input
                  value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400"
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15"
               />
                {validationErrors.title && <span className="text-xs text-red-600">{validationErrors.title}</span>}
               </label>
               <label className="space-y-1 text-sm text-gray-700">
-               <span>Name (required)</span>
+               <span>Name</span>
                <input
                  value={form.displayName}
                 onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400"
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15"
               />
                {validationErrors.displayName && <span className="text-xs text-red-600">{validationErrors.displayName}</span>}
               </label>
@@ -401,7 +437,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <input
                 value={form.visitorEmail}
                 onChange={(event) => setForm((current) => ({ ...current, visitorEmail: event.target.value }))}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400"
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15"
               />
               </label>
               <label className="space-y-1 text-sm text-gray-700">
@@ -409,7 +445,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                 <input
                   value={form.affiliation}
                onChange={(event) => setForm((current) => ({ ...current, affiliation: event.target.value }))}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400"
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15"
               />
              </label>
             </div>
@@ -419,7 +455,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <select
                 value={form.visibility}
                 onChange={(event) => setForm((current) => ({ ...current, visibility: event.target.value as VisibilityMode }))}
-                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400"
+                className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15"
               >
                 <option value="public">Public</option>
                 <option value="private">Administrator only</option>
@@ -428,10 +464,10 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
             <label className="block space-y-1 text-sm text-gray-700">
               <div className="flex items-center justify-between mb-1">
-                <span>Message (required)</span>
+                <span>Message</span>
                 <div className="flex gap-1">
-                  <button type="button" onClick={() => setPreviewMode(false)} className={!previewMode ? "rounded px-2 py-1 text-xs font-medium text-white bg-slate-800 shadow-sm" : "rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"}>Edit</button>
-                  <button type="button" onClick={() => setPreviewMode(true)} className={previewMode ? "rounded px-2 py-1 text-xs font-medium text-white bg-slate-800 shadow-sm" : "rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"}>Preview</button>
+                  <button type="button" onClick={() => setPreviewMode(false)} className={!previewMode ? "rounded px-2 py-1 text-xs font-medium text-white bg-[var(--color-accent)] shadow-sm" : "rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700 dark:text-[var(--color-text-muted)] dark:hover:text-[var(--color-text-secondary)]"}>Edit</button>
+                  <button type="button" onClick={() => setPreviewMode(true)} className={previewMode ? "rounded px-2 py-1 text-xs font-medium text-white bg-[var(--color-accent)] shadow-sm" : "rounded px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700 dark:text-[var(--color-text-muted)] dark:hover:text-[var(--color-text-secondary)]"}>Preview</button>
                 </div>
               </div>
               {/* Rich text toolbar */}
@@ -467,7 +503,12 @@ const [uploadingImage, setUploadingImage] = useState(false);
                   value={form.message}
                   onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
                   rows={6}
-                  className="w-full border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-400/20"
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`w-full border bg-white px-3 py-2 text-sm text-gray-900 outline-none focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15 transition-colors ${dragOver ? "border-blue-400 border-dashed bg-blue-50/70 ring-2 ring-blue-300/40 dark:bg-blue-500/10" : "border-gray-300"}`}
+                  placeholder="Write your message... (Markdown supported, drag & drop images here)"
                 />
               )}
               {!previewMode && uploadingImage && <span className="text-xs text-gray-500">Uploading...</span>}
@@ -495,7 +536,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center justify-center rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="inline-flex items-center justify-center rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? 'Submitting...' : 'Submit'}
               </button>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
+import ThemeToggle from "@/components/theme-toggle";
 
 const RESEARCH_FIELDS = [
   "Nutrition and Food Hygiene",
@@ -117,7 +118,10 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-[var(--color-bg)] flex items-center justify-center p-4">
+      <div className="absolute right-4 top-4 z-40">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-xl rounded-2xl bg-white shadow-lg p-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -158,7 +162,7 @@ export default function OnboardingPage() {
                   onClick={() => toggleTool(tool)}
                   className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                     selectedTools.includes(tool)
-                      ? "bg-slate-800 text-white"
+                      ? "bg-[var(--color-accent)] text-white"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
@@ -202,7 +206,7 @@ export default function OnboardingPage() {
           <button
             type="submit"
             disabled={saving || !researchField}
-            className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+            className="w-full rounded-xl bg-[var(--color-accent)] px-4 py-3 text-sm font-medium text-white hover:bg-[var(--color-accent-dark)] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
           >
             {saving && (
               <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">

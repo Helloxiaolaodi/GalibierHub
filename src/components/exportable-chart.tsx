@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 
 type EChartsOption = Record<string, unknown>;
@@ -31,6 +31,7 @@ async function exportAsSVG(
   width: number,
   height: number,
   filename: string,
+  background: string,
 ) {
   const echarts = await import('echarts');
   const div = document.createElement('div');
@@ -43,7 +44,7 @@ async function exportAsSVG(
     if (!svg) throw new Error('SVG not rendered');
     const clone = svg.cloneNode(true) as SVGElement;
     clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    clone.setAttribute('style', `${clone.getAttribute('style') || ''};background:#fff`);
+    clone.setAttribute('style', `${clone.getAttribute('style') || ''};background:${background}`);
     const svgString = new XMLSerializer().serializeToString(clone);
     downloadURL(
       'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString),
@@ -62,11 +63,32 @@ export default function ExportableChart({
   height = 260,
 }: ExportableChartProps) {
   const ref = useRef<ReactECharts | null>(null);
+  const [themeSurface, setThemeSurface] = useState('#ffffff');
+
+  useEffect(() => {
+    const sync = () => {
+      const surface = getComputedStyle(document.documentElement).getPropertyValue('--color-surface').trim();
+      setThemeSurface(surface || '#ffffff');
+    };
+    sync();
+    window.addEventListener('galibierhub-theme-changed', sync);
+    window.addEventListener('galibierhub-settings-updated', sync);
+    window.addEventListener('storage', sync);
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const onMedia = () => sync();
+    media.addEventListener('change', onMedia);
+    return () => {
+      window.removeEventListener('galibierhub-theme-changed', sync);
+      window.removeEventListener('galibierhub-settings-updated', sync);
+      window.removeEventListener('storage', sync);
+      media.removeEventListener('change', onMedia);
+    };
+  }, []);
 
   const handlePNG = () => {
     const inst = ref.current?.getEchartsInstance();
     if (!inst) return;
-    const url = inst.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
+    const url = inst.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: themeSurface });
     downloadURL(url, `${exportBaseName}.png`);
   };
 
@@ -74,27 +96,27 @@ export default function ExportableChart({
     const inst = ref.current?.getEchartsInstance();
     const w = inst?.getWidth() ?? 800;
     const h = inst?.getHeight() ?? height;
-    exportAsSVG(option, w, h, `${exportBaseName}.svg`);
+    exportAsSVG(option, w, h, `${exportBaseName}.svg`, themeSurface);
   };
 
   return (
-    <div className="border rounded-lg bg-white overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b bg-gray-50">
-        <div className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+    <div className="border border-[var(--color-border)] rounded-lg bg-[var(--color-surface)] overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)]">
+        <div className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
           {title}
         </div>
         <div className="flex gap-1">
           <button type="button" 
             onClick={handlePNG}
             title="Download 2× PNG"
-            className="px-2 py-0.5 text-[11px] font-medium border rounded hover:bg-white text-gray-700"
+            className="px-2 py-0.5 text-[11px] font-medium border border-[var(--color-border)] rounded hover:bg-[var(--color-surface)] text-[var(--color-text-secondary)]"
           >
             PNG
           </button>
           <button type="button" 
             onClick={handleSVG}
             title="Download publication-ready SVG"
-            className="px-2 py-0.5 text-[11px] font-medium border rounded hover:bg-white text-gray-700"
+            className="px-2 py-0.5 text-[11px] font-medium border border-[var(--color-border)] rounded hover:bg-[var(--color-surface)] text-[var(--color-text-secondary)]"
           >
             SVG
           </button>

@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense, useCallback, useState } from "react";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
+import ThemeToggle from "@/components/theme-toggle";
 
 function CheckEmailContent() {
   const searchParams = useSearchParams();
@@ -34,7 +35,10 @@ function CheckEmailContent() {
   }, [email]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7] px-4">
+    <div className="relative min-h-screen flex items-center justify-center bg-[var(--color-bg)] px-4">
+      <div className="absolute right-4 top-4 z-40">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md text-center">
         {/* Envelope icon */}
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100">
@@ -75,7 +79,7 @@ function CheckEmailContent() {
           <button
             onClick={handleResend}
             disabled={resending}
-            className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 transition-colors"
+            className="w-full rounded-xl bg-[var(--color-accent)] px-4 py-3 text-sm font-medium text-white hover:bg-[var(--color-accent-dark)] disabled:opacity-50 transition-colors"
           >
             {resending ? "Sending..." : "Resend confirmation email"}
           </button>

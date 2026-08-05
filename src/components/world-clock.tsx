@@ -111,7 +111,7 @@ export default function WorldClock() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setOpen((p) => !p);
       }
@@ -125,7 +125,7 @@ export default function WorldClock() {
       <button
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-slate-800 hover:border-gray-300 transition-colors"
-        title="World Clock (Ctrl+K)"
+        title="World Clock (Ctrl+Shift+K)"
       >
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" strokeWidth={1.5} />
@@ -133,7 +133,7 @@ export default function WorldClock() {
           <path strokeWidth={1.5} d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10M12 2a15.3 15.3 0 00-4 10 15.3 15.3 0 004 10" />
         </svg>
         <span className="hidden sm:inline">World Clock</span>
-        <kbd className="hidden sm:inline-flex items-center rounded border border-gray-300 bg-gray-100 px-1.5 py-0 text-[10px] font-mono text-gray-500">Ctrl+K</kbd>
+        <kbd className="hidden sm:inline-flex items-center rounded border border-gray-300 bg-gray-100 px-1.5 py-0 text-[10px] font-mono text-gray-500">Ctrl+Shift+K</kbd>
       </button>
 
       {open && createPortal(

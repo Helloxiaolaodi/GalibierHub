@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
@@ -255,13 +255,13 @@ export default function AuthModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-slate-800">
+          <h3 className="text-lg font-semibold text-[var(--color-text)]">
             {mode === "forgot-password" ? "Reset your password" : mode === "email-signup" ? "Create your account" : "Sign in to GalibierHub"}
           </h3>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-[var(--color-surface-muted)] transition-colors">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -270,14 +270,14 @@ export default function AuthModal({
         <div className="flex border-b border-gray-100">
           <button
             onClick={() => { setMode("github"); setAuthError(null); setSignupSuccess(false); }}
-            className={`flex-1 py-3 text-sm font-medium transition-colors ${isGitHubMode ? "text-slate-800 border-b-2 border-slate-800" : "text-gray-500 hover:text-gray-700"}`}
+            className={"relative flex-1 py-3 text-sm font-medium transition-colors " + (isGitHubMode ? "text-[var(--color-text)] after:absolute after:inset-x-3 after:-bottom-px after:h-[3px] after:rounded-t after:bg-[var(--color-accent)]" : "text-slate-400 hover:text-slate-700 dark:text-[var(--color-text-muted)] dark:hover:text-[var(--color-text-secondary)]")}
           >
             <svg className="inline-block h-4 w-4 mr-1.5 -mt-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
             GitHub
           </button>
           <button
             onClick={() => { setMode("email-login"); setAuthError(null); setSignupSuccess(false); }}
-            className={`flex-1 py-3 text-sm font-medium transition-colors ${isEmailMode ? "text-slate-800 border-b-2 border-slate-800" : "text-gray-500 hover:text-gray-700"}`}
+            className={"relative flex-1 py-3 text-sm font-medium transition-colors " + (isEmailMode ? "text-[var(--color-text)] after:absolute after:inset-x-3 after:-bottom-px after:h-[3px] after:rounded-t after:bg-[var(--color-accent)]" : "text-slate-400 hover:text-slate-700 dark:text-[var(--color-text-muted)] dark:hover:text-[var(--color-text-secondary)]")}
           >
             <svg className="inline-block h-4 w-4 mr-1.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             Email
@@ -325,7 +325,7 @@ export default function AuthModal({
                     <p className="font-medium">{mode === "forgot-password" ? "Password reset email sent" : "Check your email"}</p>
                     <p className="mt-1">{mode === "forgot-password" ? "A password reset link has been sent to" : "A confirmation link has been sent to"} <strong>{email}</strong>. {mode === "forgot-password" ? "Click the link to set a new password." : "Click the link to activate your account, then sign in."}</p>
                   </div>
-                  <button onClick={() => { setSignupSuccess(false); setMode("email-login"); }} className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                  <button onClick={() => { setSignupSuccess(false); setMode("email-login"); }} className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-[var(--color-border)] dark:text-[var(--color-text-secondary)] dark:hover:bg-[var(--color-surface-muted)] transition-colors">
                     Back to Sign In
                   </button>
                 </div>
@@ -350,12 +350,12 @@ export default function AuthModal({
                     />
                   </div>
                   <button onClick={handleForgotPassword} disabled={loading || !turnstileToken}
-                    className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                    className="w-full rounded-xl bg-[var(--color-accent)] px-4 py-3 text-sm font-medium text-white hover:bg-[var(--color-accent-dark)] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                   >
                     {loading && <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
                     {loading ? "Sending..." : "Send Reset Link"}
                   </button>
-                  <button onClick={() => { setMode("email-login"); setAuthError(null); }} className="w-full text-center text-xs text-slate-600 hover:text-slate-800 font-medium hover:underline">
+                  <button onClick={() => { setMode("email-login"); setAuthError(null); }} className="w-full text-center text-xs text-slate-600 hover:text-slate-800 dark:text-[var(--color-text-secondary)] dark:hover:text-[var(--color-text)] font-medium hover:underline">
                     Back to Sign In
                   </button>
                 </>
@@ -414,7 +414,7 @@ export default function AuthModal({
                   <button
                     onClick={mode === "email-login" ? handleEmailSignIn : handleEmailSignUp}
                     disabled={loading || !turnstileToken}
-                    className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                    className="w-full rounded-xl bg-[var(--color-accent)] px-4 py-3 text-sm font-medium text-white hover:bg-[var(--color-accent-dark)] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                   >
                     {loading && <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
                    {mode === "email-login" ? (loading ? "Signing in..." : "Sign In with Email") : (loading ? "Creating account..." : "Create Account")}

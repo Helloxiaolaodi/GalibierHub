@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import ThemeToggle from "@/components/theme-toggle";
 
 function CopyButton({ text, className }: { text: string; className?: string }) {
   const [copied, setCopied] = useState(false);
@@ -29,14 +30,14 @@ function CopyButton({ text, className }: { text: string; className?: string }) {
 function TabbedCode({ tabs }: { tabs: { label: string; lang: string; code: string }[] }) {
   const [active, setActive] = useState(0);
   return (
-    <div className="group/code my-5 overflow-hidden rounded-lg border border-gray-200 shadow-sm">
-      <div className="flex items-center border-b border-gray-200 bg-[#f6f8fa]">
+    <div className="group/code my-5 overflow-hidden rounded-lg border border-[var(--color-border)] shadow-sm">
+      <div className="flex items-center border-b border-[var(--color-border)] bg-[var(--color-surface-muted)]">
         <div className="flex flex-1">
           {tabs.map((t, i) => (
             <button
               key={t.label}
               onClick={() => setActive(i)}
-              className={`px-4 py-2.5 text-xs font-medium transition-colors ${i === active ? "border-b-2 border-blue-600 bg-white text-gray-900" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"}`}
+              className={`px-4 py-2.5 text-xs font-medium transition-colors ${i === active ? "border-b-2 border-[var(--color-accent)] bg-[var(--color-surface)] text-[var(--color-text)]" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-[var(--color-text-muted)] dark:hover:text-[var(--color-text-secondary)] dark:hover:bg-[var(--color-surface-muted)]"}`}
             >
               {t.label}
             </button>
@@ -44,7 +45,7 @@ function TabbedCode({ tabs }: { tabs: { label: string; lang: string; code: strin
         </div>
         <CopyButton text={tabs[active].code} />
       </div>
-      <div className="overflow-x-auto bg-[#f6f8fa] px-5 py-4">
+      <div className="overflow-x-auto bg-[var(--color-surface-muted)] px-5 py-4">
         <pre className="text-[13px] leading-7 text-gray-800"><code>{tabs[active].code}</code></pre>
       </div>
     </div>
@@ -85,7 +86,7 @@ function Admonition({ type, title, children }: { type: "note" | "tip" | "warning
 function StepHeading({ id, step, title }: { id: string; step: string; title: string }) {
   return (
     <h2 id={id} className="group scroll-mt-20 flex items-baseline gap-3 border-b border-gray-200 pb-3 pt-2">
-      <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">{step}</span>
+      <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-xs font-bold text-white">{step}</span>
       <a href={`#${id}`} className="text-lg font-bold text-gray-900 no-underline hover:underline decoration-gray-300 underline-offset-4">
         {title}
         <span className="ml-2 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity text-base font-normal">#</span>
@@ -165,14 +166,19 @@ export default function DownloadCliGuidePage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-[var(--color-bg)]">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/20 bg-white/70 px-4 py-2.5 backdrop-blur-xl saturate-150 shadow-sm dark:bg-[#16203A]/80 dark:border-[#334155]/90 sm:px-6 lg:px-8">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Download &amp; CLI Usage Guide</span>
+        <ThemeToggle />
+      </header>
+
       {searchOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-16" onClick={() => setSearchOpen(false)}>
-          <div className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-xl rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
               <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
               <input ref={searchInputRef} value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); doSearch(e.target.value); }} placeholder="Search this guide..." className="flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400" autoFocus />
-              <kbd className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-mono text-gray-500">ESC</kbd>
+              <kbd className="rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-1.5 py-0.5 text-[10px] font-mono text-gray-500">ESC</kbd>
             </div>
             {searchResults.length > 0 && (
               <div className="max-h-72 overflow-y-auto px-4 py-2">
@@ -187,7 +193,7 @@ export default function DownloadCliGuidePage() {
             {searchQuery.trim() && searchResults.length === 0 && (
               <div className="px-4 py-6 text-center text-sm text-gray-500">No results found.</div>
             )}
-            <div className="border-t border-gray-100 px-4 py-2 text-[11px] text-gray-400">Press <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">Ctrl</kbd>+<kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">F</kbd> to open search at any time</div>
+            <div className="border-t border-gray-100 px-4 py-2 text-[11px] text-gray-400">Press <kbd className="rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-1 py-0.5 font-mono text-[10px]">Ctrl</kbd>+<kbd className="rounded border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-1 py-0.5 font-mono text-[10px]">F</kbd> to open search at any time</div>
           </div>
         </div>
       )}
@@ -200,7 +206,7 @@ export default function DownloadCliGuidePage() {
 
         <div className="mt-6 flex gap-8">
           <div ref={contentRef} className="min-w-0 flex-1 max-w-3xl">
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-10">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-sm sm:p-10">
               <h1 className="text-2xl font-bold text-gray-900">Download &amp; CLI Usage Guide</h1>
               <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
                 <span>Last updated: Aug 2026</span>
@@ -211,7 +217,7 @@ export default function DownloadCliGuidePage() {
 
               <Admonition type="note" title="About the Records Folder">The <strong>Records</strong> folder in Downloads is specifically the collection of all files shown in the Records interface. Files inside it can be downloaded, selected, exported, and batch-downloaded exactly like files in other Downloads folders.</Admonition>
 
-              <div className="mt-12 rounded-xl border border-gray-100 bg-gray-50/50 p-5 sm:p-6">
+              <div className="mt-12 rounded-xl border border-gray-100 bg-[var(--color-surface-muted)] p-5 sm:p-6">
                 <StepHeading id="option-1-download-to-browser" step="1" title="Download to Browser" />
                 <p className="mt-3 text-sm leading-7 text-gray-700">The simplest way to obtain a file is directly through your web browser. This method is ideal for single files or users who are not comfortable with the command line.</p>
                 <p className="mt-3 text-sm leading-7 text-gray-700">For this example, let us locate <Link href="/downloads/?folder=Learning-Resources&select=rrnDB-5.10_16S_rRNA.fasta" className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-blue-700 underline decoration-blue-300 hover:bg-blue-50 hover:text-blue-900 transition-colors">rrnDB-5.10_16S_rRNA.fasta</Link> (419 MB) in the <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800">Learning-Resources</code> directory.</p>
@@ -228,7 +234,7 @@ export default function DownloadCliGuidePage() {
                 <Admonition type="tip" title="Slow speeds in Asia?">If you are accessing the site from China or nearby regions and experiencing slow speeds on Global (Official), switch to Asia-Pacific (Mirror) for a significant speed improvement.</Admonition>
               </div>
 
-              <div className="mt-12 rounded-xl border border-gray-100 bg-gray-50/50 p-5 sm:p-6">
+              <div className="mt-12 rounded-xl border border-gray-100 bg-[var(--color-surface-muted)] p-5 sm:p-6">
                 <StepHeading id="option-2-command-line-interface" step="2" title="Command Line Interface (CLI)" />
                 <p className="mt-3 text-sm leading-7 text-gray-700">For large files like our 419 MB example, or when working directly on a Linux server, using the CLI is highly recommended. The GalibierHub interface provides ready-to-use commands tailored to your operating system.</p>
                 <p className="mt-3 text-sm leading-7 text-gray-700">Click the white <strong>CLI</strong> button next to <Link href="/downloads/?folder=Learning-Resources&select=rrnDB-5.10_16S_rRNA.fasta" className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-blue-700 underline decoration-blue-300 hover:bg-blue-50 hover:text-blue-900 transition-colors">rrnDB-5.10_16S_rRNA.fasta</Link>. Below are the most common methods you will see in the panel:</p>
@@ -241,7 +247,7 @@ export default function DownloadCliGuidePage() {
                 <Admonition type="tip" title="Resume interrupted downloads">The Hugging Face CLI (<code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[11px] text-gray-800">hf download</code>) automatically resumes interrupted downloads. Plain <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[11px] text-gray-800">wget</code>/<code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[11px] text-gray-800">curl</code> do not, so add <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[11px] text-gray-800">-c</code> or <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[11px] text-gray-800">-C -</code> respectively for resume support.</Admonition>
               </div>
 
-              <div className="mt-12 rounded-xl border border-gray-100 bg-gray-50/50 p-5 sm:p-6">
+              <div className="mt-12 rounded-xl border border-gray-100 bg-[var(--color-surface-muted)] p-5 sm:p-6">
                 <StepHeading id="option-3-file-integrity-verification" step="3" title="File Integrity Verification" />
                 <p className="mt-3 text-sm leading-7 text-gray-700">Data corruption can silently ruin downstream bioinformatics analyses. We strongly encourage verifying the integrity of large files after downloading.</p>
                 <p className="mt-3 text-sm leading-7 text-gray-700">Switch to the <strong>Checksum</strong> tab in the download modal. You can copy the exact SHA-256 validation command and run it in the directory where your file was downloaded.</p>
@@ -254,7 +260,7 @@ export default function DownloadCliGuidePage() {
                 <Admonition type="note" title="Where to find the checksum">The SHA-256 checksum for each file is displayed in the CLI modal under the <strong>Checksum</strong> tab. The checksums are also available in the <strong>Cluster Batch Download</strong> manifest for bulk verification.</Admonition>
               </div>
 
-              <div className="mt-12 rounded-xl border border-gray-100 bg-gray-50/50 p-5 sm:p-6">
+              <div className="mt-12 rounded-xl border border-gray-100 bg-[var(--color-surface-muted)] p-5 sm:p-6">
                 <StepHeading id="option-4-cluster-batch-download" step="4" title="Cluster Batch Download" />
                 <p className="mt-3 text-sm leading-7 text-gray-700">When you need to download multiple genomes or an entire directory, downloading them one by one is inefficient. GalibierHub provides a built-in <strong>Cluster Batch Download</strong> tool that generates complete Python and SLURM scripts.</p>
                 <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-7 text-gray-700">
@@ -269,7 +275,7 @@ export default function DownloadCliGuidePage() {
                 <Admonition type="warning" title="Remember to verify after download">After the batch download completes, navigate to your download directory and run <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[11px] text-gray-800">sha256sum -c SHA256SUMS</code> to verify every file. The manifest is automatically included in the generated script.</Admonition>
               </div>
 
-              <div className="mt-12 rounded-xl border border-gray-100 bg-gray-50/50 p-5 sm:p-6" id="records-folder-section">
+              <div className="mt-12 rounded-xl border border-gray-100 bg-[var(--color-surface-muted)] p-5 sm:p-6" id="records-folder-section">
                 <StepHeading id="records-folder" step="\u2B50" title="The Records Folder" />
                 <p className="mt-3 text-sm leading-7 text-gray-700">The <strong>Records</strong> folder in the Downloads interface is a dedicated directory containing all files shown in the Records interface. It is always listed first among the download folders.</p>
                 <p className="mt-3 text-sm leading-7 text-gray-700">Every file inside the Records folder supports the same workflows as files in other folders:</p>
@@ -302,11 +308,11 @@ export default function DownloadCliGuidePage() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-6 rounded-lg border border-gray-200 bg-white p-3">
-                <button onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }} className="flex w-full items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 transition-colors">
+              <div className="mt-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                <button onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }} className="flex w-full items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 transition-colors">
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                   Search guide...
-                  <kbd className="ml-auto rounded border border-gray-200 bg-white px-1 py-0.5 text-[10px] font-mono text-gray-400">Ctrl+F</kbd>
+                  <kbd className="ml-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1 py-0.5 text-[10px] font-mono text-gray-400">Ctrl+F</kbd>
                 </button>
               </div>
             </div>

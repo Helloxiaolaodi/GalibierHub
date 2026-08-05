@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -356,7 +356,7 @@ export default function UserProfileCard({
   return createPortal(
     <div
       ref={cardRef}
-      className="fixed z-[100] rounded-2xl border border-gray-200 bg-white shadow-2xl p-5"
+      className="fixed z-[100] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl p-5"
       style={{ top, left, width: cardWidth }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -436,7 +436,7 @@ export default function UserProfileCard({
            <button
              onClick={toggleFollow}
              disabled={followLoading}
-              className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${isFollowing ? 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-red-50 hover:text-red-600 hover:border-red-200' : 'bg-slate-800 text-white hover:bg-slate-700'}`}
+              className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${isFollowing ? 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:bg-[var(--color-surface-muted)] dark:text-[var(--color-text-secondary)] dark:border-[var(--color-border)] dark:hover:bg-red-500/10 dark:hover:text-red-300' : 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-dark)]'}`}
            >
               {followLoading ? "..." : isFollowing ? "Unfollow" : "Follow"}
             </button>
@@ -445,7 +445,7 @@ export default function UserProfileCard({
             <button
               onClick={handleSaveProfile}
               disabled={savingProfile}
-              className="flex-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-50 transition-colors"
+              className="flex-1 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--color-accent-dark)] disabled:opacity-50 transition-colors"
             >
               {savingProfile ? "Saving..." : profileSaved ? "Saved!" : "Save Profile"}
             </button>

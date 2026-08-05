@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 
 
@@ -16,6 +16,7 @@ import UserMenuPanel from "@/components/user-menu-panel";
 
 import UserProfileCard from "@/components/user-profile-card";
 import Logo from "@/components/logo";
+import ThemeToggle from "@/components/theme-toggle";
 
 import AuthModal from "@/components/auth-modal";
 
@@ -55,6 +56,21 @@ function getInitials(n: string): string {
 
   return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.substring(0,2).toUpperCase();
 
+}
+
+const AVATAR_GRADIENTS = [
+  "bg-gradient-to-br from-slate-400 to-slate-600",
+  "bg-gradient-to-br from-sky-400 to-indigo-500",
+  "bg-gradient-to-br from-teal-400 to-emerald-600",
+  "bg-gradient-to-br from-amber-400 to-orange-500",
+  "bg-gradient-to-br from-rose-400 to-pink-500",
+  "bg-gradient-to-br from-violet-400 to-purple-600",
+];
+function getAvatarClass(n: string): string {
+  if (!n) return AVATAR_GRADIENTS[0];
+  let h = 0;
+  for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0;
+  return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length];
 }
 
 function formatTimeAgo(d: string): string {
@@ -722,9 +738,9 @@ export default function DiscussionsPage() {
 
   return (
 
-    <div className="min-h-screen bg-[#F5F5F7]">
+    <div className="min-h-screen bg-[var(--color-bg)]">
 
-      <header className="sticky top-0 z-40 border-b border-white/20 bg-white/70 backdrop-blur-xl saturate-150 shadow-sm">
+      <header className="sticky top-0 z-40 border-b border-white/20 bg-white/70 backdrop-blur-xl saturate-150 shadow-sm dark:bg-[#16203A]/80 dark:border-[#334155]/90">
 
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
 
@@ -746,16 +762,17 @@ export default function DiscussionsPage() {
               <UserMenuPanel session={session} githubUser={githubUser} isAdmin={isAdmin} onSignOut={handleSignOut} avatarUrl={avatarUrl} />
             ) : (
               <>
-                <button onClick={() => { setAuthInitialMode("github"); setAuthModalOpen(true); }} className="rounded-lg border border-slate-200 bg-slate-800 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-slate-700">
+                <button onClick={() => { setAuthInitialMode("github"); setAuthModalOpen(true); }} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-dark)]">
                   Sign in
                 </button>
 
               </>
             )}
 
+            <ThemeToggle />
             <WorldClock />
 
-            <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="rounded-lg bg-slate-800 px-4 py-1.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all">New Discussion</button>
+            <button onClick={()=>{setShowComposer(true);setComposerError(null);setComposerSuccess(null);}} className="rounded-lg bg-[var(--color-accent)] px-4 py-1.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-[var(--color-accent-dark)] active:bg-[var(--color-accent-dark)] active:scale-[0.98] transition-all">New Discussion</button>
 
             <NotificationBell session={session} />
 
@@ -807,7 +824,7 @@ export default function DiscussionsPage() {
 
               placeholder="Search discussions by title, content, or author..."
 
-              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all shadow-sm"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-2.5 pl-10 pr-4 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all shadow-sm"
 
             />
 
@@ -841,7 +858,7 @@ export default function DiscussionsPage() {
 
             <select value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
 
-              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 outline-none focus:border-slate-400 cursor-pointer">
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs text-gray-700 outline-none focus:border-slate-400 cursor-pointer">
 
               <option value="all">All Categories</option>
               <option value="issue">Issue</option>
@@ -863,7 +880,7 @@ export default function DiscussionsPage() {
 
                   (statusFilter===f
 
-                    ? "border-slate-800 text-slate-900"
+                    ? "border-[var(--color-accent)] text-[var(--color-text)]"
 
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")}>
 
@@ -883,7 +900,7 @@ export default function DiscussionsPage() {
 
             <select value={sortMode} onChange={e=>setSortMode(e.target.value as SortMode)}
 
-              className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none focus:border-slate-400 cursor-pointer">
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-xs text-gray-700 outline-none focus:border-slate-400 cursor-pointer">
 
               <option value="newest">Newest</option>
 
@@ -902,13 +919,13 @@ export default function DiscussionsPage() {
 
 
 
-        {loading&&<div className="space-y-4">{Array.from({length:5}).map((_,i)=>(<div key={i} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]"><div className="flex items-start gap-4"><div className="skeleton h-10 w-10 rounded-full"/><div className="flex-1 space-y-3"><div className="skeleton h-5 w-3/4 rounded"/><div className="skeleton h-4 w-1/2 rounded"/><div className="skeleton h-4 w-full rounded"/></div><div className="text-right space-y-2"><div className="skeleton h-4 w-12 rounded ml-auto"/><div className="skeleton h-3 w-16 rounded ml-auto"/></div></div></div>))}</div>}
+        {loading&&<div className="space-y-4">{Array.from({length:5}).map((_,i)=>(<div key={i} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]"><div className="flex items-start gap-4"><div className="skeleton h-10 w-10 rounded-full"/><div className="flex-1 space-y-3"><div className="skeleton h-5 w-3/4 rounded"/><div className="skeleton h-4 w-1/2 rounded"/><div className="skeleton h-4 w-full rounded"/></div><div className="text-right space-y-2"><div className="skeleton h-4 w-12 rounded ml-auto"/><div className="skeleton h-3 w-16 rounded ml-auto"/></div></div></div>))}</div>}
 
         {error&&<div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{error} <button onClick={fetchData} className="ml-3 underline hover:no-underline">Retry</button></div>}
 
         {!loading&&!error&&sortedEntries.length===0&&(
 
-          <div className="rounded-2xl border border-gray-100 bg-white px-6 py-12 text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-12 text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
 
             <svg className="mx-auto mb-4 h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
 
@@ -941,11 +958,11 @@ export default function DiscussionsPage() {
               return (
 
                 <div key={entry.id} role="link" tabIndex={0} onClick={()=>router.push("/discussions/"+entry.id)} onMouseEnter={()=>router.prefetch("/discussions/"+entry.id)} onFocus={()=>router.prefetch("/discussions/"+entry.id)} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); router.push("/discussions/"+entry.id);}}}
-                  className="block rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-gray-200 transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-teal-500">
+                  className="block rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-gray-200 transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-teal-500">
 
                   <div className="flex items-start gap-4">
 
-                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(entry.display_name); setProfileCardUserId(entry.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-sm font-semibold text-white hover:ring-2 hover:ring-slate-300 transition-all cursor-pointer">{getInitials(entry.display_name)}</button>
+                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileCardName(entry.display_name); setProfileCardUserId(entry.user_id || null); setProfileCardAnchor(e.currentTarget); setProfileCardOpen(true); }} className={"flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold text-white hover:ring-2 hover:ring-slate-300 transition-all cursor-pointer "+getAvatarClass(entry.display_name)}>{getInitials(entry.display_name)}</button>
 
                     <div className="flex-1 min-w-0">
 
@@ -955,9 +972,9 @@ export default function DiscussionsPage() {
 
                         {entry.affiliation && <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">{entry.affiliation}</span>}
 
-                        {isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"><svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>Resolved</span>}
+                        {isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200"><svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>Resolved</span>}
 
-                        {!isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">In Progress</span>}
+                        {!isResolved&&<span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">In Progress</span>}
                         {modMode&&entry.hidden&&<span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Hidden</span>}
 
                         
@@ -1049,7 +1066,7 @@ export default function DiscussionsPage() {
 
 
           {/* Pagination footer */}
-          <div className="flex flex-col gap-3 text-sm text-gray-600 lg:flex-row lg:items-center lg:justify-between border-t border-gray-100 bg-white rounded-b-2xl px-4 py-3 mt-3">
+          <div className="flex flex-col gap-3 text-sm text-gray-600 lg:flex-row lg:items-center lg:justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)] rounded-b-2xl px-4 py-3 mt-3">
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">First</button>
               <button type="button" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="inline-flex items-center rounded border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">
@@ -1115,9 +1132,9 @@ export default function DiscussionsPage() {
 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => { setShowComposer(false); setComposerError(null); setComposerSuccess(null); }}>
 
-          <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-2xl rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
 
-            <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/80 px-5 py-3">
+            <div className="flex items-center justify-between border-b border-gray-100 bg-[var(--color-surface-muted)] px-5 py-3">
 
               <h2 className="text-base font-semibold text-gray-900">New Discussion</h2>
 
@@ -1137,11 +1154,11 @@ export default function DiscussionsPage() {
 
               <div>
 
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
 
                 <input type="text" value={composerForm.title} onChange={e => setComposerForm(p => ({...p, title: e.target.value}))} required minLength={3}
 
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all"
+                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15 transition-all"
 
                   placeholder="What would you like to discuss?" />
 
@@ -1155,7 +1172,7 @@ export default function DiscussionsPage() {
 
                   <input type="text" value={composerForm.displayName} onChange={e => setComposerForm(p => ({...p, displayName: e.target.value}))}
 
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all"
+                    className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15 transition-all"
 
                     placeholder={githubUser || "Your name"} />
 
@@ -1167,7 +1184,7 @@ export default function DiscussionsPage() {
 
                   <input type="text" value={composerForm.affiliation||""} onChange={e => setComposerForm(p => ({...p, affiliation: e.target.value}))}
 
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all"
+                    className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15 transition-all"
 
                     placeholder="e.g. Peking University" />
 
@@ -1179,7 +1196,7 @@ export default function DiscussionsPage() {
 
                   <select value={composerForm.category} onChange={e => setComposerForm(p => ({...p, category: e.target.value}))}
 
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all">
+                    className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-gray-900 outline-none focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15 transition-all">
 
                     <option value="issue">Issue</option>
 
@@ -1193,11 +1210,11 @@ export default function DiscussionsPage() {
 
               <div>
 
-                <label className="block text-sm font-medium text-gray-700 mb-1">Message <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
 
                 {/* Toolbar + Edit/Preview toggle */}
 
-                <div className="flex items-center justify-between border border-gray-200 rounded-t-lg bg-gray-50/80 px-3 py-1.5">
+                <div className="flex items-center justify-between border border-gray-200 rounded-t-lg bg-[var(--color-surface-muted)] px-3 py-1.5">
 
                   <div className="flex items-center gap-1">
 
@@ -1252,9 +1269,9 @@ export default function DiscussionsPage() {
 
                   <textarea ref={composerRef} value={composerForm.message} onChange={e => setComposerForm(p => ({...p, message: e.target.value}))} required minLength={3} rows={8}
 
-                    className="w-full rounded-b-lg border border-t-0 border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-400/10 transition-all resize-y"
+                    className="w-full rounded-b-lg border border-t-0 border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus-ring-soft focus:border-blue-300 focus:ring-4 focus:ring-blue-400/15 transition-all resize-y"
 
-                    placeholder="Write your message... (Markdown supported)" />
+                    placeholder="Write your message... (Markdown supported, drag & drop images here)" />
 
                 )}
 

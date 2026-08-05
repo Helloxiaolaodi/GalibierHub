@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import CommandPalette from "@/components/command-palette";
 
 export const metadata: Metadata = {
   title: "GalibierHub",
@@ -13,13 +14,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="antialiased">
+    <html lang="en" className="antialiased" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('galibierhub-theme');var dark=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);}catch(e){}})();`,
+          }}
+        />
         <link rel="icon" href="/galibierhub-logo.svg" type="image/svg+xml" />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className="min-h-screen bg-gray-50 font-sans">
+      <body className="min-h-screen bg-background font-sans">
         {children}
+        <CommandPalette />
       </body>
     </html>
   );

@@ -7,6 +7,7 @@ import { getDirectDownloadUrl } from '@/lib/storage';
 import type { SampleMetadata } from '@/types/genome';
 import DownloadActions from '@/components/download-actions';
 import { useDownloadVisibility } from '@/hooks/use-download-visibility';
+import ThemeToggle from '@/components/theme-toggle';
 
 export default function PromoterDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState<string>('');
@@ -50,25 +51,28 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
     });
   }, [params]);
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-gray-500">Loading record...</div></div>;
+  if (loading) return <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center"><div className="text-gray-500">Loading record...</div></div>;
 
   if (!promoter) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Record not found</h1>
         <p className="text-gray-500">ID: {id}</p>
-        <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Back to GalibierHub</Link>
+        <Link href="/" className="px-4 py-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-dark)] text-white rounded-lg text-sm transition-colors">Back to GalibierHub</Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
+    <div className="min-h-screen bg-[var(--color-bg)]">
+      <header className="bg-white border-b border-gray-200 dark:bg-[var(--color-surface)] dark:border-[var(--color-border)]">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/" className="text-sm text-blue-600 hover:underline">Back to GalibierHub</Link>
+          <Link href="/" className="text-sm text-[var(--color-link)] hover:underline">Back to GalibierHub</Link>
           <div className="w-px h-5 bg-gray-300" />
           <h1 className="text-lg font-bold text-gray-900">Record details</h1>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -80,23 +84,23 @@ export default function PromoterDetailPage({ params }: { params: Promise<{ id: s
           <span>{promoter.strand} strand</span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white border rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Feature</div><div className="text-xl font-bold">{promoter.gene_symbol || 'N/A'}</div></div>
-          <div className="bg-white border rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Score</div><div className="text-xl font-bold" style={{ color: promoter.score > 0.85 ? '#22c55e' : promoter.score > 0.7 ? '#eab308' : '#ef4444' }}>{promoter.score.toFixed(4)}</div></div>
-          <div className="bg-white border rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Length</div><div className="text-xl font-bold">{(promoter.end_pos - promoter.start).toLocaleString()} bp</div></div>
-          <div className="bg-white border rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Sample ID</div><div className="text-sm font-bold">{promoter.sample_id}</div></div>
+          <div className="bg-white border border-gray-200 dark:bg-[var(--color-surface)] dark:border-[var(--color-border)] rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Feature</div><div className="text-xl font-bold">{promoter.gene_symbol || 'N/A'}</div></div>
+          <div className="bg-white border border-gray-200 dark:bg-[var(--color-surface)] dark:border-[var(--color-border)] rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Score</div><div className="text-xl font-bold" style={{ color: promoter.score > 0.85 ? 'var(--color-success)' : promoter.score > 0.7 ? 'var(--color-warning)' : 'var(--color-danger)' }}>{promoter.score.toFixed(4)}</div></div>
+          <div className="bg-white border border-gray-200 dark:bg-[var(--color-surface)] dark:border-[var(--color-border)] rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Length</div><div className="text-xl font-bold">{(promoter.end_pos - promoter.start).toLocaleString()} bp</div></div>
+          <div className="bg-white border border-gray-200 dark:bg-[var(--color-surface)] dark:border-[var(--color-border)] rounded-lg p-4"><div className="text-xs text-gray-500 uppercase">Sample ID</div><div className="text-sm font-bold">{promoter.sample_id}</div></div>
         </div>
-        <div className="bg-white border rounded-lg p-4">
+        <div className="bg-white border border-gray-200 dark:bg-[var(--color-surface)] dark:border-[var(--color-border)] rounded-lg p-4">
           <h3 className="text-sm font-semibold mb-2">Score</h3>
           <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: (promoter.score * 100) + '%', backgroundColor: promoter.score > 0.85 ? '#22c55e' : promoter.score > 0.7 ? '#eab308' : '#ef4444' }} />
+            <div className="h-full rounded-full" style={{ width: (promoter.score * 100) + '%', backgroundColor: promoter.score > 0.85 ? 'var(--color-success)' : promoter.score > 0.7 ? 'var(--color-warning)' : 'var(--color-danger)' }} />
           </div>
         </div>
         <div className="flex gap-3">
-          <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Open in GalibierHub</Link>
-          <button type="button" onClick={() => navigator.clipboard.writeText([promoter.chrom, promoter.start, promoter.end_pos, promoter.gene_symbol || 'NA', promoter.score, promoter.strand].join('\t'))} className="px-4 py-2 border rounded-lg text-sm">Copy as BED</button>
+          <Link href="/" className="px-4 py-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-dark)] text-white rounded-lg text-sm transition-colors">Open in GalibierHub</Link>
+          <button type="button" onClick={() => navigator.clipboard.writeText([promoter.chrom, promoter.start, promoter.end_pos, promoter.gene_symbol || 'NA', promoter.score, promoter.strand].join('\t'))} className="px-4 py-2 border border-gray-200 dark:border-[var(--color-border)] rounded-lg text-sm">Copy as BED</button>
         </div>
         {(downloadsLoaded && (visibleVcfDownloadUrl || visibleFastaDownloadUrl || visibleGbDownloadUrl || visibleBedDownloadUrl || visibleGff3DownloadUrl)) && (
-          <section className="bg-white border rounded-lg p-4 space-y-4">
+          <section className="bg-white border border-gray-200 dark:bg-[var(--color-surface)] dark:border-[var(--color-border)] rounded-lg p-4 space-y-4">
             <h3 className="text-sm font-semibold text-gray-900">Downloads</h3>
             {visibleVcfDownloadUrl && (
               <DownloadActions

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabase } from "@/utils/supabase-browser";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -50,7 +51,10 @@ export default function UpdatePasswordPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-[var(--color-bg)] flex items-center justify-center p-4">
+      <div className="absolute right-4 top-4 z-40">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md rounded-2xl bg-white shadow-lg p-8">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3">
@@ -101,7 +105,7 @@ export default function UpdatePasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full rounded-xl bg-[var(--color-accent)] px-4 py-3 text-sm font-medium text-white hover:bg-[var(--color-accent-dark)] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
               {loading && (
                 <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
