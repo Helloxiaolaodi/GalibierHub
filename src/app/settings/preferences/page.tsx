@@ -27,7 +27,7 @@ export default function PreferencesPage() {
   const [emailNewsletter, setEmailNewsletter] = useState(true);
 
   // Theme
-  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -67,7 +67,7 @@ export default function PreferencesPage() {
       }
 
       // Load prefs from localStorage
-      setTheme((localStorage.getItem("galibierhub-theme") as "light" | "dark" | "system") || "system");
+      setTheme((localStorage.getItem("galibierhub-theme") as "light" | "dark" | "system") || "light");
       setEmailReply(localStorage.getItem("galibierhub-email-reply") !== "false");
       setEmailMention(localStorage.getItem("galibierhub-email-mention") !== "false");
       setEmailNewsletter(localStorage.getItem("galibierhub-email-newsletter") !== "false");

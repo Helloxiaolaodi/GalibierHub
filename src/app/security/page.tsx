@@ -29,18 +29,13 @@ export default function SecurityPolicyPage() {
         <section className="mt-8 border-t border-gray-200 pt-6">
           <h2 className="text-sm font-semibold text-gray-900">Report a Vulnerability</h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-600">
-            Use the GitHub Security Advisories page or email the maintainer directly. Include the
-            affected URL, relevant versions, reproduction steps, impact, and any remediation notes.
+            Use the GitHub Security Advisories page. Include the affected URL, relevant versions,
+            reproduction steps, impact, and any remediation notes.
           </p>
           <div className="mt-3 space-y-2 text-sm text-gray-700">
             <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
               <a className="text-teal-700 hover:underline" href="https://github.com/Helloxiaolaodi/GalibierHub/security/advisories">
                 GitHub Security Advisories
-              </a>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
-              <a className="text-teal-700 hover:underline" href="mailto:yanglun2019@126.com">
-                yanglun2019@126.com
               </a>
             </div>
           </div>

@@ -145,7 +145,7 @@ export default function SiteUptime({ startAt, onNavigateTab }: SiteUptimeProps) 
             <p className="mt-3 text-sm leading-6 text-gray-500">
               Open cohort-scale genomic resources for FASTA/VCF exploration, batch download, and HPC-ready research workflows.
             </p>
-            <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs text-gray-500 shadow-sm">
+            <div className="mt-4 whitespace-nowrap rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs text-gray-500 shadow-sm">
               <span className="font-semibold text-gray-800">Site uptime</span> <span className="font-mono tabular-nums">{text}</span>
               {typeof visitorCount === 'number' && (
                 <>

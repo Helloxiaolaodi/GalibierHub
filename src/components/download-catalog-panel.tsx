@@ -884,7 +884,7 @@ export default function DownloadCatalogPanel({
             <div className="flex items-center gap-3">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-700 text-sm font-bold">CC</span>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Open Access Data</p>
+                <p className="text-sm font-semibold text-slate-900 dark:!text-emerald-400">Open Access Data</p>
                 <p className="text-xs text-teal-700">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-slate-900">CC BY 4.0</a>. Please cite GalibierHub when using this data in publications.</p>
               </div>
             </div>
