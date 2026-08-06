@@ -65,7 +65,7 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 - **Badge System**：游戏化徽章系统，包含 16+ 种徽章类别（入门引导、社区互动、技术极客、里程碑成就），以微型徽章形式展示在用户名旁。
 - **Security.txt**：在 `/.well-known/security.txt` 提供 RFC 9116 安全联系文件，并配套 `/security` 安全策略页与 `/acknowledgments` 致谢页。
  - **Settings & Preferences**：受保护的 /settings/preferences 页面，支持头像照片上传、个人资料编辑、邮件通知偏好和主题切换（浅色 / 深色 / 跟随系统）。
- - **加载系统**：按重量分级的加载反馈系统，包含三个层级。重量级操作（网站首次启动、大队列特征过滤、集群批量下载）触发全屏 `GalibierLoader` 爬坡动画，包含沿发夹弯山路爬升的线框自行车、实时海拔 HUD（0-2,642m）和滚动终端日志。轻量级页面切换使用 `nextjs-toploader`（2px 青色顶部进度条）。`LoadingContext` 实现了 250ms 宽限期和 1.2s 最短展示时间以防止闪烁。
+ - **加载系统**：按重量分级的加载反馈系统，包含三个层级。重量级操作（网站首次启动、大队列特征过滤、集群批量下载）触发全屏 `GalibierLoader` 爬坡动画，包含完整的阿尔卑斯山场景（雪峰、森林山脊、岩壁、带黄色虚线的山路）、精细的骑行者 SVG（腿部、曲柄、车轮动画）、实时海拔 HUD（0-2,642m）和中文标签遥测仪表盘。轻量级页面切换使用 `nextjs-toploader`（2px 青色顶部进度条）。`LoadingContext` 实现了 250ms 宽限期和 2.0s 最短展示时间以防止闪烁。
 
 需要说明的是，当前默认数据结构与界面命名仍然偏向 promoter / genome 的基因组场景。后续 fork 使用者可以自行泛化，但仓库目前仍以基因组数据库模板为主。
 
@@ -841,11 +841,11 @@ GalibierHub 基于一组开源工具构建，用于完成界面渲染、数据�
 
  ## 最近更新
  
- - 新增 `GalibierLoader` 爬坡动画，全面取代所有骨架屏。加载器包含一辆沿发夹弯山路爬升的线框自行车、实时海拔 HUD（0-2,642m，即 Col du Galibier 的真实海拔）以及滚动终端日志面板。该动画用于三个重量级场景：网站首次启动（启动画面）、Records 中的大队列特征过滤、以及 Downloads 中的集群批量下载脚本生成。
+ - 新增 `GalibierLoader` 爬坡动画，全面取代所有骨架屏。加载器现在渲染完整的阿尔卑斯山场景：层叠的雪峰、森林山脊、岩壁和带黄色虚线的山路。精细的骑行者 SVG 包含腿部、曲柄和车轮动画，沿山路爬升。遥测仪表盘显示中文标签（"海拔高度"和"爬坡进度"）以及 D 902 · COL DU GALIBIER 路线徽章。该动画用于三个重量级场景：网站首次启动（启动画面）、Records 中的大队列特征过滤、以及 Downloads 中的集群批量下载脚本生成。
  - 轻量级页面切换（Overview 到 Downloads、Discussions 等）使用 `nextjs-toploader`，在浏览器顶部显示一条 2px 宽的青色进度条，消除了快速导航时骨架屏或全屏加载器的需求。
- - `LoadingContext` 实现了 250ms 宽限期（如果操作在 250ms 内完成，加载器不会出现）和 1.2s 最短展示时间（一旦显示，加载器至少停留 1.2s 以防止闪烁）。
- - `GalibierLoader` 中的终端日志面板使用句首大写格式（例如 "Initializing GalibierHub Telemetry..."），并支持按场景传入日志数组，使每个重量级操作显示其上下文相关的状态信息。
- - `skeleton-screen.tsx` 组件已从所有页面导入中移除，骨架屏不再在应用程序的任何地方使用。
+ - `LoadingContext` 实现了 250ms 宽限期（如果操作在 250ms 内完成，加载器不会出现）和 2.0s 最短展示时间（一旦显示，加载器至少停留 2.0s 以防止闪烁）。`isLoading` 状态初始为 `true`，使启动画面在服务器 HTML 中先于任何页面内容渲染，加载器 DOM 在 Provider 中置于 children 之前。
+ - `skeleton-screen.tsx` 组件已从所有页面导入中移除，骨架屏不再在应用程序的任何地方使用。`src/app/loading.tsx` 文件也已被删除——启动画面现在完全由 `LoadingContext` 管理，`isLoading` 默认为 `true`。
+ - Overview 页面（`page.tsx`）不再在挂载时调用 `showLoading(undefined)`；启动画面已从上下文默认值中可见。它获取 `/api/stats` 并在 2500ms 超时后调用 `hideLoading()`。
  
  - **Overview**：统计图表、悬浮翻转特性卡片（Search & Discovery、Genome Browser、File Distribution、Community & Moderation）。网站首次启动时，会显示全屏 GalibierLoader 爬坡动画作为启动画面。
  - **Records**：记录表格、筛选、详情面板与嵌入式基因组浏览器。大队列特征过滤会触发全屏 GalibierLoader 爬坡动画，并显示查询相关的终端日志。
