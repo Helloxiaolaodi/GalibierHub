@@ -57,7 +57,7 @@ function buildVisitorFingerprint() {
 function formatDuration(startAt: string, now: number) {
   const start = new Date(startAt).getTime();
   if (Number.isNaN(start) || start > now) {
-    return '0 d 0 h 0 m 0 s';
+    return '0d 0h 0m 0s';
   }
 
   let diffSeconds = Math.floor((now - start) / 1000);
@@ -69,7 +69,7 @@ function formatDuration(startAt: string, now: number) {
   diffSeconds -= minutes * 60;
   const seconds = diffSeconds;
 
-  return `${days} d ${hours} h ${minutes} m ${seconds} s`;
+  return `${days}d ${hours}h ${minutes}m ${seconds}s`;
 }
 
 export default function SiteUptime({ startAt, onNavigateTab }: SiteUptimeProps) {
@@ -145,12 +145,14 @@ export default function SiteUptime({ startAt, onNavigateTab }: SiteUptimeProps) 
             <p className="mt-3 text-sm leading-6 text-gray-500">
               Open cohort-scale genomic resources for FASTA/VCF exploration, batch download, and HPC-ready research workflows.
             </p>
-            <div className="mt-4 whitespace-nowrap rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs text-gray-500 shadow-sm">
-              <span className="font-semibold text-gray-800">Site uptime</span> <span className="font-mono tabular-nums">{text}</span>
+            <div className="mt-4 flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs text-gray-500 shadow-sm">
+              <span className="whitespace-nowrap font-semibold text-gray-800">Site uptime</span>
+              <span className="min-w-0 flex-1 break-words font-mono tabular-nums">{text}</span>
               {typeof visitorCount === 'number' && (
                 <>
-                  <span className="mx-2 text-gray-300">|</span>
-                  <span className="font-semibold text-gray-800">{visitorCount.toLocaleString()}</span> visitors
+                  <span aria-hidden="true" className="text-gray-300">·</span>
+                  <span className="whitespace-nowrap font-semibold text-gray-800">{visitorCount.toLocaleString()}</span>
+                  <span className="whitespace-nowrap">visitors</span>
                 </>
               )}
             </div>
