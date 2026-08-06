@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   keywords: ["promoter", "genome", "bioinformatics", "transcription factor", "TFBS", "gene regulation", "galibierhub"],
 };
 
+import NextTopLoader from 'nextjs-toploader';
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,6 +27,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-background font-sans">
+        <NextTopLoader color="#0D9488" height={2} showSpinner={false} />
         <LoadingProvider>
         {children}
         </LoadingProvider>

@@ -16,6 +16,7 @@ import { resolveExpectedAdminGithubLogin } from '@/lib/admin-login';
 import UserMenuPanel from '@/components/user-menu-panel';
 import Logo from '@/components/logo';
 import ThemeToggle from '@/components/theme-toggle';
+import { useLoading } from '@/contexts/LoadingContext';
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 import AuthModal from '@/components/auth-modal';
@@ -87,6 +88,7 @@ export default function HomePage() {
   const tutorialMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const { showLoading, hideLoading } = useLoading();
 
   useEffect(() => {
     if (!tutorialMenuOpen) return;
@@ -195,28 +197,38 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    showLoading(0, [
+      'Initializing GalibierHub Telemetry...',
+      'Establishing Secure Connection...',
+      'Mounting Metagenomic Cohort Volumes...',
+      'Loading Reference Assemblies...',
+    ]);
+
     fetch('/api/stats')
       .then((res) => res.json())
       .then((data) => {
         if (data && !data.error) {
           setStats(data);
           setDataError(null);
+          hideLoading();
           return;
         }
         setStats(null);
         setDataError(data?.error || 'Unable to load dashboard metrics from the current data source.');
+        hideLoading();
       })
       .catch(() => {
         setStats(null);
         setDataError('Unable to load dashboard metrics from the current data source.');
+        hideLoading();
       });
-  }, []);
+  }, [showLoading, hideLoading]);
 
 
 
-  const fetchPromoters = useCallback((filters: FiltersType, nextPageIndex: number, nextPageSize: number) => {
-    setLoading(true);
-    const params = new URLSearchParams();
+ const fetchPromoters = useCallback((filters: FiltersType, nextPageIndex: number, nextPageSize: number) => {
+   setLoading(true);
+   const params = new URLSearchParams();
     if (filters.chrom) params.set('chrom', filters.chrom);
     if (filters.geneSymbol) params.set('gene_symbol', filters.geneSymbol);
     if (filters.minScore) params.set('min_score', filters.minScore);
@@ -246,23 +258,32 @@ export default function HomePage() {
         setTotalPromoters(0);
         setDataError(data?.error || 'Unable to load records from the current data source.');
       })
-      .catch(() => {
-        setPromoters([]);
-        setTotalPromoters(0);
-        setDataError('Unable to load records from the current data source.');
-      })
-      .finally(() => setLoading(false));
-  }, [sortMode]);
+     .catch(() => {
+       setPromoters([]);
+       setTotalPromoters(0);
+       setDataError('Unable to load records from the current data source.');
+     })
+      .finally(() => {
+        setLoading(false);
+        hideLoading();
+      });
+  }, [sortMode, hideLoading]);
 
   const shouldFetchPromoters = activeTab === 'promoters' || activeTab === 'genome-browser';
   useEffect(() => {
     if (shouldFetchPromoters) fetchPromoters(currentFilters, pageIndex, pageSize);
   }, [shouldFetchPromoters, currentFilters, fetchPromoters, pageIndex, pageSize]);
 
-  const handleSearch = useCallback((filters: FiltersType) => {
+ const handleSearch = useCallback((filters: FiltersType) => {
+    showLoading(0, [
+      'Querying 393 Fecal Metagenomic Samples...',
+      'Parsing Phenotypic Metadata...',
+      'Computing Feature Overlaps...',
+      'Aggregating Cohort Statistics...',
+    ]);
     setPageIndex(0);
     setCurrentFilters(filters);
-  }, []);
+  }, [showLoading]);
 
   const handlePageChange = useCallback((nextPageIndex: number, nextPageSize: number) => {
     setPageSize(nextPageSize);

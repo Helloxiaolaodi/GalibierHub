@@ -91,11 +91,11 @@ export default function AdminUserStats({ refreshKey = 0 }: { refreshKey?: number
   if (loading) {
     return (
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="skeleton h-6 w-48 rounded" />
+        <div className="h-6 w-48 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          <div className="skeleton h-28 rounded-xl" />
-          <div className="skeleton h-28 rounded-xl" />
-          <div className="skeleton h-28 rounded-xl" />
+          <div className="h-28 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          <div className="h-28 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          <div className="h-28 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
         </div>
       </section>
     );
