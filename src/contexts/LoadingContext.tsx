@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { createContext, useContext, useState, useRef } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
 import GalibierLoader from '@/components/GalibierLoader';
 
 type LoadingContextType = {
@@ -16,33 +16,34 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 export function LoadingProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<number | undefined>(undefined);
-  
 
   const showTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimeRef = useRef<number>(0);
+  const isLoadingRef = useRef(false);
 
-  const showLoading = (initialProgress?: number) => {
+  const showLoading = useCallback((initialProgress?: number) => {
     setProgress(initialProgress);
 
     // 250ms grace period: if hideLoading is called within 250ms, the loader never appears
     showTimeoutRef.current = setTimeout(() => {
       setIsLoading(true);
+      isLoadingRef.current = true;
       startTimeRef.current = Date.now();
     }, 250);
-  };
+  }, []);
 
-  const setLoadingProgress = (val: number) => {
+  const setLoadingProgress = useCallback((val: number) => {
     setProgress(val);
-  };
+  }, []);
 
-  const hideLoading = () => {
+  const hideLoading = useCallback(() => {
     // Cancel the scheduled show if still within the grace period
     if (showTimeoutRef.current) {
       clearTimeout(showTimeoutRef.current);
       showTimeoutRef.current = null;
     }
 
-    if (isLoading) {
+    if (isLoadingRef.current) {
       // Ensure the loader is visible for at least 1.2s to prevent flicker
       const elapsedTime = Date.now() - startTimeRef.current;
       const MINIMUM_DISPLAY_TIME = 1200;
@@ -52,10 +53,11 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
 
       setTimeout(() => {
         setIsLoading(false);
+        isLoadingRef.current = false;
         setProgress(undefined);
       }, remainingTime);
     }
-  };
+  }, []);
 
   return (
     <LoadingContext.Provider value={{ isLoading, progress, showLoading, setLoadingProgress, hideLoading }}>
@@ -70,5 +72,3 @@ export const useLoading = () => {
   if (!context) throw new Error('useLoading must be used within LoadingProvider');
   return context;
 };
-
-
