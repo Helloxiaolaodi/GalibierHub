@@ -55,6 +55,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Do not externalize server-side packages used by API routes. OpenNext only
+  // copies external packages with a "workerd" export condition, so listing
+  // @supabase/supabase-js here would remove it from the Cloudflare bundle.
   async headers() {
     return [
       {
