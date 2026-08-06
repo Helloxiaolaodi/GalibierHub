@@ -217,9 +217,7 @@ export default function HomePage() {
         setStats(null);
         setDataError('Unable to load dashboard metrics from the current data source.');
       })
-      .finally(() => {
-        setTimeout(() => hideLoading(), 2500);
-      });
+      .finally(() => { hideLoading(); });
   }, [hideLoading]);
 
 
@@ -724,6 +722,7 @@ export default function HomePage() {
     </div>
   );
 }
+
 
 
 
