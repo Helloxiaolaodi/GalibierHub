@@ -4,19 +4,17 @@ import React, { useEffect, useState, useRef } from 'react';
 
 interface LoaderProps {
   progress?: number;
+  logs?: string[];
 }
 
-const TELEMETRY_LOGS = [
-  'INITIALIZING GALIBIERHC TELEMETRY...',
-  'ALLOCATING SLURM HPC NODES...',
-  'MOUNTING METAGENOMIC COHORT VOLUMES...',
-  'PARSING FANTOM5 REFERENCE ASSEMBLIES...',
-  'INDEXING VARIANT CALL FORMATS (VCF)...',
-  'COMPUTING LOCUS COORDINATE OVERLAPS...',
-  'FINALIZING DATA BUNDLE FOR DELIVERY...',
+const DEFAULT_BOOT_LOGS = [
+  'Initializing GalibierHub Telemetry...',
+  'Establishing Secure Connection...',
+  'Mounting Metagenomic Cohort Volumes...',
+  'Loading Reference Assemblies...',
 ];
 
-export default function GalibierLoader({ progress }: LoaderProps) {
+export default function GalibierLoader({ progress, logs = DEFAULT_BOOT_LOGS }: LoaderProps) {
   const [internalProgress, setInternalProgress] = useState(0);
   const [displayAltitude, setDisplayAltitude] = useState(0);
   const [logIndex, setLogIndex] = useState(0);
@@ -55,10 +53,10 @@ export default function GalibierLoader({ progress }: LoaderProps) {
 
   useEffect(() => {
     const logTimer = setInterval(() => {
-      setLogIndex((prev) => (prev + 1) % TELEMETRY_LOGS.length);
+      setLogIndex((prev) => (prev + 1) % logs.length);
     }, 1500);
     return () => clearInterval(logTimer);
-  }, []);
+  }, [logs.length]);
 
   // Logo-inspired switchback path: matches the zigzag in galibierhub-logo.svg
   const climbPath = 'M 10 180 L 70 150 L 50 135 L 110 100 L 95 85 L 150 40 L 135 25 L 180 5';
@@ -143,8 +141,8 @@ export default function GalibierLoader({ progress }: LoaderProps) {
 
           <div className="mt-6 w-full max-w-md h-6 overflow-hidden flex justify-center items-center bg-slate-100 dark:bg-slate-800/50 rounded border border-slate-200 dark:border-slate-800">
             <div key={logIndex} className="font-mono text-[10px] text-slate-500 dark:text-slate-400 animate-fade-in-up">
-              <span className="text-[#0D9488] mr-2">SYS_</span>
-              {TELEMETRY_LOGS[logIndex]}
+              <span className="text-[#0D9488] mr-2">sys_</span>
+              {logs[logIndex]}
               <span className="animate-pulse ml-1 text-[#0F172A] dark:text-slate-200">_</span>
             </div>
           </div>

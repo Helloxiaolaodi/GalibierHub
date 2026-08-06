@@ -20,7 +20,15 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 ![Issues](https://img.shields.io/github/issues/Helloxiaolaodi/GalibierHub?style=flat-square)
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.21-black?style=flat-square&logo=next.js)
 ![Supabase](https://img.shields.io/badge/Supabase-2.110.7-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
-![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=flat-square&logo=vercel)
+ ![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=flat-square&logo=vercel)
+ 
+<div align="center">
+  <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/Helloxiaolaodi/GalibierHub">
+    <img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare Pages" />
+  </a>
+  <br/>
+  <sub><i>Click above to deploy your own GalibierHub instance on Cloudflare Pages (free tier).</i></sub>
+</div>
 
 ## Contents
 
