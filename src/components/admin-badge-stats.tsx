@@ -201,9 +201,9 @@ export default function AdminBadgeStats({ accessToken }: { accessToken?: string 
   if (loading) {
     return (
       <section className="rounded-lg border border-slate-800 bg-[#0F172A] p-6 shadow-lg">
-        <div className="skeleton h-6 w-56 rounded" />
+        <div className="h-6 w-56 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((item) => <div key={item} className="skeleton h-28 rounded-lg" />)}
+          {[0, 1, 2, 3].map((item) => <div key={item} className="h-28 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />)}
         </div>
       </section>
     );

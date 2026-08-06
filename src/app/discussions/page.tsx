@@ -919,7 +919,7 @@ export default function DiscussionsPage() {
 
 
 
-        {loading&&<div className="space-y-4">{Array.from({length:5}).map((_,i)=>(<div key={i} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]"><div className="flex items-start gap-4"><div className="skeleton h-10 w-10 rounded-full"/><div className="flex-1 space-y-3"><div className="skeleton h-5 w-3/4 rounded"/><div className="skeleton h-4 w-1/2 rounded"/><div className="skeleton h-4 w-full rounded"/></div><div className="text-right space-y-2"><div className="skeleton h-4 w-12 rounded ml-auto"/><div className="skeleton h-3 w-16 rounded ml-auto"/></div></div></div>))}</div>}
+        {loading&&<div className="flex items-center justify-center py-12"><div className="flex flex-col items-center gap-3"><svg className="h-8 w-8 animate-spin text-[#0D9488]" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><span className="text-sm text-slate-500">Loading discussions...</span></div></div>}
 
         {error&&<div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{error} <button onClick={fetchData} className="ml-3 underline hover:no-underline">Retry</button></div>}
 

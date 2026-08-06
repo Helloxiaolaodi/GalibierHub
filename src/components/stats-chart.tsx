@@ -35,28 +35,28 @@ export default function StatsChart({ stats, loading }: StatsChartProps) {
         <div className="grid grid-cols-3 gap-3">
           {[0, 1, 2].map((item) => (
             <div key={item} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-              <div className="skeleton h-6 w-16 rounded" />
-              <div className="skeleton mt-2 h-3 w-20 rounded" />
+              <div className="h-6 w-16 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+              <div className="mt-2 h-3 w-20 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
             </div>
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 h-72">
-            <div className="skeleton h-4 w-36 rounded" />
+            <div className="h-4 w-36 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
             <div className="mt-6 space-y-3">
               {[0, 1, 2, 3].map((row) => (
                 <div key={row} className="flex items-center gap-3">
-                  <div className="skeleton h-3 w-3 rounded-full" />
-                  <div className="skeleton h-3 flex-1 rounded" />
+                  <div className="h-3 w-3 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                  <div className="h-3 flex-1 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
                 </div>
               ))}
             </div>
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 h-72">
-            <div className="skeleton h-4 w-36 rounded" />
+            <div className="h-4 w-36 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
             <div className="mt-6 flex items-end gap-2 h-44">
               {[0, 1, 2, 3, 4, 5].map((bar) => (
-                <div key={bar} className="skeleton flex-1 rounded-t" style={{ height: `${32 + (bar % 4) * 14}%` }} />
+                <div key={bar} className="flex-1 rounded-t bg-slate-200 dark:bg-slate-700 animate-pulse" style={{ height: `${32 + (bar % 4) * 14}%` }} />
               ))}
             </div>
           </div>

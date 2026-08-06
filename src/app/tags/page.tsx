@@ -124,7 +124,7 @@ export default function TagsCloudPage() {
         {loading && (
           <div className="flex flex-wrap gap-3">
             {Array.from({ length: 15 }).map((_, i) => (
-              <div key={i} className="skeleton h-8 rounded-full" style={{ width: `${60 + Math.random() * 80}px` }} />
+              <div key={i} className="h-8 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" style={{ width: `${60 + Math.random() * 80}px` }} />
             ))}
           </div>
         )}

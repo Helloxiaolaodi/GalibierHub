@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLoading } from '@/contexts/LoadingContext';
 import DownloadActions from '@/components/download-actions';
 import { buildHfMirrorUrl, formatDownloadBytes, normalizeDownloadKey } from '@/lib/download-info';
 import { getPreferredDownloadRegion, resolveBrowserDownload, triggerBrowserDownload, type DownloadRegion } from '@/lib/download-region';
@@ -434,6 +435,7 @@ export default function DownloadCatalogPanel({
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [folderCliOpen, setFolderCliOpen] = useState(false);
+  const { showLoading, hideLoading } = useLoading();
   const [folderCliCopied, setFolderCliCopied] = useState<string | null>(null);
   const [clusterScriptOpen, setClusterScriptOpen] = useState<'python' | 'slurm' | null>(null);
   const [clusterVerifyOpen, setClusterVerifyOpen] = useState(false);
@@ -866,10 +868,10 @@ export default function DownloadCatalogPanel({
       {showBlockingLoader && (
         <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-6">
           <div className="grid gap-3">
-            <div className="skeleton h-4 w-1/3 rounded" />
-            <div className="skeleton h-4 w-2/3 rounded" />
-            <div className="skeleton h-4 w-1/2 rounded" />
-            <div className="skeleton h-4 w-3/4 rounded" />
+            <div className="h-4 w-1/3 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+            <div className="h-4 w-2/3 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+            <div className="h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+            <div className="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
           </div>
         </div>
       )}
@@ -958,7 +960,7 @@ export default function DownloadCatalogPanel({
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => setFolderCliOpen(true)}
+                  onClick={() => { showLoading(0, [ 'Allocating SLURM HPC Nodes...', 'Generating Cluster Batch Download Scripts...', 'Validating SHA-256 Checksums...', 'Finalizing Data Bundle For Delivery...' ]); setTimeout(() => { setFolderCliOpen(true); hideLoading(); }, 800); }}
                   className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
