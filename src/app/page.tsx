@@ -197,8 +197,8 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    // Splash screen: show the GalibierLoader immediately on first visit
-    showLoading(undefined, true);
+    // Splash is already showing from the server-rendered HTML.
+    // Fetch data, then hide with minimum 2.5s display.
 
     fetch('/api/stats')
       .then((res) => res.json())
@@ -216,10 +216,10 @@ export default function HomePage() {
         setDataError('Unable to load dashboard metrics from the current data source.');
       })
       .finally(() => {
-        // Ensure the splash is visible for at least 2.5s so users see the animation
         setTimeout(() => hideLoading(), 2500);
       });
-  }, [showLoading, hideLoading]);
+  }, [hideLoading]);
+
 
 
 
@@ -722,6 +722,7 @@ export default function HomePage() {
     </div>
   );
 }
+
 
 
 
