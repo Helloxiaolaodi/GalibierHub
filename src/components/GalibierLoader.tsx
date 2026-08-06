@@ -108,7 +108,7 @@ export default function GalibierLoader({ progress }: LoaderProps) {
 
           {/* Cyclist */}
           <div className="absolute bottom-[60px] left-[130px] rotate-[-11deg] animate-climbSway z-[15]">
-            <svg width="220" height="145" viewBox="0 0 220 145" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="220" height="145" viewBox="0 0 220 145" fill="none" overflow="visible" xmlns="http://www.w3.org/2000/svg">
               {/* Rear wheel */}
               <g className="animate-wheelSpin" style={{ transformOrigin: '52px 98px' }}>
                 <circle cx="52" cy="98" r="23" fill="none" stroke="#0f172a" strokeWidth="5" />
@@ -137,23 +137,31 @@ export default function GalibierLoader({ progress }: LoaderProps) {
               {/* Right leg */}
               <g className="animate-rightThigh" style={{ transformOrigin: '74px 44px' }}>
                 <path d="M74 44 L90 70" stroke="#F0B080" strokeWidth="9" strokeLinecap="round" />
-                <path d="M74 44 L90 70" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
                 <g className="animate-crankSpin" style={{ transformOrigin: '98px 98px' }}>
-                  <line x1="98" y1="98" x2="107" y2="103" stroke="#1e293b" strokeWidth="4" strokeLinecap="round" />
-                  <path d="M90 70 L107 103" stroke="#F0B080" strokeWidth="8.5" strokeLinecap="round" />
-                  <path d="M90 70 L107 103" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
-                  <rect x="103" y="100" width="10" height="6" rx="2.5" fill="#ffffff" stroke="#0f172a" strokeWidth="1.5" />
+                  <line x1="98" y1="98" x2="107" y2="103" stroke="#1e293b" strokeWidth="4.5" strokeLinecap="round" />
+                  <path d="M90 70 L105 99" stroke="#F0B080" strokeWidth="8" strokeLinecap="round" />
+                  <path d="M100 89 L105 99" stroke="#ffffff" strokeWidth="8.2" strokeLinecap="round" />
+                  <g transform="translate(107, 103) rotate(15)">
+                    <path d="M-6 -8 L7 -7 C 12 -6, 13 -2, 8 0 L-7 0 Z" fill="#ffffff" stroke="#1e293b" strokeWidth="1.5" strokeLinejoin="round"/>
+                    <path d="M2 -7 L5 -6" stroke="#0ea5e9" strokeWidth="2" strokeLinecap="round"/>
+                    <circle cx="0" cy="0" r="2.5" fill="#cbd5e1" stroke="#1e293b" strokeWidth="1.5"/>
+                    <path d="M-4 0 L4 0 L5 3.5 L-3 3.5 Z" fill="#1e293b" stroke="#0f172a" strokeWidth="1.5" strokeLinejoin="round"/>
+                  </g>
                 </g>
               </g>
               {/* Left leg */}
               <g className="animate-leftThigh" style={{ transformOrigin: '74px 44px' }}>
                 <path d="M74 44 L84 90" stroke="#E0A070" strokeWidth="8.5" strokeLinecap="round" />
-                <path d="M74 44 L84 90" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
                 <g className="animate-crankSpin" style={{ transformOrigin: '98px 98px' }}>
-                  <line x1="98" y1="98" x2="89" y2="93" stroke="#1e293b" strokeWidth="4" strokeLinecap="round" />
-                  <path d="M84 90 L89 93" stroke="#E0A070" strokeWidth="8" strokeLinecap="round" />
-                  <path d="M84 90 L89 93" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
-                  <rect x="85" y="90" width="10" height="6" rx="2.5" fill="#f1f5f9" stroke="#0f172a" strokeWidth="1.5" />
+                  <line x1="98" y1="98" x2="89" y2="93" stroke="#1e293b" strokeWidth="4.5" strokeLinecap="round" />
+                  <path d="M84 90 L87 91.5" stroke="#E0A070" strokeWidth="8" strokeLinecap="round" />
+                  <path d="M85 90.5 L87 91.5" stroke="#f1f5f9" strokeWidth="8.2" strokeLinecap="round" />
+                  <g transform="translate(89, 93) rotate(15)">
+                    <path d="M-6 -8 L7 -7 C 12 -6, 13 -2, 8 0 L-7 0 Z" fill="#e2e8f0" stroke="#1e293b" strokeWidth="1.5" strokeLinejoin="round"/>
+                    <path d="M2 -7 L5 -6" stroke="#0ea5e9" strokeWidth="2" strokeLinecap="round"/>
+                    <circle cx="0" cy="0" r="2.5" fill="#94a3b8" stroke="#1e293b" strokeWidth="1.5"/>
+                    <path d="M-4 0 L4 0 L5 3.5 L-3 3.5 Z" fill="#334155" stroke="#0f172a" strokeWidth="1.5" strokeLinejoin="round"/>
+                  </g>
                 </g>
               </g>
               {/* Torso */}
@@ -162,12 +170,12 @@ export default function GalibierLoader({ progress }: LoaderProps) {
               <line x1="71" y1="37" x2="77" y2="37" stroke="#FACC15" strokeWidth="3" strokeLinecap="round" />
               <line x1="70" y1="24" x2="78" y2="24" stroke="#FACC15" strokeWidth="2.5" strokeLinecap="round" />
               <line x1="69" y1="11" x2="79" y2="11" stroke="#FACC15" strokeWidth="2.5" strokeLinecap="round" />
-              {/* Arms */}
-              <path d="M72 0 L110 18 L140 30" stroke="#E0A070" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              <path d="M72 0 L110 18 L140 30" stroke="#1e293b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              {/* Arms (optimized rendering) */}
+              <path d="M72 0 L110 18 L140 30" stroke="#1e293b" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <path d="M72 0 L110 18 L140 30" stroke="#E0A070" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               <circle cx="140" cy="30" r="4.5" fill="#E0A070" stroke="#0f172a" strokeWidth="2" />
-              <path d="M76 0 L114 22 L144 34" stroke="#F0B080" strokeWidth="7.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              <path d="M76 0 L114 22 L144 34" stroke="#1e293b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <path d="M76 0 L114 22 L144 34" stroke="#1e293b" strokeWidth="8.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <path d="M76 0 L114 22 L144 34" stroke="#F0B080" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               <circle cx="144" cy="34" r="4.8" fill="#F0B080" stroke="#0f172a" strokeWidth="2" />
               {/* Head */}
               <circle cx="74" cy="-14" r="15" fill="#F0B080" stroke="#0f172a" strokeWidth="2.5" />

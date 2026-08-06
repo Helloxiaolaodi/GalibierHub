@@ -20,7 +20,7 @@ import {
 
 type PromoterSortMode = 'score_desc' | 'score_asc' | 'chrom_start' | 'sample_id';
 type SummaryMode = 'overview' | 'sample' | 'chromosome';
-type RecordDownloadKind = 'vcf' | 'fasta';
+type RecordDownloadKind = 'vcf' | 'fasta' | 'both';
 
 type BatchFile = { sample_id: string; kind: string; url: string };
 type BatchFileMeta = { size: number | null; sha256: string | null; md5: string | null };
@@ -603,13 +603,11 @@ export default function PromoterTable({
       {selectedSampleIds.size > 0 && (
         <div className="sticky bottom-4 z-30 mx-auto flex w-fit max-w-full flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900/95 px-4 py-2.5 text-white shadow-[0_16px_40px_rgba(15,23,42,0.28)] backdrop-blur-md">
           <span className="text-sm font-medium text-white">
-            {selectedSampleIds.size} sample{selectedSampleIds.size === 1 ? '' : 's'} selected
+            {selectedSampleIds.size} sample{selectedSampleIds.size === 1 ? '' : 's'}
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => onSendSelectedToDownloads?.('vcf', [...selectedSampleIds])} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20">VCF</button>
-            <button type="button" onClick={() => onSendSelectedToDownloads?.('fasta', [...selectedSampleIds])} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20">FASTA</button>
-            <button type="button" onClick={clearSelection} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20">Clear</button>
-            <button type="button" onClick={openBatch} disabled={batchLoading} className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50">Batch download</button>
+            <button type="button" onClick={clearSelection} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20">Clear selected</button>
+            <button type="button" onClick={() => onSendSelectedToDownloads?.('both', [...selectedSampleIds])} className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-100">Batch download</button>
           </div>
         </div>
       )}
