@@ -104,15 +104,17 @@ export default function HomePage() {
     [],
   );
 
-  const handleRecordDownload = useCallback((sampleId: string, kind: 'vcf' | 'fasta') => {
+  const handleRecordDownload = useCallback((sampleId: string, kind: 'vcf' | 'fasta' | 'both') => {
     const filename = kind === 'vcf' ? `${sampleId}.vcf.gz` : `${sampleId}.fasta`;
     window.sessionStorage.setItem('galibier_pending_downloads', JSON.stringify([filename]));
     setPendingRecordSampleId(sampleId);
     setActiveTab('downloads');
   }, []);
 
-  const handleSendSelectedToDownloads = useCallback((kind: 'vcf' | 'fasta', sampleIds: string[]) => {
-    const filenames = sampleIds.map((sampleId) => (kind === 'vcf' ? `${sampleId}.vcf.gz` : `${sampleId}.fasta`));
+  const handleSendSelectedToDownloads = useCallback((kind: 'vcf' | 'fasta' | 'both', sampleIds: string[]) => {
+    const filenames = kind === 'both'
+      ? sampleIds.flatMap((sampleId) => [`${sampleId}.vcf.gz`, `${sampleId}.fasta`])
+      : sampleIds.map((sampleId) => (kind === 'vcf' ? `${sampleId}.vcf.gz` : `${sampleId}.fasta`));
     window.sessionStorage.setItem('galibier_pending_downloads', JSON.stringify(filenames));
     setPendingRecordSampleId(sampleIds[0] ?? null);
     setActiveTab('downloads');
