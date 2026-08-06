@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import CommandPalette from "@/components/command-palette";
+import { LoadingProvider } from "@/contexts/LoadingContext";
 
 export const metadata: Metadata = {
   title: "GalibierHub",
@@ -25,7 +26,9 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-background font-sans">
+        <LoadingProvider>
         {children}
+        </LoadingProvider>
         <CommandPalette />
       </body>
     </html>
