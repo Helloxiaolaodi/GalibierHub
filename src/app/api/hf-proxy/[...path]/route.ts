@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server';
 import { STORAGE_BASE_URL } from '@/lib/storage';
 
+// Same-site fallback for JBrowse range requests. Production should prefer the
+// external Worker configured through NEXT_PUBLIC_HF_PROXY_URL so large data
+// bytes do not flow through the Next.js app.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
