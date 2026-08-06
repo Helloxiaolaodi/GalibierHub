@@ -6,7 +6,7 @@ import GalibierLoader from '@/components/GalibierLoader';
 type LoadingContextType = {
   isLoading: boolean;
   progress?: number;
-  showLoading: (initialProgress?: number) => void;
+  showLoading: (initialProgress?: number, immediate?: boolean) => void;
   setLoadingProgress: (progress: number) => void;
   hideLoading: () => void;
 };
@@ -21,15 +21,22 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
   const startTimeRef = useRef<number>(0);
   const isLoadingRef = useRef(false);
 
-  const showLoading = useCallback((initialProgress?: number) => {
+  const showLoading = useCallback((initialProgress?: number, immediate?: boolean) => {
     setProgress(initialProgress);
 
-    // 250ms grace period: if hideLoading is called within 250ms, the loader never appears
-    showTimeoutRef.current = setTimeout(() => {
+    if (immediate) {
+      // Splash screen: show immediately, no grace period
       setIsLoading(true);
       isLoadingRef.current = true;
       startTimeRef.current = Date.now();
-    }, 250);
+    } else {
+      // 250ms grace period: if hideLoading is called within 250ms, the loader never appears
+      showTimeoutRef.current = setTimeout(() => {
+        setIsLoading(true);
+        isLoadingRef.current = true;
+        startTimeRef.current = Date.now();
+      }, 250);
+    }
   }, []);
 
   const setLoadingProgress = useCallback((val: number) => {
