@@ -197,7 +197,8 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    showLoading(undefined);
+    // Splash screen: show the GalibierLoader immediately on first visit
+    showLoading(undefined, true);
 
     fetch('/api/stats')
       .then((res) => res.json())
@@ -205,19 +206,21 @@ export default function HomePage() {
         if (data && !data.error) {
           setStats(data);
           setDataError(null);
-          hideLoading();
-          return;
+        } else {
+          setStats(null);
+          setDataError(data?.error || 'Unable to load dashboard metrics from the current data source.');
         }
-        setStats(null);
-        setDataError(data?.error || 'Unable to load dashboard metrics from the current data source.');
-        hideLoading();
       })
       .catch(() => {
         setStats(null);
         setDataError('Unable to load dashboard metrics from the current data source.');
-        hideLoading();
+      })
+      .finally(() => {
+        // Ensure the splash is visible for at least 2.5s so users see the animation
+        setTimeout(() => hideLoading(), 2500);
       });
   }, [showLoading, hideLoading]);
+
 
 
 
@@ -719,6 +722,7 @@ export default function HomePage() {
     </div>
   );
 }
+
 
 
 
