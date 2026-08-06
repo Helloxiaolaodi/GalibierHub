@@ -1,23 +1,15 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
 
 interface LoaderProps {
   progress?: number;
-  logs?: string[];
 }
 
-const DEFAULT_BOOT_LOGS = [
-  'Initializing GalibierHub Telemetry...',
-  'Establishing Secure Connection...',
-  'Mounting Metagenomic Cohort Volumes...',
-  'Loading Reference Assemblies...',
-];
-
-export default function GalibierLoader({ progress, logs = DEFAULT_BOOT_LOGS }: LoaderProps) {
+export default function GalibierLoader({ progress }: LoaderProps) {
   const [internalProgress, setInternalProgress] = useState(0);
   const [displayAltitude, setDisplayAltitude] = useState(0);
-  const [logIndex, setLogIndex] = useState(0);
+  
   const requestRef = useRef<number>(0);
 
   const MAX_ALTITUDE = 2642;
@@ -51,14 +43,7 @@ export default function GalibierLoader({ progress, logs = DEFAULT_BOOT_LOGS }: L
     return () => cancelAnimationFrame(requestRef.current!);
   }, [internalProgress]);
 
-  useEffect(() => {
-    const logTimer = setInterval(() => {
-      setLogIndex((prev) => (prev + 1) % logs.length);
-    }, 1500);
-    return () => clearInterval(logTimer);
-  }, [logs.length]);
-
-  // Logo-inspired switchback path: matches the zigzag in galibierhub-logo.svg
+// Logo-inspired switchback path: matches the zigzag in galibierhub-logo.svg
   const climbPath = 'M 10 180 L 70 150 L 50 135 L 110 100 L 95 85 L 150 40 L 135 25 L 180 5';
 
   return (
@@ -135,16 +120,8 @@ export default function GalibierLoader({ progress, logs = DEFAULT_BOOT_LOGS }: L
           <div className="mt-6 px-3 py-1 border border-slate-300 dark:border-slate-700 rounded-full flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-[#0D9488] animate-pulse"></span>
             <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 tracking-wider">
-              COL DU GALIBIER | HC CATEGORY CLIMB
+              GalibierHub
             </span>
-          </div>
-
-          <div className="mt-6 w-full max-w-md h-6 overflow-hidden flex justify-center items-center bg-slate-100 dark:bg-slate-800/50 rounded border border-slate-200 dark:border-slate-800">
-            <div key={logIndex} className="font-mono text-[10px] text-slate-500 dark:text-slate-400 animate-fade-in-up">
-              <span className="text-[#0D9488] mr-2">sys_</span>
-              {logs[logIndex]}
-              <span className="animate-pulse ml-1 text-[#0F172A] dark:text-slate-200">_</span>
-            </div>
           </div>
         </div>
 
@@ -162,3 +139,7 @@ export default function GalibierLoader({ progress, logs = DEFAULT_BOOT_LOGS }: L
     </div>
   );
 }
+
+
+
+

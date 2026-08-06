@@ -14,7 +14,7 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 
 详细搭建指南：[GalibierHub 开发者笔记](https://www.cnblogs.com/Helloxiaolaodi/p/22134232)
 
-技术栈：Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts
+技术栈：Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts | nextjs-toploader
 
 ![License](https://img.shields.io/github/license/Helloxiaolaodi/GalibierHub?style=flat-square)
 ![Stars](https://img.shields.io/github/stars/Helloxiaolaodi/GalibierHub?style=flat-square)
@@ -38,7 +38,6 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 10. [致谢](#致谢)
 11. [许可证](#许可证)
 
-## 最近更新
 
 - Downloads 新增 `Cluster Batch Download` 集群批量下载工作流，可基于 Python 与 SLURM 脚本递归下载整个文件夹，并提供 `Global (Official)` 与 `Asia-Pacific (Mirror)` 模板。
 - Downloads CLI 弹窗新增 Linux/macOS 与 Windows PowerShell 系统切换、一键复制完整命令，以及 `hfd` 镜像加速选项。
@@ -55,12 +54,9 @@ GalibierHub 是一个用于构建坐标型基因组门户的开源模板，整�
 
 ## 项目概览
 
-GalibierHub 当前主要包含五个核心界面：
+ GalibierHub 当前主要包含五个核心界面，外加一套按重量分级的加载反馈系统：
 
-- **Overview**：统计图表、悬浮翻转特性卡片（Search & Discovery、Genome Browser、File Distribution、Community & Moderation）。
-- **Records**：记录表格、筛选、详情面板与嵌入式基因组浏览器。
 - **Genome Browser**：独立的 JBrowse 2 线性基因组视图，支持全屏禅定模式、多轨道注释与位点导航，可通过顶部导航栏访问。
-- **Downloads**：站点级文件目录，可浏览层级结构并统一调用下载弹窗。
 - **Discussion**：公开或仅管理员可见的留言讨论区，支持图片、点赞、收藏与回帖。
 - **World Clock**：全局时区命令面板（Ctrl+K），默认展示主要科研枢纽城市时间，支持全城搜索，讨论详情页提供侧边栏小部件。
 - **Auth System**：GitHub OAuth 与邮箱密码双通道认证，集成 Turnstile 机器人防护，独立登录/注册流程，自动草稿保存，忘记密码重置，以及注册后新手引导。
@@ -68,7 +64,8 @@ GalibierHub 当前主要包含五个核心界面：
 - **Notification Center**：应用内通知铃铛，基于 Supabase 实时订阅，支持 @提及、回复和点赞的即时推送。
 - **Badge System**：游戏化徽章系统，包含 16+ 种徽章类别（入门引导、社区互动、技术极客、里程碑成就），以微型徽章形式展示在用户名旁。
 - **Security.txt**：在 `/.well-known/security.txt` 提供 RFC 9116 安全联系文件，并配套 `/security` 安全策略页与 `/acknowledgments` 致谢页。
-- **Settings & Preferences**：受保护的 /settings/preferences 页面，支持头像照片上传、个人资料编辑、邮件通知偏好和主题切换（浅色 / 深色 / 跟随系统）。
+ - **Settings & Preferences**：受保护的 /settings/preferences 页面，支持头像照片上传、个人资料编辑、邮件通知偏好和主题切换（浅色 / 深色 / 跟随系统）。
+ - **加载系统**：按重量分级的加载反馈系统，包含三个层级。重量级操作（网站首次启动、大队列特征过滤、集群批量下载）触发全屏 `GalibierLoader` 爬坡动画，包含沿发夹弯山路爬升的线框自行车、实时海拔 HUD（0-2,642m）和滚动终端日志。轻量级页面切换使用 `nextjs-toploader`（2px 青色顶部进度条）。`LoadingContext` 实现了 250ms 宽限期和 1.2s 最短展示时间以防止闪烁。
 
 需要说明的是，当前默认数据结构与界面命名仍然偏向 promoter / genome 的基因组场景。后续 fork 使用者可以自行泛化，但仓库目前仍以基因组数据库模板为主。
 
@@ -808,6 +805,7 @@ GalibierHub 基于一组开源工具构建，用于完成界面渲染、数据�
 | [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | 概览图表与可视化 | 官方手册 |
 | [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) | `^1.20.2` | Cloudflare 构建适配器 | OpenNext Cloudflare 文档 |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | `^4.113.0` | Cloudflare 部署 CLI | Cloudflare Workers CLI 文档 |
+| [`nextjs-toploader`](https://www.npmjs.com/package/nextjs-toploader) | `^3.7.0` | 轻量级页面切换顶部进度条 | npm 页面 |
 
 附加社区链接：
 
@@ -840,4 +838,16 @@ GalibierHub 基于一组开源工具构建，用于完成界面渲染、数据�
 
 [返回顶部](#readme-top)
 
+
+ ## 最近更新
+ 
+ - 新增 `GalibierLoader` 爬坡动画，全面取代所有骨架屏。加载器包含一辆沿发夹弯山路爬升的线框自行车、实时海拔 HUD（0-2,642m，即 Col du Galibier 的真实海拔）以及滚动终端日志面板。该动画用于三个重量级场景：网站首次启动（启动画面）、Records 中的大队列特征过滤、以及 Downloads 中的集群批量下载脚本生成。
+ - 轻量级页面切换（Overview 到 Downloads、Discussions 等）使用 `nextjs-toploader`，在浏览器顶部显示一条 2px 宽的青色进度条，消除了快速导航时骨架屏或全屏加载器的需求。
+ - `LoadingContext` 实现了 250ms 宽限期（如果操作在 250ms 内完成，加载器不会出现）和 1.2s 最短展示时间（一旦显示，加载器至少停留 1.2s 以防止闪烁）。
+ - `GalibierLoader` 中的终端日志面板使用句首大写格式（例如 "Initializing GalibierHub Telemetry..."），并支持按场景传入日志数组，使每个重量级操作显示其上下文相关的状态信息。
+ - `skeleton-screen.tsx` 组件已从所有页面导入中移除，骨架屏不再在应用程序的任何地方使用。
+ 
+ - **Overview**：统计图表、悬浮翻转特性卡片（Search & Discovery、Genome Browser、File Distribution、Community & Moderation）。网站首次启动时，会显示全屏 GalibierLoader 爬坡动画作为启动画面。
+ - **Records**：记录表格、筛选、详情面板与嵌入式基因组浏览器。大队列特征过滤会触发全屏 GalibierLoader 爬坡动画，并显示查询相关的终端日志。
+ - **Downloads**：站点级文件目录，可浏览层级结构并统一调用下载弹窗。集群批量下载按钮会触发全屏 GalibierLoader 爬坡动画，并显示 HPC 相关的终端日志。
 

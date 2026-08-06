@@ -12,7 +12,7 @@ Language: **English** | [简体中文](./README.zh-CN.md) | [Issues](https://git
 
 Detailed build guide: [GalibierHub Developer Notes](https://www.cnblogs.com/Helloxiaolaodi/p/22134246)
 
-Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts
+Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Cloudflare Workers | JBrowse 2 | TanStack Table | ECharts | nextjs-toploader
 
 ![License](https://img.shields.io/github/license/Helloxiaolaodi/GalibierHub?style=flat-square)
 ![Stars](https://img.shields.io/github/stars/Helloxiaolaodi/GalibierHub?style=flat-square)
@@ -44,7 +44,6 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 10. [Acknowledgements](#acknowledgements)
 11. [License](#license)
 
-## Recent Updates
 
 - Downloads now includes a `Cluster Batch Download` workflow for recursively downloading an entire folder through Python and SLURM scripts, with `Global (Official)` and `Asia-Pacific (Mirror)` templates.
 - The Downloads CLI modal now has Linux/macOS and Windows PowerShell tabs, one-click all-in-one command copying, and a dedicated `hfd` mirror accelerator option.
@@ -61,12 +60,9 @@ Stack: Next.js | React | Supabase | Cloudflare R2 | Hugging Face Datasets | Clou
 
 ## Overview
 
-GalibierHub currently ships with five main product surfaces:
+ GalibierHub currently ships with five main product surfaces, plus a weighted loading feedback system:
 
-- **Overview**: StatsChart dashboard metrics and interactive hover-flip feature cards (Search & Discovery, Genome Browser, File Distribution, Community & Moderation).
-- **Records**: searchable promoter table with inline filtering, pagination, and record detail panel.
 - **Genome Browser**: standalone JBrowse 2 linear genome view with fullscreen zen mode, multi-track annotation, and locus navigation accessible via the top navigation bar.
-- **Downloads**: academic-grade file catalog with browser/CLI download, file preview (head 20 lines), SHA-256 checksum verification, citation export (BibTeX/RIS/DataCite), batch script generator (aria2c/wget/Python/R), and a dedicated Download & CLI Usage Guide.
 - **Discussion**: public or Administrator-only discussions with image upload, likes, bookmarks, follow-up replies, and administrator moderation.
 - **World Clock**: global timezone command palette (Ctrl+K) with major research hub defaults and full city search, plus sidebar widget on discussion detail pages.
 - **Auth System**: dual GitHub OAuth and email/password authentication with Turnstile bot protection, split Log In / Sign Up flow, auto-saved drafts, forgot-password reset, and post-signup onboarding.
@@ -74,7 +70,8 @@ GalibierHub currently ships with five main product surfaces:
 - **Notification Center**: In-app notification bell with real-time Supabase subscriptions for @mentions, replies, and likes.
 - **Badge System**: Gamification with 16+ badge types covering onboarding, engagement, tech, and milestone achievements, displayed as micro-badges next to usernames.
 - **Security.txt**: RFC 9116 vulnerability disclosure file at `/.well-known/security.txt`, with `/security` policy and `/acknowledgments` pages.
-- **Settings & Preferences**: Protected /settings/preferences page with avatar photo upload, profile editing, email notification opt-ins, and theme switching (Light / Dark / System).
+ - **Settings & Preferences**: Protected /settings/preferences page with avatar photo upload, profile editing, email notification opt-ins, and theme switching (Light / Dark / System).
+ - **Loading System**: A weighted loading feedback system with three tiers. Heavy-duty operations (initial site boot, complex cohort queries, cluster batch downloads) trigger a full-screen `GalibierLoader` climbing animation featuring a wireframe bicycle on a switchback mountain path, real-time altitude HUD (0-2,642m), and scrolling terminal logs. Lightweight page transitions use `nextjs-toploader` (2px teal progress bar). The `LoadingContext` implements a 250ms grace period and 1.2s minimum display time to prevent flicker.
 
 The current default schema and UI are still genomics-oriented. Template users can generalize the project later, but the repository in its present state still uses promoter- and genome-related naming in the main data surfaces.
 
@@ -804,6 +801,7 @@ GalibierHub builds on an open-source stack for UI rendering, data access, browse
 | [ECharts](https://echarts.apache.org/handbook/en/get-started/) | `^6.1.0` | Summary charts and dashboard visuals | Official handbook |
 | [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) | `^1.20.2` | Cloudflare build adapter | OpenNext Cloudflare docs |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | `^4.113.0` | Cloudflare deployment CLI | Cloudflare Workers CLI docs |
+| [`nextjs-toploader`](https://www.npmjs.com/package/nextjs-toploader) | `^3.7.0` | Lightweight top progress bar for page transitions | npm package page |
 
 Additional community link:
 
@@ -837,4 +835,16 @@ This project is licensed under the [MIT License](LICENSE).
 [Back to top](#readme-top)
 
 
+
+ ## Recent Updates
+ 
+ - A new `GalibierLoader` climbing animation replaces all skeleton screens. The loader features a wireframe bicycle climbing a switchback mountain path, a real-time altitude HUD (0-2,642m, the actual elevation of Col du Galibier), and a scrolling terminal log panel. It is used in three heavy-duty scenarios: initial site boot (splash screen), complex cohort querying in Records, and cluster batch download script generation in Downloads.
+ - Lightweight page transitions (Overview to Downloads, Discussions, etc.) use `nextjs-toploader`, a 2px teal progress bar at the top of the browser window, eliminating the need for skeleton screens or full-screen loaders on fast navigations.
+ - The `LoadingContext` implements a 250ms grace period (if the operation completes within 250ms, the loader never appears) and a 1.2s minimum display time (once shown, the loader stays visible for at least 1.2s to prevent flicker).
+ - The terminal log panel in `GalibierLoader` uses sentence-case formatting (e.g., "Initializing GalibierHub Telemetry...") and accepts per-scenario log arrays, so each heavy-duty operation displays its own contextually relevant status messages.
+ - The `skeleton-screen.tsx` component has been removed from all page imports; skeleton screens are no longer used anywhere in the application.
+ 
+ - **Overview**: StatsChart dashboard metrics and interactive hover-flip feature cards (Search & Discovery, Genome Browser, File Distribution, Community & Moderation). On initial site boot, a full-screen GalibierLoader climbing animation is displayed as a splash screen.
+ - **Records**: searchable promoter table with inline filtering, pagination, and record detail panel. Complex cohort queries trigger the full-screen GalibierLoader climbing animation with query-specific terminal logs.
+ - **Downloads**: academic-grade file catalog with browser/CLI download, file preview (head 20 lines), SHA-256 checksum verification, citation export (BibTeX/RIS/DataCite), batch script generator (aria2c/wget/Python/R), and a dedicated Download & CLI Usage Guide. The Cluster Batch Download button triggers the full-screen GalibierLoader climbing animation with HPC-specific terminal logs.
 

@@ -197,12 +197,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    showLoading(0, [
-      'Initializing GalibierHub Telemetry...',
-      'Establishing Secure Connection...',
-      'Mounting Metagenomic Cohort Volumes...',
-      'Loading Reference Assemblies...',
-    ]);
+    showLoading(undefined);
 
     fetch('/api/stats')
       .then((res) => res.json())
@@ -275,12 +270,7 @@ export default function HomePage() {
   }, [shouldFetchPromoters, currentFilters, fetchPromoters, pageIndex, pageSize]);
 
  const handleSearch = useCallback((filters: FiltersType) => {
-    showLoading(0, [
-      'Querying 393 Fecal Metagenomic Samples...',
-      'Parsing Phenotypic Metadata...',
-      'Computing Feature Overlaps...',
-      'Aggregating Cohort Statistics...',
-    ]);
+    showLoading(undefined);
     setPageIndex(0);
     setCurrentFilters(filters);
   }, [showLoading]);
@@ -729,6 +719,8 @@ export default function HomePage() {
     </div>
   );
 }
+
+
 
 
 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLoading } from '@/contexts/LoadingContext';
@@ -960,7 +960,7 @@ export default function DownloadCatalogPanel({
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => { showLoading(0, [ 'Allocating SLURM HPC Nodes...', 'Generating Cluster Batch Download Scripts...', 'Validating SHA-256 Checksums...', 'Finalizing Data Bundle For Delivery...' ]); setTimeout(() => { setFolderCliOpen(true); hideLoading(); }, 800); }}
+                  onClick={() => { showLoading(undefined); setTimeout(() => { setFolderCliOpen(true); hideLoading(); }, 800); }}
                   className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] transition-all"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
@@ -1487,3 +1487,5 @@ export default function DownloadCatalogPanel({
     </section>
   );
 }
+
+

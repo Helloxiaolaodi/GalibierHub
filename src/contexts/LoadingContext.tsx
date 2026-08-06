@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext, useState, useRef } from 'react';
 import GalibierLoader from '@/components/GalibierLoader';
@@ -6,8 +6,7 @@ import GalibierLoader from '@/components/GalibierLoader';
 type LoadingContextType = {
   isLoading: boolean;
   progress?: number;
-  logs?: string[];
-  showLoading: (initialProgress?: number, logs?: string[]) => void;
+  showLoading: (initialProgress?: number) => void;
   setLoadingProgress: (progress: number) => void;
   hideLoading: () => void;
 };
@@ -17,14 +16,13 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 export function LoadingProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<number | undefined>(undefined);
-  const [logs, setLogs] = useState<string[] | undefined>(undefined);
+  
 
   const showTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimeRef = useRef<number>(0);
 
-  const showLoading = (initialProgress?: number, customLogs?: string[]) => {
+  const showLoading = (initialProgress?: number) => {
     setProgress(initialProgress);
-    setLogs(customLogs);
 
     // 250ms grace period: if hideLoading is called within 250ms, the loader never appears
     showTimeoutRef.current = setTimeout(() => {
@@ -51,7 +49,7 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
       const remainingTime = Math.max(0, MINIMUM_DISPLAY_TIME - elapsedTime);
 
       setProgress(100);
-      setLogs(undefined);
+
       setTimeout(() => {
         setIsLoading(false);
         setProgress(undefined);
@@ -60,9 +58,9 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <LoadingContext.Provider value={{ isLoading, progress, logs, showLoading, setLoadingProgress, hideLoading }}>
+    <LoadingContext.Provider value={{ isLoading, progress, showLoading, setLoadingProgress, hideLoading }}>
       {children}
-      {isLoading && <GalibierLoader progress={progress} logs={logs} />}
+      {isLoading && <GalibierLoader progress={progress} />}
     </LoadingContext.Provider>
   );
 }
@@ -72,3 +70,5 @@ export const useLoading = () => {
   if (!context) throw new Error('useLoading must be used within LoadingProvider');
   return context;
 };
+
+
