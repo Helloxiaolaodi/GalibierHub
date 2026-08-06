@@ -14,23 +14,23 @@ type LoadingContextType = {
 const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 
 export function LoadingProvider({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(false);
+  // Start with splash visible on first render — this renders in the server HTML
+  // so the loader is the very first thing the user sees, before any page content.
+  const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState<number | undefined>(undefined);
 
   const showTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const isLoadingRef = useRef(false);
+  const startTimeRef = useRef<number>(Date.now());
+  const isLoadingRef = useRef(true);
 
   const showLoading = useCallback((initialProgress?: number, immediate?: boolean) => {
     setProgress(initialProgress);
 
     if (immediate) {
-      // Splash screen: show immediately, no grace period
       setIsLoading(true);
       isLoadingRef.current = true;
       startTimeRef.current = Date.now();
     } else {
-      // 250ms grace period: if hideLoading is called within 250ms, the loader never appears
       showTimeoutRef.current = setTimeout(() => {
         setIsLoading(true);
         isLoadingRef.current = true;
@@ -44,16 +44,14 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const hideLoading = useCallback(() => {
-    // Cancel the scheduled show if still within the grace period
     if (showTimeoutRef.current) {
       clearTimeout(showTimeoutRef.current);
       showTimeoutRef.current = null;
     }
 
     if (isLoadingRef.current) {
-      // Ensure the loader is visible for at least 1.2s to prevent flicker
       const elapsedTime = Date.now() - startTimeRef.current;
-      const MINIMUM_DISPLAY_TIME = 1200;
+      const MINIMUM_DISPLAY_TIME = 2000;
       const remainingTime = Math.max(0, MINIMUM_DISPLAY_TIME - elapsedTime);
 
       setProgress(100);
@@ -68,8 +66,9 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <LoadingContext.Provider value={{ isLoading, progress, showLoading, setLoadingProgress, hideLoading }}>
-      {children}
+      {/* Render loader BEFORE children so it appears first in the server HTML */}
       {isLoading && <GalibierLoader progress={progress} />}
+      {children}
     </LoadingContext.Provider>
   );
 }

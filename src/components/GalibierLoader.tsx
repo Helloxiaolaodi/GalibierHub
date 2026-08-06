@@ -13,7 +13,6 @@ export default function GalibierLoader({ progress }: LoaderProps) {
 
   const MAX_ALTITUDE = 2642;
 
-  // Progress engine
   useEffect(() => {
     if (progress !== undefined) {
       setInternalProgress(progress);
@@ -29,7 +28,6 @@ export default function GalibierLoader({ progress }: LoaderProps) {
     return () => clearInterval(timer);
   }, [progress]);
 
-  // Altitude interpolation
   useEffect(() => {
     const updateTelemetry = () => {
       setDisplayAltitude((prev) => {
@@ -45,116 +43,206 @@ export default function GalibierLoader({ progress }: LoaderProps) {
   }, [internalProgress]);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#FAFAFA] dark:bg-[#0B1120] backdrop-blur-sm transition-colors duration-500">
-      {/* Header */}
-      <div className="mb-4 text-center relative z-10">
-        <h1 className="text-xl md:text-2xl font-light text-slate-800 dark:text-slate-200 tracking-[0.3em] uppercase m-0">
-          GALIBIER<span className="font-bold text-[#0D9488]">HUB</span>
-        </h1>
-        <p className="text-[9px] font-mono text-slate-400 tracking-[0.25em] uppercase mt-1.5 m-0">
-          HC Category Alpine Climb Telemetry
-        </p>
-      </div>
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0f172a] p-6">
+      <div className="flex flex-col items-center gap-5 w-full max-w-[500px]">
 
-      {/* Alpine scene container */}
-      <div className="relative w-[440px] h-[380px] overflow-hidden bg-gradient-to-b from-sky-200 via-sky-100 to-slate-100 dark:from-[#1e3a5f] dark:via-[#16203A] dark:to-[#0B1120] rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.08)] border border-slate-300 dark:border-slate-800">
-        {/* Alpine peaks silhouette */}
-        <div className="absolute top-[40px] left-0 w-[200%] h-[160px] bg-gradient-to-b from-white/80 to-slate-300/40 dark:from-slate-400/30 dark:to-slate-700/20 opacity-70 animate-peaksPan z-0" style={{ clipPath: 'polygon(0% 100%, 5% 70%, 12% 85%, 20% 50%, 28% 75%, 35% 40%, 45% 80%, 55% 45%, 65% 75%, 75% 35%, 85% 70%, 92% 50%, 100% 100%)' }}></div>
-
-        {/* Flying rocks */}
-        <div className="absolute bottom-[110px] w-[24px] h-[35px] bg-slate-600 dark:bg-slate-500 opacity-60 animate-rockPan z-0" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }}></div>
-        <div className="absolute bottom-[125px] w-[35px] h-[20px] bg-slate-600 dark:bg-slate-500 opacity-60 animate-rockPan rock-delay z-0" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }}></div>
-
-        {/* Mountain road */}
-        <div className="absolute -bottom-[120px] -left-[80px] w-[650px] h-[260px] bg-gradient-to-b from-slate-500 to-slate-700 dark:from-slate-600 dark:to-slate-900 rotate-[-14deg] shadow-[inset_0_6px_15px_rgba(0,0,0,0.3)]">
-          <div className="absolute bottom-0 left-0 w-full h-[12px] bg-slate-600 dark:bg-slate-700 border-t-2 border-slate-400 dark:border-slate-500"></div>
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-4xl md:text-5xl font-light text-slate-200 tracking-[0.4em] uppercase drop-shadow-lg">
+            GALIBIER<span className="font-extrabold text-[#0D9488]">HUB</span>
+          </h1>
         </div>
 
-        {/* Cyclist group */}
-        <div className="absolute bottom-[75px] left-[110px] rotate-[-14deg] animate-climbBob z-10">
-          <svg width="200" height="130" viewBox="0 0 200 130" fill="none" style={{ width: '200px', height: '130px' }} xmlns="http://www.w3.org/2000/svg">
-            {/* Rear wheel */}
-            <g className="animate-wheelSpin" style={{ transformOrigin: '45px 95px' }}>
-              <circle cx="45" cy="95" r="22" fill="none" stroke="#0F172A" strokeWidth="4" />
-              <circle cx="45" cy="95" r="16" fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="3 4" />
-              <circle cx="45" cy="95" r="3" fill="#0F172A" />
-              <line x1="45" y1="73" x2="45" y2="117" stroke="#334155" strokeWidth="1" />
-              <line x1="23" y1="95" x2="67" y2="95" stroke="#334155" strokeWidth="1" />
-            </g>
-            {/* Front wheel */}
-            <g className="animate-wheelSpin" style={{ transformOrigin: '155px 95px' }}>
-              <circle cx="155" cy="95" r="22" fill="none" stroke="#0F172A" strokeWidth="4" />
-              <circle cx="155" cy="95" r="16" fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="3 4" />
-              <circle cx="155" cy="95" r="3" fill="#0F172A" />
-              <line x1="155" y1="73" x2="155" y2="117" stroke="#334155" strokeWidth="1" />
-              <line x1="133" y1="95" x2="177" y2="95" stroke="#334155" strokeWidth="1" />
-            </g>
-            {/* Frame */}
-            <path d="M45 95 L90 95 L75 50 Z" fill="none" stroke="#0F172A" strokeWidth="4.5" strokeLinejoin="round" />
-            <path d="M90 95 L155 50 L75 50" fill="none" stroke="#0F172A" strokeWidth="4.5" strokeLinejoin="round" />
-            <path d="M155 95 L140 50" stroke="#0F172A" strokeWidth="4.5" strokeLinecap="round" />
-            <path d="M140 50 L152 38 L147 33" fill="none" stroke="#0F172A" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="90" cy="95" r="7" fill="#0F172A" />
-            {/* Saddle */}
-            <path d="M65 53 Q75 47 85 52" stroke="#0F172A" strokeWidth="4.5" strokeLinecap="round" />
-            {/* Legs */}
-            <path d="M78 52 L90 78 L90 95" stroke="#FDBA74" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M90 78 L98 95" stroke="#FFFFFF" strokeWidth="6.5" strokeLinecap="round" />
-            {/* Torso */}
-            <path d="M70 50 C 70 38, 100 36, 125 45 C 132 48, 118 58, 92 55 Z" fill="#0D9488" />
-            {/* Arm */}
-            <path d="M112 45 L138 42 L147 33" stroke="#FDBA74" strokeWidth="6.5" strokeLinecap="round" strokeLinejoin="round" />
-            {/* Head & helmet */}
-            <circle cx="126" cy="27" r="11" fill="#FDBA74" />
-            <path d="M113 23 C 113 11, 142 11, 139 27 Z" fill="#0F172A" />
-            <rect x="123" y="23" width="15" height="4.5" rx="2" fill="#0EA5E9" />
-          </svg>
-        </div>
-      </div>
+        {/* Scene container */}
+        <div className="relative w-full max-w-[500px] h-[440px] overflow-hidden rounded-[32px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border border-slate-600"
+             style={{ background: 'linear-gradient(180deg, #4a7c9b 0%, #6b8fa8 20%, #8aa3b8 45%, #7a95a8 75%, #5a7080 100%)' }}>
 
-      {/* Dashboard */}
-      <div className="mt-4 w-[440px] relative z-20">
-        <div className="bg-white dark:bg-[#16203A] border-2 border-slate-800 dark:border-slate-700 rounded-xl shadow-lg p-4 flex justify-between items-center relative">
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-400 border-2 border-slate-800 dark:border-slate-700 text-slate-900 font-bold text-xs px-3 py-0.5 rounded-sm shadow-sm">
-            D 902
+          {/* Clouds */}
+          <div className="absolute top-0 left-0 w-[200%] h-[100px] z-[1] animate-cloudsDrift"
+               style={{ background: 'radial-gradient(ellipse at 25% 50%, rgba(255,255,255,0.35) 0%, transparent 55%), radial-gradient(ellipse at 65% 35%, rgba(255,255,255,0.25) 0%, transparent 50%), radial-gradient(ellipse at 80% 60%, rgba(255,255,255,0.3) 0%, transparent 45%)' }} />
+
+          {/* Far peaks */}
+          <div className="absolute top-[55px] left-0 w-full h-[210px] z-[2]">
+            <div className="absolute bottom-0 w-full h-full opacity-40"
+                 style={{ background: 'linear-gradient(180deg, #7a8a9a 0%, #5a6a7a 100%)', clipPath: 'polygon(0% 100%, 6% 40%, 16% 68%, 25% 28%, 38% 62%, 50% 18%, 63% 52%, 76% 22%, 88% 58%, 96% 32%, 100% 100%)', transform: 'translateX(10px) translateY(6px)' }} />
+            <div className="absolute bottom-0 w-full h-full opacity-85"
+                 style={{ background: 'linear-gradient(180deg, #e8edf2 0%, #c8d4e0 35%, #a0b0c0 100%)', clipPath: 'polygon(0% 100%, 6% 40%, 16% 68%, 25% 28%, 38% 62%, 50% 18%, 63% 52%, 76% 22%, 88% 58%, 96% 32%, 100% 100%)' }} />
+          </div>
+
+          {/* Mid mountains */}
+          <div className="absolute top-[110px] left-0 w-full h-[170px] z-[3]">
+            <div className="absolute bottom-0 w-full h-full opacity-65"
+                 style={{ background: 'linear-gradient(180deg, #4a6a44 0%, #3a5a34 55%, #2a4a24 100%)', clipPath: 'polygon(0% 100%, 9% 50%, 20% 72%, 33% 42%, 43% 65%, 56% 34%, 66% 58%, 76% 38%, 86% 62%, 94% 44%, 100% 68%, 100% 100%)' }} />
+            <div className="absolute bottom-0 w-full h-full"
+                 style={{ background: 'linear-gradient(180deg, #3d5a3a 0%, #2d4a2a 45%, #1e3a1e 100%)', clipPath: 'polygon(0% 100%, 4% 55%, 14% 78%, 24% 45%, 34% 68%, 46% 35%, 58% 62%, 70% 40%, 80% 66%, 90% 48%, 100% 72%, 100% 100%)' }} />
+          </div>
+
+          {/* Cliff face */}
+          <div className="absolute bottom-0 left-0 w-full h-[190px] z-[4]"
+               style={{ background: 'linear-gradient(180deg, #5a6b7b 0%, #4a5b6b 35%, #3a4a5a 70%, #2a3a4a 100%)', clipPath: 'polygon(0% 25%, 12% 48%, 28% 30%, 42% 52%, 58% 35%, 72% 55%, 88% 40%, 100% 50%, 100% 100%, 0% 100%)' }} />
+          <div className="absolute bottom-0 left-0 w-full h-[190px] z-[5]"
+               style={{ background: 'radial-gradient(ellipse at 18% 65%, rgba(60,70,85,0.7) 0%, transparent 35%), radial-gradient(ellipse at 52% 55%, rgba(60,70,85,0.6) 0%, transparent 30%), radial-gradient(ellipse at 78% 70%, rgba(60,70,85,0.65) 0%, transparent 32%)', clipPath: 'polygon(0% 25%, 12% 48%, 28% 30%, 42% 52%, 58% 35%, 72% 55%, 88% 40%, 100% 50%, 100% 100%, 0% 100%)' }} />
+
+          {/* Roadside rocks */}
+          <div className="absolute bottom-[25px] left-0 w-full h-[55px] z-[5]">
+            <div className="absolute bottom-[12px] left-[6%] w-[24px] h-[20px] bg-[#5a6b7b] opacity-75" style={{ clipPath: 'polygon(25% 0%, 75% 12%, 100% 100%, 0% 100%)' }} />
+            <div className="absolute bottom-[6px] left-[28%] w-[20px] h-[16px] bg-[#5a6b7b] opacity-75" style={{ clipPath: 'polygon(25% 0%, 75% 12%, 100% 100%, 0% 100%)' }} />
+            <div className="absolute bottom-[18px] left-[62%] w-[28px] h-[22px] bg-[#5a6b7b] opacity-75" style={{ clipPath: 'polygon(25% 0%, 75% 12%, 100% 100%, 0% 100%)' }} />
+            <div className="absolute bottom-[8px] left-[84%] w-[22px] h-[18px] bg-[#5a6b7b] opacity-75" style={{ clipPath: 'polygon(25% 0%, 75% 12%, 100% 100%, 0% 100%)' }} />
+          </div>
+
+          {/* Mountain road */}
+          <div className="absolute -bottom-[20px] -left-[40px] w-[620px] h-[190px] z-[6] rotate-[-11deg]"
+               style={{ background: 'linear-gradient(180deg, #6b7b8b 0%, #4b5b6b 55%, #3b4b5b 100%)', clipPath: 'polygon(0% 42%, 100% 32%, 100% 62%, 0% 72%)', boxShadow: 'inset 0 5px 15px rgba(0,0,0,0.5)' }}>
+            <div className="absolute top-[36%] left-0 w-full h-[5px] bg-[#8899aa] z-[7]"></div>
+            <div className="absolute top-[50%] left-0 w-full h-[3px] z-[7] opacity-65"
+                 style={{ background: 'repeating-linear-gradient(90deg, #facc15 0px, #facc15 28px, transparent 28px, transparent 48px)' }} />
+            <div className="absolute top-[66%] left-0 w-full h-[5px] bg-[#556677] z-[7]"></div>
+          </div>
+
+          {/* Foreground bushes */}
+          <div className="absolute -left-[18px] -bottom-[22px] w-[85px] h-[55px] z-[20] rounded-full"
+               style={{ background: 'radial-gradient(ellipse at center, #2d4a28 0%, #1a3018 75%)' }} />
+          <div className="absolute -right-[22px] -bottom-[28px] w-[95px] h-[60px] z-[20] rounded-full"
+               style={{ background: 'radial-gradient(ellipse at center, #2d4a28 0%, #1a3018 75%)' }} />
+
+          {/* Cyclist */}
+          <div className="absolute bottom-[60px] left-[130px] rotate-[-11deg] animate-climbSway z-[15]">
+            <svg width="220" height="145" viewBox="0 0 220 145" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Rear wheel */}
+              <g className="animate-wheelSpin" style={{ transformOrigin: '52px 98px' }}>
+                <circle cx="52" cy="98" r="23" fill="none" stroke="#0f172a" strokeWidth="5" />
+                <circle cx="52" cy="98" r="16" fill="none" stroke="#334155" strokeWidth="1.3" strokeDasharray="3 5" />
+                <circle cx="52" cy="98" r="4" fill="#0f172a" />
+                <line x1="52" y1="75" x2="52" y2="121" stroke="#334155" strokeWidth="1.8" />
+                <line x1="29" y1="98" x2="75" y2="98" stroke="#334155" strokeWidth="1.8" />
+              </g>
+              {/* Front wheel */}
+              <g className="animate-wheelSpin" style={{ transformOrigin: '155px 98px' }}>
+                <circle cx="155" cy="98" r="23" fill="none" stroke="#0f172a" strokeWidth="5" />
+                <circle cx="155" cy="98" r="16" fill="none" stroke="#334155" strokeWidth="1.3" strokeDasharray="3 5" />
+                <circle cx="155" cy="98" r="4" fill="#0f172a" />
+                <line x1="155" y1="75" x2="155" y2="121" stroke="#334155" strokeWidth="1.8" />
+                <line x1="132" y1="98" x2="178" y2="98" stroke="#334155" strokeWidth="1.8" />
+              </g>
+              {/* Frame */}
+              <path d="M52 98 L98 98 L80 50 Z" fill="none" stroke="#0f172a" strokeWidth="5.5" strokeLinejoin="round" />
+              <path d="M98 98 L155 50 L80 50" fill="none" stroke="#0f172a" strokeWidth="5.5" strokeLinejoin="round" />
+              <path d="M155 98 L137 50" stroke="#0f172a" strokeWidth="5.5" strokeLinecap="round" />
+              <path d="M137 50 L150 38 L144 32" fill="none" stroke="#0f172a" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M80 50 L74 44" stroke="#0f172a" strokeWidth="5" strokeLinecap="round" />
+              {/* Bottom bracket */}
+              <circle cx="98" cy="98" r="9" fill="#1e293b" />
+              <circle cx="98" cy="98" r="4.5" fill="#facc15" />
+              {/* Right leg */}
+              <g className="animate-rightThigh" style={{ transformOrigin: '74px 44px' }}>
+                <path d="M74 44 L90 70" stroke="#F0B080" strokeWidth="9" strokeLinecap="round" />
+                <path d="M74 44 L90 70" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                <g className="animate-crankSpin" style={{ transformOrigin: '98px 98px' }}>
+                  <line x1="98" y1="98" x2="107" y2="103" stroke="#1e293b" strokeWidth="4" strokeLinecap="round" />
+                  <path d="M90 70 L107 103" stroke="#F0B080" strokeWidth="8.5" strokeLinecap="round" />
+                  <path d="M90 70 L107 103" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                  <rect x="103" y="100" width="10" height="6" rx="2.5" fill="#ffffff" stroke="#0f172a" strokeWidth="1.5" />
+                </g>
+              </g>
+              {/* Left leg */}
+              <g className="animate-leftThigh" style={{ transformOrigin: '74px 44px' }}>
+                <path d="M74 44 L84 90" stroke="#E0A070" strokeWidth="8.5" strokeLinecap="round" />
+                <path d="M74 44 L84 90" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                <g className="animate-crankSpin" style={{ transformOrigin: '98px 98px' }}>
+                  <line x1="98" y1="98" x2="89" y2="93" stroke="#1e293b" strokeWidth="4" strokeLinecap="round" />
+                  <path d="M84 90 L89 93" stroke="#E0A070" strokeWidth="8" strokeLinecap="round" />
+                  <path d="M84 90 L89 93" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                  <rect x="85" y="90" width="10" height="6" rx="2.5" fill="#f1f5f9" stroke="#0f172a" strokeWidth="1.5" />
+                </g>
+              </g>
+              {/* Torso */}
+              <path d="M69 44 L69 -4 L79 -4 L79 44 Z" fill="#0D9488" stroke="#0f172a" strokeWidth="2" />
+              <path d="M68 44 C 66 26, 67 10, 69 -4 L79 -4 C 81 10, 80 26, 78 44 Z" fill="#0D9488" stroke="#0f172a" strokeWidth="2" />
+              <line x1="71" y1="37" x2="77" y2="37" stroke="#FACC15" strokeWidth="3" strokeLinecap="round" />
+              <line x1="70" y1="24" x2="78" y2="24" stroke="#FACC15" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="69" y1="11" x2="79" y2="11" stroke="#FACC15" strokeWidth="2.5" strokeLinecap="round" />
+              {/* Arms */}
+              <path d="M72 0 L110 18 L140 30" stroke="#E0A070" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <path d="M72 0 L110 18 L140 30" stroke="#1e293b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <circle cx="140" cy="30" r="4.5" fill="#E0A070" stroke="#0f172a" strokeWidth="2" />
+              <path d="M76 0 L114 22 L144 34" stroke="#F0B080" strokeWidth="7.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <path d="M76 0 L114 22 L144 34" stroke="#1e293b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <circle cx="144" cy="34" r="4.8" fill="#F0B080" stroke="#0f172a" strokeWidth="2" />
+              {/* Head */}
+              <circle cx="74" cy="-14" r="15" fill="#F0B080" stroke="#0f172a" strokeWidth="2.5" />
+              <path d="M57 -14 C 57 -32, 91 -32, 91 -14 Z" fill="#1e293b" stroke="#0f172a" strokeWidth="2.5" />
+              <rect x="66" y="-17" width="16" height="6" rx="3" fill="#38bdf8" stroke="#0f172a" strokeWidth="1.5" />
+              <circle cx="70" cy="-24" r="2.2" fill="#f8fafc" />
+              <circle cx="76" cy="-25" r="1.8" fill="#f8fafc" />
+              <circle cx="82" cy="-23" r="1.5" fill="#f8fafc" />
+              <circle cx="68" cy="-14" r="1.5" fill="#0f172a" />
+              <circle cx="78" cy="-14" r="1.5" fill="#0f172a" />
+              <path d="M71 -9 Q74 -6, 77 -9" stroke="#0f172a" strokeWidth="1.2" fill="none" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Dashboard */}
+        <div className="w-full max-w-[500px] bg-white/95 backdrop-blur-[12px] border-2 border-slate-800 rounded-[20px] shadow-[0_20px_35px_-10px_rgba(0,0,0,0.35)] p-[1.2rem_1.8rem] flex justify-between items-center relative z-30">
+          <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 bg-yellow-400 border-2 border-slate-900 text-slate-900 font-bold text-xs tracking-[0.08em] px-[1.1rem] py-[0.2rem] rounded-sm whitespace-nowrap shadow-[0_2px_6px_rgba(0,0,0,0.2)]">
+            D 902 · COL DU GALIBIER
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] text-slate-400 font-bold tracking-[0.25em] uppercase mb-1">Target Altitude</span>
-            <div className="text-3xl font-light text-[#0D9488] font-mono tabular-nums leading-none">
-              {Math.round(displayAltitude).toLocaleString()}<span className="text-sm text-slate-400 ml-1">m</span>
+            <span className="text-[10px] text-slate-500 font-bold tracking-[0.22em] uppercase mb-1">海拔高度</span>
+            <div className="text-4xl md:text-5xl font-light text-[#0D9488] font-mono tabular-nums leading-none flex items-baseline">
+              {Math.round(displayAltitude).toLocaleString()}
+              <span className="text-base text-slate-400 ml-1.5">m</span>
             </div>
           </div>
-          <div className="h-10 w-px bg-slate-200 dark:bg-slate-700"></div>
+          <div className="h-12 w-px bg-slate-300"></div>
           <div className="flex flex-col items-end">
-            <span className="text-[9px] text-slate-400 font-bold tracking-[0.25em] uppercase mb-1">Process Status</span>
-            <div className="text-3xl font-bold text-slate-800 dark:text-slate-200 font-mono tabular-nums leading-none">
-              {internalProgress.toFixed(1)}<span className="text-sm text-slate-400 ml-1">%</span>
+            <span className="text-[10px] text-slate-500 font-bold tracking-[0.22em] uppercase mb-1">爬坡进度</span>
+            <div className="text-4xl md:text-5xl font-bold text-slate-900 font-mono tabular-nums leading-none flex items-baseline">
+              {internalProgress.toFixed(1)}
+              <span className="text-base text-slate-400 ml-1.5">%</span>
             </div>
           </div>
         </div>
       </div>
 
       <style dangerouslySetInnerHTML={{__html: `
-        @keyframes peaksPan {
+        @keyframes cloudsDrift {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
-        @keyframes rockPan {
-          0% { left: 480px; }
-          100% { left: -60px; }
-        }
-        @keyframes climbBob {
-          0% { transform: rotate(-14deg) translateY(0); }
-          100% { transform: rotate(-14deg) translateY(-4px); }
+        @keyframes climbSway {
+          0% { transform: rotate(-11deg) translateY(0px) rotate(0deg); }
+          100% { transform: rotate(-11deg) translateY(-8px) rotate(2.8deg); }
         }
         @keyframes wheelSpin {
           100% { transform: rotate(360deg); }
         }
-        .animate-peaksPan { animation: peaksPan 15s linear infinite; }
-        .animate-rockPan { animation: rockPan 1.5s linear infinite; }
-        .rock-delay { animation-delay: 0.75s; }
-        .animate-climbBob { animation: climbBob 0.45s ease-in-out infinite alternate; }
-        .animate-wheelSpin { animation: wheelSpin 0.3s linear infinite; }
+        @keyframes crankSpin {
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes rightThighKick {
+          0% { transform: rotate(0deg); }
+          20% { transform: rotate(15deg); }
+          40% { transform: rotate(9deg); }
+          60% { transform: rotate(-11deg); }
+          80% { transform: rotate(-17deg); }
+          100% { transform: rotate(0deg); }
+        }
+        @keyframes leftThighKick {
+          0% { transform: rotate(0deg); }
+          20% { transform: rotate(-17deg); }
+          40% { transform: rotate(-11deg); }
+          60% { transform: rotate(9deg); }
+          80% { transform: rotate(15deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .animate-cloudsDrift { animation: cloudsDrift 35s linear infinite; }
+        .animate-climbSway { animation: climbSway 0.45s ease-in-out infinite alternate; }
+        .animate-wheelSpin { animation: wheelSpin 0.32s linear infinite; }
+        .animate-crankSpin { animation: crankSpin 0.5s linear infinite; }
+        .animate-rightThigh { animation: rightThighKick 0.5s ease-in-out infinite; }
+        .animate-leftThigh { animation: leftThighKick 0.5s ease-in-out infinite; }
       `}} />
     </div>
   );
