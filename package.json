@@ -14,7 +14,7 @@
     "dependencies": {
         "@jbrowse/product-core": "^4.3.0",
         "@jbrowse/react-linear-genome-view": "^3.1.0",
-        "@supabase/supabase-js": "^2.110.7",
+        "@supabase/supabase-js": "^2.112.3",
         "@tanstack/react-table": "^8.21.3",
         "@types/echarts": "^4.9.22",
         "echarts": "^6.1.0",
