@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { HF_PROXY_BASE_URL, STORAGE_BASE_URL } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const ALLOWED_HOST_SUFFIXES = [
   'huggingface.co',
@@ -34,11 +35,84 @@ function isAllowedDownloadUrl(value: string): boolean {
   }
 }
 
+function sanitizeFilename(value: string): string {
+  const cleaned = value
+    .replace(/[\r\n\u0000-\u001f\u007f]/g, '')
+    .replace(/[\\/]/g, '_')
+    .trim();
+  return cleaned || 'download.file';
+}
+
+function buildContentDisposition(filename: string): string {
+  const safeFilename = sanitizeFilename(filename);
+  const asciiFallback = safeFilename.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
+  const encodedFilename = encodeURIComponent(safeFilename).replace(/[!'()*]/g, (char) =>
+    `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedFilename}`;
+}
+
+function getUpstreamUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (/^hf-mirror\.com$/i.test(parsed.hostname)) {
+      parsed.hostname = 'huggingface.co';
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url') || '';
   if (!isAllowedDownloadUrl(url)) {
     return new Response('Download URL is not allowed.', { status: 400 });
   }
 
-  return NextResponse.redirect(new URL(url), 302);
+  const filename = sanitizeFilename(request.nextUrl.searchParams.get('filename') || '');
+  const upstreamHeaders = new Headers();
+  upstreamHeaders.set('User-Agent', 'GalibierHub/1.0');
+  upstreamHeaders.set('Accept', '*/*');
+  const range = request.headers.get('range');
+  if (range) upstreamHeaders.set('Range', range);
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(getUpstreamUrl(url), {
+      headers: upstreamHeaders,
+      redirect: 'follow',
+      cache: 'no-store',
+    });
+  } catch {
+    return new Response('Upstream download failed.', { status: 502 });
+  }
+
+  if (!upstream.ok) {
+    return new Response(`Upstream download failed with status ${upstream.status}.`, {
+      status: upstream.status,
+    });
+  }
+
+  const responseHeaders = new Headers();
+  responseHeaders.set('Content-Disposition', buildContentDisposition(filename));
+  responseHeaders.set('Content-Type', 'application/octet-stream');
+  responseHeaders.set('Cache-Control', 'private, no-store');
+  responseHeaders.set('X-Content-Type-Options', 'nosniff');
+
+  const contentLength = upstream.headers.get('content-length');
+  if (contentLength) responseHeaders.set('Content-Length', contentLength);
+  const contentEncoding = upstream.headers.get('content-encoding');
+  if (contentEncoding) responseHeaders.set('Content-Encoding', contentEncoding);
+  if (upstream.status === 206) {
+    const contentRange = upstream.headers.get('content-range');
+    if (contentRange) responseHeaders.set('Content-Range', contentRange);
+    responseHeaders.set('Accept-Ranges', 'bytes');
+  }
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers: responseHeaders,
+  });
 }
